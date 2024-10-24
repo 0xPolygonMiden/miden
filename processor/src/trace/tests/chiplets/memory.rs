@@ -9,7 +9,7 @@ use miden_air::{
 
 use super::{
     build_trace_from_ops, rand_array, ExecutionTrace, Felt, FieldElement, Operation, Trace, Word,
-    AUX_TRACE_RAND_ELEMENTS, CHIPLETS_AUX_TRACE_OFFSET, NUM_RAND_ROWS, ONE, ZERO,
+    AUX_TRACE_RAND_ELEMENTS, CHIPLETS_AUX_TRACE_OFFSET, ONE, ZERO,
 };
 
 /// Tests the generation of the `b_chip` bus column when only memory lookups are included. It
@@ -139,7 +139,7 @@ fn b_chip_trace_mem() {
     assert_eq!(expected, b_chip[15]);
 
     // The value in b_chip should be ONE now and for the rest of the trace.
-    for row in 15..trace.length() - NUM_RAND_ROWS {
+    for row in 15..trace.length() {
         assert_eq!(ONE, b_chip[row]);
     }
 }

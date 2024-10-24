@@ -21,7 +21,7 @@ use winter_prover::{
     matrix::{get_evaluation_offsets, ColMatrix, RowMatrix, Segment},
     proof::Queries,
     CompositionPoly, CompositionPolyTrace, ConstraintCommitment, ConstraintCompositionCoefficients,
-    DefaultConstraintEvaluator, EvaluationFrame, Prover, StarkDomain, TraceInfo, TraceLde,
+    EvaluationFrame, LogUpGkrConstraintEvaluator, Prover, StarkDomain, TraceInfo, TraceLde,
     TracePolyTable,
 };
 
@@ -138,7 +138,7 @@ where
     type RandomCoin = R;
     type TraceLde<E: FieldElement<BaseField = Felt>> = MetalTraceLde<E, H>;
     type ConstraintEvaluator<'a, E: FieldElement<BaseField = Felt>> =
-        DefaultConstraintEvaluator<'a, ProcessorAir, E>;
+        LogUpGkrConstraintEvaluator<'a, ProcessorAir, E>;
 
     fn get_pub_inputs(&self, trace: &ExecutionTrace) -> PublicInputs {
         self.execution_prover.get_pub_inputs(trace)

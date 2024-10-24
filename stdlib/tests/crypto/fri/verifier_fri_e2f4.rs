@@ -10,6 +10,7 @@ use test_utils::{
     math::fft,
     Felt, FieldElement, QuadFelt as QuadExt, StarkField, EMPTY_WORD,
 };
+use winter_crypto::MerkleTree as MerkleTreeVC;
 use winter_fri::{
     folding::fold_positions, DefaultProverChannel, FriOptions, FriProof, FriProver, VerifierError,
 };
@@ -63,10 +64,10 @@ pub fn fri_prove_verify_fold4_ext2(trace_length_e: usize) -> Result<FriResult, V
 
     let options = FriOptions::new(lde_blowup, folding_factor, max_remainder_size);
     let mut channel = build_prover_channel(trace_length, &options);
-    let evaluations = build_evaluations(trace_length, lde_blowup);
+    let evaluations: Vec<QuadExt> = build_evaluations(trace_length, lde_blowup);
 
     // instantiate the prover and generate the proof
-    let mut prover = FriProver::new(options.clone());
+    let mut prover = FriProver::<_, _, _, MerkleTreeVC<MidenHasher>>::new(options.clone());
     prover.build_layers(&mut channel, evaluations.clone());
     let positions = channel.draw_query_positions(nonce);
     let proof = prover.build_proof(&positions);
@@ -412,21 +413,18 @@ impl UnBatch<QuadExt, MidenHasher> for MidenFriVerifierChannel<QuadExt, MidenHas
 
             let layer_proof = layer_proofs.remove(0);
 
-            let mut unbatched_proof = layer_proof.into_paths(&folded_positions).unwrap();
             let x = group_slice_elements::<QuadExt, N>(query);
+            let leaves: Vec<RpoDigest> =
+                x.iter().map(|row| MidenHasher::hash_elements(row)).collect();
+            let unbatched_proof = layer_proof.into_openings(&leaves, &folded_positions).unwrap();
+
             assert_eq!(x.len(), unbatched_proof.len());
 
-            let nodes: Vec<[Felt; 4]> = unbatched_proof
-                .iter_mut()
-                .map(|list| {
-                    let node = list.remove(0);
-                    let node = node.as_elements().to_owned();
-                    [node[0], node[1], node[2], node[3]]
-                })
-                .collect();
+            let nodes: Vec<[Felt; 4]> =
+                leaves.iter().map(|leaf| [leaf[0], leaf[1], leaf[2], leaf[3]]).collect();
 
             let paths: Vec<MerklePath> =
-                unbatched_proof.into_iter().map(|list| list.into()).collect();
+                unbatched_proof.into_iter().map(|list| list.1.into()).collect();
 
             let iter_pos = folded_positions.iter_mut().map(|a| *a as u64);
             let nodes_tmp = nodes.clone();

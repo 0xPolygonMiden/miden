@@ -5,6 +5,7 @@ use test_utils::{
     serde::DeserializationError,
     Felt, FieldElement, StarkField,
 };
+use winter_crypto::MerkleTree as MerkleTreeVC;
 use winter_fri::{FriProof, VerifierError};
 
 pub trait UnBatch<E: FieldElement, H: ElementHasher> {
@@ -25,8 +26,8 @@ pub struct MidenFriVerifierChannel<E: FieldElement, H: ElementHasher<BaseField =
 
 impl<E, H> MidenFriVerifierChannel<E, H>
 where
-    E: FieldElement,
-    H: ElementHasher<BaseField = E::BaseField>,
+    E: FieldElement<BaseField = Felt>,
+    H: ElementHasher<BaseField = E::BaseField> + ElementHasher,
 {
     /// Builds a new verifier channel from the specified [FriProof].
     ///
@@ -40,7 +41,7 @@ where
     ) -> Result<Self, DeserializationError> {
         let remainder = proof.parse_remainder()?;
         let (layer_queries, layer_proofs) =
-            proof.parse_layers::<H, E>(domain_size, folding_factor)?;
+            proof.parse_layers::<E, H, MerkleTreeVC<H>>(domain_size, folding_factor)?;
 
         Ok(MidenFriVerifierChannel {
             layer_commitments,

@@ -9,8 +9,7 @@ use vm_core::{
 };
 
 use super::{
-    super::NUM_RAND_ROWS, build_trace_from_ops_with_inputs, rand_array, AdviceInputs, Felt,
-    Operation, Word, ONE, ZERO,
+    build_trace_from_ops_with_inputs, rand_array, AdviceInputs, Felt, Operation, Word, ONE, ZERO,
 };
 use crate::StackInputs;
 
@@ -42,7 +41,7 @@ fn hasher_p1_mp_verify() {
 
     // executing MPVERIFY does not affect the sibling table - so, all values in the column must be
     // ONE
-    for i in 0..(p1.len() - NUM_RAND_ROWS) {
+    for i in 0..p1.len() {
         assert_eq!(ONE, p1[i]);
     }
 }
@@ -146,7 +145,7 @@ fn hasher_p1_mr_update() {
 
     // at this point the table should be empty again, and it should stay empty until the end
     assert_eq!(expected_value, ONE);
-    for i in 50..(p1.len() - NUM_RAND_ROWS) {
+    for i in 50..p1.len() {
         assert_eq!(ONE, p1[i]);
     }
 }

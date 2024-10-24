@@ -2,11 +2,8 @@ use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_air::RowIndex;
 
-use super::{trace::NUM_RAND_ROWS, Felt, FieldElement, RangeCheckTrace, ZERO};
+use super::{Felt, RangeCheckTrace, ZERO};
 use crate::utils::uninit_vector;
-
-mod aux_trace;
-pub use aux_trace::AuxTraceBuilder;
 
 #[cfg(test)]
 mod tests;
@@ -107,18 +104,13 @@ impl RangeChecker {
     /// # Panics
     /// Panics if `target_len` is not a power of two or is smaller than the trace length needed
     /// to represent all lookups in this range checker.
-    pub fn into_trace_with_table(
-        self,
-        trace_len: usize,
-        target_len: usize,
-        num_rand_rows: usize,
-    ) -> RangeCheckTrace {
+    pub fn into_trace_with_table(self, trace_len: usize, target_len: usize) -> RangeCheckTrace {
         assert!(target_len.is_power_of_two(), "target trace length is not a power of two");
 
         // determine the length of the trace required to support all the lookups in this range
         // checker, and make sure this length is smaller than or equal to the target trace length,
         // accounting for rows with random values.
-        assert!(trace_len + num_rand_rows <= target_len, "target trace length too small");
+        assert!(trace_len <= target_len, "target trace length too small");
 
         // allocated memory for the trace; this memory is un-initialized but this is not a problem
         // because we'll overwrite all values in it anyway.
@@ -126,7 +118,7 @@ impl RangeChecker {
 
         // determine the number of padding rows needed to get to target trace length and pad the
         // table with the required number of rows.
-        let num_padding_rows = target_len - trace_len - num_rand_rows;
+        let num_padding_rows = target_len - trace_len;
         trace[0][..num_padding_rows].fill(ZERO);
         trace[1][..num_padding_rows].fill(ZERO);
 
@@ -145,14 +137,7 @@ impl RangeChecker {
         // the "current" row of the main trace but placed into the "next" row of the bus column.)
         write_trace_row(&mut trace, &mut i, 0, (u16::MAX).into());
 
-        RangeCheckTrace {
-            trace,
-            aux_builder: AuxTraceBuilder::new(
-                self.lookups.keys().cloned().collect(),
-                self.cycle_lookups,
-                num_padding_rows,
-            ),
-        }
+        RangeCheckTrace { trace }
     }
 
     // PUBLIC ACCESSORS
@@ -194,9 +179,9 @@ impl RangeChecker {
     ///
     /// Wrapper for [`RangeChecker::into_trace_with_table`].
     #[cfg(test)]
-    pub fn into_trace(self, target_len: usize, num_rand_rows: usize) -> RangeCheckTrace {
+    pub fn into_trace(self, target_len: usize) -> RangeCheckTrace {
         let table_len = self.get_number_range_checker_rows();
-        self.into_trace_with_table(table_len, target_len, num_rand_rows)
+        self.into_trace_with_table(table_len, target_len)
     }
 }
 

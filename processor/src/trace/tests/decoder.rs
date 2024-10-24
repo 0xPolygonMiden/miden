@@ -12,7 +12,6 @@ use super::{
     super::{
         tests::{build_trace_from_ops, build_trace_from_program},
         utils::build_span_with_respan_ops,
-        NUM_RAND_ROWS,
     },
     Felt,
 };
@@ -62,7 +61,7 @@ fn decoder_p1_span_with_respan() {
     // at cycle 22, the END operation is executed and the table is cleared
     let expected_value = expected_value * row_values[1].inv();
     assert_eq!(expected_value, ONE);
-    for i in 22..(p1.len() - NUM_RAND_ROWS) {
+    for i in 22..p1.len() {
         assert_eq!(ONE, p1[i]);
     }
 }
@@ -129,7 +128,7 @@ fn decoder_p1_join() {
 
     // at this point the table should be empty, and thus, all subsequent values must be ONE
     assert_eq!(expected_value, ONE);
-    for i in 9..(p1.len() - NUM_RAND_ROWS) {
+    for i in 9..p1.len() {
         assert_eq!(ONE, p1[i]);
     }
 }
@@ -183,7 +182,7 @@ fn decoder_p1_split() {
 
     // at this point the table should be empty, and thus, all subsequent values must be ONE
     assert_eq!(expected_value, ONE);
-    for i in 6..(p1.len() - NUM_RAND_ROWS) {
+    for i in 6..p1.len() {
         assert_eq!(ONE, p1[i]);
     }
 }
@@ -304,7 +303,7 @@ fn decoder_p1_loop_with_repeat() {
 
     // at this point the table should be empty, and thus, all subsequent values must be ONE
     assert_eq!(expected_value, ONE);
-    for i in 20..(p1.len() - NUM_RAND_ROWS) {
+    for i in 20..p1.len() {
         assert_eq!(ONE, p1[i]);
     }
 }
@@ -345,7 +344,7 @@ fn decoder_p2_span_with_respan() {
     // at cycle 22, the END operation is executed and the table is cleared
     expected_value *= row_values[0].inv();
     assert_eq!(expected_value, ONE);
-    for i in 22..(p2.len() - NUM_RAND_ROWS) {
+    for i in 22..p2.len() {
         assert_eq!(ONE, p2[i]);
     }
 }
@@ -410,7 +409,7 @@ fn decoder_p2_join() {
 
     // at this point the table should be empty, and thus, all subsequent values must be ONE
     assert_eq!(expected_value, ONE);
-    for i in 9..(p2.len() - NUM_RAND_ROWS) {
+    for i in 9..p2.len() {
         assert_eq!(ONE, p2[i]);
     }
 }
@@ -463,7 +462,7 @@ fn decoder_p2_split_true() {
 
     // at this point the table should be empty, and thus, all subsequent values must be ONE
     assert_eq!(expected_value, ONE);
-    for i in 6..(p2.len() - NUM_RAND_ROWS) {
+    for i in 6..p2.len() {
         assert_eq!(ONE, p2[i]);
     }
 }
@@ -519,7 +518,7 @@ fn decoder_p2_split_false() {
 
     // at this point the table should be empty, and thus, all subsequent values must be ONE
     assert_eq!(expected_value, ONE);
-    for i in 6..(p2.len() - NUM_RAND_ROWS) {
+    for i in 6..p2.len() {
         assert_eq!(ONE, p2[i]);
     }
 }
@@ -635,7 +634,7 @@ fn decoder_p2_loop_with_repeat() {
 
     // at this point the table should be empty, and thus, all subsequent values must be ONE
     assert_eq!(expected_value, ONE);
-    for i in 20..(p2.len() - NUM_RAND_ROWS) {
+    for i in 20..p2.len() {
         assert_eq!(ONE, p2[i]);
     }
 }
@@ -655,7 +654,7 @@ fn decoder_p3_trace_empty_table() {
     // no rows should have been added or removed from the op group table, and thus, all values
     // in the column must be ONE
     let p3 = aux_columns.get_column(P3_COL_IDX);
-    for &value in p3.iter().take(p3.len() - NUM_RAND_ROWS) {
+    for &value in p3.iter().take(p3.len()) {
         assert_eq!(ONE, value);
     }
 }
@@ -721,7 +720,7 @@ fn decoder_p3_trace_one_batch() {
 
     // at this point, the table should be empty and thus, running product should be ONE
     assert_eq!(expected_value, ONE);
-    for i in 11..(p3.len() - NUM_RAND_ROWS) {
+    for i in 11..p3.len() {
         assert_eq!(ONE, p3[i]);
     }
 }
@@ -795,7 +794,7 @@ fn decoder_p3_trace_two_batches() {
 
     // at this point, the table should be empty and thus, running product should be ONE
     assert_eq!(expected_value, ONE);
-    for i in 20..(p3.len() - NUM_RAND_ROWS) {
+    for i in 20..p3.len() {
         assert_eq!(ONE, p3[i]);
     }
 }

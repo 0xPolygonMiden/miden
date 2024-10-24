@@ -183,19 +183,3 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
         }
     }
 }
-
-// EXTERNAL ACCESSORS
-// ================================================================================================
-/// Trait to allow other processors to easily access the chiplet values they need for constraint
-/// calculations.
-pub trait ChipletsFrameExt<E: FieldElement> {
-    /// Flag to indicate whether the frame is in the memory chiplet.
-    fn chiplets_memory_flag(&self) -> E;
-}
-
-impl<E: FieldElement> ChipletsFrameExt<E> for &EvaluationFrame<E> {
-    #[inline(always)]
-    fn chiplets_memory_flag(&self) -> E {
-        self.memory_flag(true)
-    }
-}

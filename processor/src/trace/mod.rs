@@ -7,12 +7,11 @@ use miden_air::trace::{
     STACK_TRACE_OFFSET, TRACE_WIDTH,
 };
 use vm_core::{stack::MIN_STACK_DEPTH, ProgramInfo, StackInputs, StackOutputs, ZERO};
-use winter_prover::{crypto::RandomCoin, EvaluationFrame, Trace, TraceInfo};
+use winter_prover::{EvaluationFrame, Trace, TraceInfo};
 
 use super::{
-    chiplets::AuxTraceBuilder as ChipletsAuxTraceBuilder, crypto::RpoRandomCoin,
+    chiplets::AuxTraceBuilder as ChipletsAuxTraceBuilder,
     decoder::AuxTraceBuilder as DecoderAuxTraceBuilder,
-    range::AuxTraceBuilder as RangeCheckerAuxTraceBuilder,
     stack::AuxTraceBuilder as StackAuxTraceBuilder, ColMatrix, Digest, Felt, FieldElement, Host,
     Process,
 };
@@ -22,14 +21,6 @@ pub use utils::{AuxColumnBuilder, ChipletsLengths, TraceFragment, TraceLenSummar
 
 #[cfg(test)]
 mod tests;
-#[cfg(test)]
-use super::EMPTY_WORD;
-
-// CONSTANTS
-// ================================================================================================
-
-/// Number of rows at the end of an execution trace which are injected with random values.
-pub const NUM_RAND_ROWS: usize = 1;
 
 // VM EXECUTION TRACE
 // ================================================================================================
@@ -37,7 +28,6 @@ pub const NUM_RAND_ROWS: usize = 1;
 pub struct AuxTraceBuilders {
     pub(crate) decoder: DecoderAuxTraceBuilder,
     pub(crate) stack: StackAuxTraceBuilder,
-    pub(crate) range: RangeCheckerAuxTraceBuilder,
     pub(crate) chiplets: ChipletsAuxTraceBuilder,
 }
 
@@ -59,12 +49,6 @@ pub struct ExecutionTrace {
 }
 
 impl ExecutionTrace {
-    // CONSTANTS
-    // --------------------------------------------------------------------------------------------
-
-    /// Number of rows at the end of an execution trace which are injected with random values.
-    pub const NUM_RAND_ROWS: usize = NUM_RAND_ROWS;
-
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Builds an execution trace for the provided process.
@@ -72,23 +56,19 @@ impl ExecutionTrace {
     where
         H: Host,
     {
-        // use program hash to initialize random element generator; this generator will be used
-        // to inject random values at the end of the trace; using program hash here is OK because
-        // we are using random values only to stabilize constraint degrees, and not to achieve
-        // perfect zero knowledge.
         let program_hash = process.decoder.program_hash();
-        let rng = RpoRandomCoin::new(program_hash);
 
         // create a new program info instance with the underlying kernel
         let kernel = process.kernel().clone();
         let program_info = ProgramInfo::new(program_hash.into(), kernel);
-        let (main_trace, aux_trace_builders, trace_len_summary) = finalize_trace(process, rng);
+        let (main_trace, aux_trace_builders, trace_len_summary) = finalize_trace(process);
         let trace_info = TraceInfo::new_multi_segment(
             TRACE_WIDTH,
             AUX_TRACE_WIDTH,
             AUX_TRACE_RAND_ELEMENTS,
             main_trace.num_rows(),
             vec![],
+            true,
         );
 
         Self {
@@ -169,7 +149,7 @@ impl ExecutionTrace {
 
     /// Returns the index of the last row in the trace.
     fn last_step(&self) -> usize {
-        self.length() - NUM_RAND_ROWS - 1
+        self.length() - 1
     }
 
     // TEST HELPERS
@@ -191,8 +171,7 @@ impl ExecutionTrace {
     where
         H: Host,
     {
-        let rng = RpoRandomCoin::new(EMPTY_WORD);
-        finalize_trace(process, rng)
+        finalize_trace(process)
     }
 
     pub fn build_aux_trace<E>(&self, rand_elements: &[E]) -> Option<ColMatrix<E>>
@@ -209,10 +188,6 @@ impl ExecutionTrace {
         let stack_aux_columns =
             self.aux_trace_builders.stack.build_aux_columns(&self.main_trace, rand_elements);
 
-        // add the range checker's running product columns
-        let range_aux_columns =
-            self.aux_trace_builders.range.build_aux_columns(&self.main_trace, rand_elements);
-
         // add the running product columns for the chiplets
         let chiplets = self
             .aux_trace_builders
@@ -220,20 +195,11 @@ impl ExecutionTrace {
             .build_aux_columns(&self.main_trace, rand_elements);
 
         // combine all auxiliary columns into a single vector
-        let mut aux_columns = decoder_aux_columns
+        let aux_columns = decoder_aux_columns
             .into_iter()
             .chain(stack_aux_columns)
-            .chain(range_aux_columns)
             .chain(chiplets)
             .collect::<Vec<_>>();
-
-        // inject random values into the last rows of the trace
-        let mut rng = RpoRandomCoin::new(self.program_hash().into());
-        for i in self.length() - NUM_RAND_ROWS..self.length() {
-            for column in aux_columns.iter_mut() {
-                column[i] = rng.draw().expect("failed to draw a random value");
-            }
-        }
 
         Some(ColMatrix::new(aux_columns))
     }
@@ -275,10 +241,7 @@ impl Trace for ExecutionTrace {
 /// - Inserting random values in the last row of all columns. This helps ensure that there are no
 ///   repeating patterns in each column and each column contains a least two distinct values. This,
 ///   in turn, ensures that polynomial degrees of all columns are stable.
-fn finalize_trace<H>(
-    process: Process<H>,
-    mut rng: RpoRandomCoin,
-) -> (MainTrace, AuxTraceBuilders, TraceLenSummary)
+fn finalize_trace<H>(process: Process<H>) -> (MainTrace, AuxTraceBuilders, TraceLenSummary)
 where
     H: Host,
 {
@@ -302,7 +265,7 @@ where
 
     // Pad the trace length to the next power of two and ensure that there is space for the
     // Rows to hold random values
-    let trace_len = (max_len + NUM_RAND_ROWS).next_power_of_two();
+    let trace_len = max_len.next_power_of_two();
     assert!(
         trace_len >= MIN_TRACE_LEN,
         "trace length must be at least {MIN_TRACE_LEN}, but was {trace_len}",
@@ -313,15 +276,15 @@ where
         TraceLenSummary::new(clk.into(), range_table_len, ChipletsLengths::new(&chiplets));
 
     // Combine all trace segments into the main trace
-    let system_trace = system.into_trace(trace_len, NUM_RAND_ROWS);
-    let decoder_trace = decoder.into_trace(trace_len, NUM_RAND_ROWS);
-    let stack_trace = stack.into_trace(trace_len, NUM_RAND_ROWS);
-    let chiplets_trace = chiplets.into_trace(trace_len, NUM_RAND_ROWS);
+    let system_trace = system.into_trace(trace_len);
+    let decoder_trace = decoder.into_trace(trace_len);
+    let stack_trace = stack.into_trace(trace_len);
+    let chiplets_trace = chiplets.into_trace(trace_len);
 
     // Combine the range trace segment using the support lookup table
-    let range_check_trace = range.into_trace_with_table(range_table_len, trace_len, NUM_RAND_ROWS);
+    let range_check_trace = range.into_trace_with_table(range_table_len, trace_len);
 
-    let mut trace = system_trace
+    let trace = system_trace
         .into_iter()
         .chain(decoder_trace.trace)
         .chain(stack_trace.trace)
@@ -329,21 +292,13 @@ where
         .chain(chiplets_trace.trace)
         .collect::<Vec<_>>();
 
-    // Inject random values into the last rows of the trace
-    for i in trace_len - NUM_RAND_ROWS..trace_len {
-        for column in trace.iter_mut() {
-            column[i] = rng.draw().expect("failed to draw a random value");
-        }
-    }
-
-    let aux_trace_hints = AuxTraceBuilders {
+    let aux_trace_builders = AuxTraceBuilders {
         decoder: decoder_trace.aux_builder,
         stack: StackAuxTraceBuilder,
-        range: range_check_trace.aux_builder,
         chiplets: chiplets_trace.aux_builder,
     };
 
     let main_trace = MainTrace::new(ColMatrix::new(trace), clk);
 
-    (main_trace, aux_trace_hints, trace_len_summary)
+    (main_trace, aux_trace_builders, trace_len_summary)
 }

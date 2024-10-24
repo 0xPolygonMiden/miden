@@ -32,9 +32,11 @@ std = [
 
 [dependencies]
 lock_api = { version = "0.4", features = ["arc_lock"] }
-math = { package = "winter-math", version = "0.9", default-features = false }
+math = { package = "winter-math", git = "https://github.com/facebook/winterfell", branch = "logup-gkr", default-features = false }
+
 memchr = { version = "2.7", default-features = false }
-miden-crypto = { version = "0.10", default-features = false }
+miden-crypto = { git = "https://github.com/0xPolygonMiden/crypto", branch = "al-update-degree-checks", default-features = false }
+
 miden-formatting = { version = "0.1", default-features = false }
 miette = { package = "miden-miette", version = "7.1", default-features = false, features = [
     "fancy-no-syscall",
@@ -44,12 +46,13 @@ num-derive = { version = "0.4", default-features = false }
 num-traits = { version = "0.2", default-features = false }
 parking_lot = { version = "0.12", optional = true }
 thiserror = { package = "miden-thiserror", version = "1.0", default-features = false }
-winter-utils = { package = "winter-utils", version = "0.9", default-features = false }
+winter-utils = { package = "winter-utils", git = "https://github.com/facebook/winterfell", branch = "logup-gkr", default-features = false }
+#thiserror = { version = "1.0", git = "https://github.com/bitwalker/thiserror", branch = "no-std", default-features = false }
 
 [dev-dependencies]
 loom = "0.7"
 proptest = "1.5"
-rand_utils = { version = "0.9", package = "winter-rand-utils" }
+rand_utils = { git = "https://github.com/facebook/winterfell", branch = "logup-gkr", package = "winter-rand-utils" }
 
 [target.'cfg(loom)'.dependencies]
 loom = "0.7"

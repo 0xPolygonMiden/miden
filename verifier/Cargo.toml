@@ -25,4 +25,4 @@ std = ["air/std", "vm-core/std", "winter-verifier/std"]
 air = { package = "miden-air", path = "../air", version = "0.10", default-features = false }
 tracing = { version = "0.1", default-features = false, features = ["attributes"] }
 vm-core = { package = "miden-core", path = "../core", version = "0.10", default-features = false }
-winter-verifier = { package = "winter-verifier", version = "0.9", default-features = false }
+winter-verifier = { package = "winter-verifier", git = "https://github.com/facebook/winterfell", branch = "logup-gkr", default-features = false }

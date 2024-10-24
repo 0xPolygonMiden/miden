@@ -387,9 +387,9 @@ impl Chiplets {
     ///
     /// `num_rand_rows` indicates the number of rows at the end of the trace which will be
     /// overwritten with random values.
-    pub fn into_trace(self, trace_len: usize, num_rand_rows: usize) -> ChipletsTrace {
+    pub fn into_trace(self, trace_len: usize) -> ChipletsTrace {
         // make sure that only padding rows will be overwritten by random values
-        assert!(self.trace_len() + num_rand_rows <= trace_len, "target trace length too small");
+        assert!(self.trace_len() <= trace_len, "target trace length too small");
 
         // Allocate columns for the trace of the chiplets.
         let mut trace = (0..CHIPLETS_WIDTH)

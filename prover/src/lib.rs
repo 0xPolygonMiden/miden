@@ -21,9 +21,9 @@ use processor::{
 };
 use tracing::instrument;
 use winter_prover::{
-    matrix::ColMatrix, ConstraintCompositionCoefficients, DefaultConstraintEvaluator,
-    DefaultTraceLde, ProofOptions as WinterProofOptions, Prover, StarkDomain, TraceInfo,
-    TracePolyTable,
+    crypto::MerkleTree as MerkleTreeVC, matrix::ColMatrix, ConstraintCompositionCoefficients,
+    DefaultTraceLde, LogUpGkrConstraintEvaluator, ProofOptions as WinterProofOptions, Prover,
+    StarkDomain, TraceInfo, TracePolyTable,
 };
 #[cfg(feature = "std")]
 use {std::time::Instant, winter_prover::Trace};
@@ -70,7 +70,7 @@ where
     tracing::event!(
         tracing::Level::INFO,
         "Generated execution trace of {} columns and {} steps ({}% padded) in {} ms",
-        trace.info().main_trace_width(),
+        trace.info().main_segment_width(),
         trace.trace_len_summary().padded_trace_len(),
         trace.trace_len_summary().padding_percentage(),
         now.elapsed().as_millis()
@@ -174,7 +174,7 @@ where
 
 impl<H, R> Prover for ExecutionProver<H, R>
 where
-    H: ElementHasher<BaseField = Felt>,
+    H: ElementHasher<BaseField = Felt> + Sync,
     R: RandomCoin<BaseField = Felt, Hasher = H> + Send,
 {
     type BaseField = Felt;
@@ -182,9 +182,11 @@ where
     type Trace = ExecutionTrace;
     type HashFn = H;
     type RandomCoin = R;
-    type TraceLde<E: FieldElement<BaseField = Felt>> = DefaultTraceLde<E, H>;
+    type TraceLde<E: FieldElement<BaseField = Felt>> = DefaultTraceLde<E, H, Self::VC>;
     type ConstraintEvaluator<'a, E: FieldElement<BaseField = Felt>> =
-        DefaultConstraintEvaluator<'a, ProcessorAir, E>;
+        LogUpGkrConstraintEvaluator<'a, ProcessorAir, E>;
+
+    type VC = MerkleTreeVC<Self::HashFn>;
 
     fn options(&self) -> &WinterProofOptions {
         &self.options
@@ -220,17 +222,17 @@ where
         aux_rand_elements: Option<AuxRandElements<E>>,
         composition_coefficients: ConstraintCompositionCoefficients<E>,
     ) -> Self::ConstraintEvaluator<'a, E> {
-        DefaultConstraintEvaluator::new(air, aux_rand_elements, composition_coefficients)
+        LogUpGkrConstraintEvaluator::new(
+            air,
+            aux_rand_elements.expect("should contain randomness"),
+            composition_coefficients,
+        )
     }
 
-    fn build_aux_trace<E>(
-        &self,
-        trace: &Self::Trace,
-        aux_rand_elements: &AuxRandElements<E>,
-    ) -> ColMatrix<E>
+    fn build_aux_trace<E>(&self, trace: &Self::Trace, aux_rand_elements: &[E]) -> ColMatrix<E>
     where
         E: FieldElement<BaseField = Self::BaseField>,
     {
-        trace.build_aux_trace(aux_rand_elements.rand_elements()).unwrap()
+        trace.build_aux_trace(aux_rand_elements).unwrap()
     }
 }

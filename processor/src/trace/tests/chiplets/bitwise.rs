@@ -8,7 +8,7 @@ use miden_air::{
 
 use super::{
     build_trace_from_ops, rand_array, rand_value, ExecutionTrace, Felt, FieldElement, Operation,
-    Trace, AUX_TRACE_RAND_ELEMENTS, CHIPLETS_AUX_TRACE_OFFSET, HASH_CYCLE_LEN, NUM_RAND_ROWS, ONE,
+    Trace, AUX_TRACE_RAND_ELEMENTS, CHIPLETS_AUX_TRACE_OFFSET, HASH_CYCLE_LEN, ONE,
 };
 
 /// Tests the generation of the `b_chip` bus column when only bitwise lookups are included. It
@@ -163,7 +163,7 @@ fn b_chip_trace_bitwise() {
     assert_eq!(expected, b_chip[response_3_row]);
 
     // The value in b_chip should be ONE now and for the rest of the trace.
-    for row in response_3_row..trace.length() - NUM_RAND_ROWS {
+    for row in response_3_row..trace.length() {
         assert_eq!(ONE, b_chip[row]);
     }
 }

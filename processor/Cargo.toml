@@ -27,11 +27,11 @@ std = ["vm-core/std", "winter-prover/std"]
 miden-air = { package = "miden-air", path = "../air", version = "0.10", default-features = false }
 tracing = { version = "0.1", default-features = false, features = ["attributes"] }
 vm-core = { package = "miden-core", path = "../core", version = "0.10", default-features = false }
-winter-prover = { package = "winter-prover", version = "0.9", default-features = false }
+winter-prover = { package = "winter-prover", git = "https://github.com/facebook/winterfell", branch = "logup-gkr", default-features = false }
 
 [dev-dependencies]
 assembly = { package = "miden-assembly", path = "../assembly", version = "0.10", default-features = false }
 logtest = { version = "2.0", default-features = false }
 test-utils = { package = "miden-test-utils", path = "../test-utils" }
-winter-fri = { package = "winter-fri", version = "0.9" }
-winter-utils = { package = "winter-utils", version = "0.9" }
+winter-fri = { package = "winter-fri", git = "https://github.com/facebook/winterfell", branch = "logup-gkr" }
+winter-utils = { package = "winter-utils", git = "https://github.com/facebook/winterfell", branch = "logup-gkr" }
