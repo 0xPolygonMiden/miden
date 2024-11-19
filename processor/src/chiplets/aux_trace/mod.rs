@@ -63,8 +63,7 @@ impl AuxTraceBuilder {
         let b_chip = bus_col_builder.build_aux_column(main_trace, rand_elements);
 
         debug_assert_eq!(*t_chip.last().unwrap(), E::ONE);
-        // TODO: Fix and re-enable after testing with miden-base
-        // debug_assert_eq!(*b_chip.last().unwrap(), E::ONE);
+        debug_assert_eq!(*b_chip.last().unwrap(), E::ONE);
         vec![t_chip, b_chip]
     }
 }

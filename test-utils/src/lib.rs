@@ -34,6 +34,7 @@ pub use vm_core::{
     Felt, FieldElement, StackInputs, StackOutputs, StarkField, Word, EMPTY_WORD, ONE, WORD_SIZE,
     ZERO,
 };
+use winter_prover::Trace;
 
 pub mod math {
     pub use winter_prover::math::{
@@ -343,7 +344,22 @@ impl Test {
         for library in &self.libraries {
             host.load_mast_forest(library.mast_forest().clone());
         }
-        processor::execute(&program, self.stack_inputs.clone(), host, ExecutionOptions::default())
+        let main_trace = processor::execute(
+            &program,
+            self.stack_inputs.clone(),
+            host,
+            ExecutionOptions::default(),
+        )?;
+
+        // Build the auxiliary trace too to run the debug assertions
+        let rand_elements: Vec<_> = {
+            let num_rand_elements = main_trace.info().get_num_aux_segment_rand_elements();
+
+            (0..num_rand_elements).map(|i| Felt::from((i + 1) as u32)).collect()
+        };
+        let _aux_trace = main_trace.build_aux_trace(&rand_elements);
+
+        Ok(main_trace)
     }
 
     /// Compiles the test's source to a Program and executes it with the tests inputs. Returns the
