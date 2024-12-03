@@ -20,6 +20,7 @@ use processor::{
     ExecutionTrace, Program,
 };
 use tracing::instrument;
+use winter_air::ZkParameters;
 use winter_maybe_async::{maybe_async, maybe_await};
 use winter_prover::{
     matrix::ColMatrix, CompositionPoly, CompositionPolyTrace, ConstraintCompositionCoefficients,
@@ -38,7 +39,7 @@ pub use processor::{
     crypto, math, utils, AdviceInputs, Digest, ExecutionError, Host, InputError, MemAdviceProvider,
     StackInputs, StackOutputs, Word,
 };
-pub use winter_prover::{crypto::MerkleTree as MerkleTreeVC, Proof};
+pub use winter_prover::{crypto::MerkleTree as MerkleTreeVC, MockPrng, Proof};
 
 // PROVER
 // ================================================================================================
@@ -87,7 +88,7 @@ pub fn prove(
                 stack_inputs,
                 stack_outputs.clone(),
             );
-            maybe_await!(prover.prove(trace))
+            maybe_await!(prover.prove(trace, None))
         },
         HashFunction::Blake3_256 => {
             let prover = ExecutionProver::<Blake3_256, WinterRandomCoin<_>>::new(
@@ -95,7 +96,7 @@ pub fn prove(
                 stack_inputs,
                 stack_outputs.clone(),
             );
-            maybe_await!(prover.prove(trace))
+            maybe_await!(prover.prove(trace, None))
         },
         HashFunction::Rpo256 => {
             let prover = ExecutionProver::<Rpo256, RpoRandomCoin>::new(
@@ -105,7 +106,7 @@ pub fn prove(
             );
             #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
             let prover = gpu::metal::MetalExecutionProver::new(prover, HashFn::Rpo256);
-            maybe_await!(prover.prove(trace))
+            maybe_await!(prover.prove(trace, None))
         },
         HashFunction::Rpx256 => {
             let prover = ExecutionProver::<Rpx256, RpxRandomCoin>::new(
@@ -115,7 +116,7 @@ pub fn prove(
             );
             #[cfg(all(feature = "metal", target_arch = "aarch64", target_os = "macos"))]
             let prover = gpu::metal::MetalExecutionProver::new(prover, HashFn::Rpx256);
-            maybe_await!(prover.prove(trace))
+            maybe_await!(prover.prove(trace, None))
         },
     }
     .map_err(ExecutionError::ProverError)?;
@@ -188,10 +189,11 @@ where
     type VC = MerkleTreeVC<Self::HashFn>;
     type RandomCoin = R;
     type TraceLde<E: FieldElement<BaseField = Felt>> = DefaultTraceLde<E, H, Self::VC>;
+    type ConstraintCommitment<E: FieldElement<BaseField = Self::BaseField>> =
+        DefaultConstraintCommitment<E, Self::HashFn, Self::ZkPrng, Self::VC>;
     type ConstraintEvaluator<'a, E: FieldElement<BaseField = Felt>> =
         DefaultConstraintEvaluator<'a, ProcessorAir, E>;
-    type ConstraintCommitment<E: FieldElement<BaseField = Felt>> =
-        DefaultConstraintCommitment<E, H, Self::VC>;
+    type ZkPrng = MockPrng;
 
     fn options(&self) -> &WinterProofOptions {
         &self.options
@@ -219,8 +221,10 @@ where
         main_trace: &ColMatrix<Felt>,
         domain: &StarkDomain<Felt>,
         partition_options: PartitionOptions,
+        zk_parameters: Option<ZkParameters>,
+        prng: &mut Option<Self::ZkPrng>,
     ) -> (Self::TraceLde<E>, TracePolyTable<E>) {
-        DefaultTraceLde::new(trace_info, main_trace, domain, partition_options)
+        DefaultTraceLde::new(trace_info, main_trace, domain, partition_options, zk_parameters, prng)
     }
 
     #[maybe_async]
@@ -243,19 +247,24 @@ where
         trace.build_aux_trace(aux_rand_elements.rand_elements()).unwrap()
     }
 
+    #[instrument(skip_all)]
     #[maybe_async]
-    fn build_constraint_commitment<E: FieldElement<BaseField = Felt>>(
+    fn build_constraint_commitment<E: FieldElement<BaseField = Self::BaseField>>(
         &self,
         composition_poly_trace: CompositionPolyTrace<E>,
         num_constraint_composition_columns: usize,
         domain: &StarkDomain<Self::BaseField>,
         partition_options: PartitionOptions,
+        zk_parameters: Option<ZkParameters>,
+        prng: &mut Option<Self::ZkPrng>,
     ) -> (Self::ConstraintCommitment<E>, CompositionPoly<E>) {
         DefaultConstraintCommitment::new(
             composition_poly_trace,
             num_constraint_composition_columns,
             domain,
             partition_options,
+            zk_parameters,
+            prng,
         )
     }
 }

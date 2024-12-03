@@ -1,7 +1,7 @@
 use alloc::collections::BTreeMap;
 
-use processor::Digest;
-use test_utils::{crypto::MerkleStore, Felt, StarkField};
+use processor::{crypto::Rpo256, Digest};
+use test_utils::{crypto::MerkleStore, Felt, MerkleTreeVC, StarkField};
 
 mod channel;
 
@@ -34,7 +34,7 @@ fn fri_fold4_ext2_remainder32() {
         commitments,
         remainder,
         num_queries,
-    } = fri_prove_verify_fold4_ext2(trace_len_e).unwrap();
+    } = fri_prove_verify_fold4_ext2::<MerkleTreeVC<Rpo256>>(trace_len_e).unwrap();
 
     let advice_stack = prepare_advice_stack(
         depth,
@@ -82,7 +82,7 @@ fn fri_fold4_ext2_remainder64() {
         commitments,
         remainder,
         num_queries,
-    } = fri_prove_verify_fold4_ext2(trace_len_e).unwrap();
+    } = fri_prove_verify_fold4_ext2::<MerkleTreeVC<Rpo256>>(trace_len_e).unwrap();
 
     let advice_stack = prepare_advice_stack(
         depth,

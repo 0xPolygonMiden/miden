@@ -23,7 +23,7 @@ pub use processor::{
 };
 #[cfg(not(target_family = "wasm"))]
 use proptest::prelude::{Arbitrary, Strategy};
-pub use prover::{prove, MemAdviceProvider, MerkleTreeVC, ProvingOptions};
+pub use prover::{prove, MemAdviceProvider, MerkleTreeVC, MockPrng, ProvingOptions};
 pub use test_case::test_case;
 pub use verifier::{verify, AcceptableOptions, VerifierError};
 use vm_core::{chiplets::hasher::apply_permutation, ProgramInfo};

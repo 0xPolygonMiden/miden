@@ -1,0 +1,256 @@
+use.std::crypto::dsa::rpo_stark::constants
+use.std::crypto::dsa::rpo_stark::utils
+use.std::crypto::hashes::rpo
+use.std::crypto::stark::random_coin
+
+#! Return the first half of the rate portion of the random coin state
+#!
+#! The random coin uses RPO to generate data. The RPO state is composed of 3
+#! words, 2 words for the rate, and 1 word for the capacity. This procedure
+#! returns the first word of the RPO state.
+#!
+#! Input: [...]
+#! Output: [R1, ...]
+#! Cycles: 6
+export.get_rate_1
+    padw exec.constants::r1_ptr mem_loadw
+end
+
+#! Return the second half of the rate portion of the random coin state
+#!
+#! The random coin uses RPO to generate data. The RPO state is composed of 3
+#! words, 2 words for the rate, and 1 word for the capacity. This procedure
+#! returns the first word of the RPO state.
+#!
+#! Input: [...]
+#! Output: [R2, ...]
+#! Cycles: 6
+export.get_rate_2
+    padw exec.constants::r2_ptr mem_loadw
+end
+
+#! Return the capacity portion of the random coin state
+#!
+#! The random coin uses RPO to generate data. The RPO state is composed of 3
+#! words, 2 words for the rate, and 1 word for the capacity. This procedure
+#! returns the first word of the RPO state.
+#!
+#! Input: [...]
+#! Output: [C, ...]
+#! Cycles: 6
+export.get_capacity
+    padw exec.constants::c_ptr mem_loadw
+end
+
+#! Initializes the seed for randomness generation by computing the hash of the proof context using
+#! the trace length, number of queries, logarithm of blowup factor and the number of bits of
+#! grinding. Currently, this part, as well as the rest of the STARK verifier assumes a blowup factor
+#! equal to 8.
+#! The ouput of this procedure is the capacity portion of the state after applying `hperm`.
+#!
+#! Input: [ptr, M, PK, ...]
+#! Output: [C]
+#! Cycles: 55
+export.init_seed.2
+
+    # Move the pointer behind the public inputs
+    dup movdn.9
+
+    # Store the message and public key as public inputs
+    mem_storew
+    swapw
+    dup.8 add.1
+    mem_storew
+    swapw
+
+    # Lay out the proof context
+    push.0x0c00 # main segment width is 12 and there are 0 auxiliary segments
+    movdn.4
+    push.0x08 # main segment length is 8
+    movdn.4
+    push.0x01 # lower half of the modulus
+    push.0xffffffff # upper half of the modulus
+
+    # Hash the proof context, with the message as meta data
+    # The reason for this hack is the need to have message as a public
+    # input while not appearing in the main trace. Hence we use the meta
+    # data field as workaround.
+    push.4.0.0.0
+    exec.constants::zero_zero_zero_four_word mem_storew
+    movdnw.2
+
+    hperm
+    dropw dropw
+
+    push.0x020407 # field extension degree || FRI folding factor || FRI remainder polynomial max degree
+    exec.constants::grinding_factor
+    exec.constants::blowup_factor
+
+    # Number of FRI queries
+    exec.constants::num_fri_queries
+
+    movupw.2
+
+    hperm
+    dropw
+
+    # Absorb
+    movup.8
+    mem_loadw
+    padw
+    hperm
+
+    dropw
+    swapw
+    dropw
+    # => [C]
+end
+
+#! Reseed the random coin with `DATA`
+#!
+#! Input: [DATA, ...]
+#! Ouput: [...]
+#! Cycles: 54
+export.reseed
+    # Load previous state and update it
+    # --------------------------------------------------------------------------------------------
+    exec.get_rate_1
+    # => [R1, DATA, ...] (6 cycles)
+
+    exec.random_coin::add_two_words
+    # => [R1, ...] (16 cycles)
+
+    exec.get_capacity
+    swapw
+    exec.get_rate_2
+    # => [R2, R1, C, ...] (13 cycles)
+
+    hperm
+    # => [R2', R1', C', ...] (1 cycles)
+
+    # Save the new state to memory
+    # --------------------------------------------------------------------------------------------
+    exec.constants::r2_ptr mem_storew
+    dropw
+    exec.constants::r1_ptr mem_storew
+    dropw
+    exec.constants::c_ptr mem_storew
+    dropw
+    # => [...] (18 cycles)
+end
+
+#! Reseed the random coin with `DATA`
+#!
+#! Input: [DATA, ...]
+#! Ouput: [...]
+#! Cycles: 71
+export.reseed_with_salt
+    # Load previous state and update it
+    # --------------------------------------------------------------------------------------------
+    exec.get_rate_1
+    # => [R1, DATA, ...] (6 cycles)
+
+    exec.random_coin::add_two_words
+    # => [R1, ...] (16 cycles)
+
+    exec.get_capacity
+    swapw
+    exec.get_rate_2
+    padw adv_loadw 
+    exec.random_coin::add_two_words
+    # => [R2, R1, C, ...] (30 cycles)
+
+    hperm
+    # => [R2', R1', C', ...] (1 cycles)
+
+    # Save the new state to memory
+    # --------------------------------------------------------------------------------------------
+    exec.constants::r2_ptr mem_storew
+    dropw
+    exec.constants::r1_ptr mem_storew
+    dropw
+    exec.constants::c_ptr mem_storew
+    dropw
+    # => [...] (18 cycles)
+end
+
+
+#! Draw constraint composition random coefficients and save them into memory in the region from
+#! `compos_coef_ptr` `compos_coef_ptr + 112 - 1` as `(r1_1, r1_0, r0_1, r0_0)`
+#!
+#! Input: [compos_coef_ptr, ...]
+#! Output: [...]
+#! Cycles: 203
+export.generate_constraint_composition_coefficients
+    push.24
+    swap
+    exec.random_coin::generate_random_coefficients
+    #=> [...]
+end
+
+
+#! Draw deep composition polynomial random coefficients and save them into memory in the region from
+#! `deep_rand_coef_ptr` to `deep_rand_coef_ptr + 89 - 1` as `(0, 0, r0_1, r0_0)`
+#! The number of coefficients is equal to:
+#! 1. 12 * 2 Felt for the main and auxiliary traces.
+#! 2. 12 * 2 Felt for constraint polynomial.
+#! Total: 24 tuples of type (Felt, Felt)
+#!
+#! Input: [deep_rand_coef_ptr, ...]
+#! Output: [...]
+#! Cycles: 520
+export.generate_deep_composition_random_coefficients
+    push.24
+    swap
+    exec.random_coin::generate_random_coefficients_pad
+    #=> [...]
+end
+
+# OOD POINT GENERATION
+# =============================================================================================
+
+#! Generate the OOD challenge point `z = (z0, z1)` and compute `z^N` where N is
+#! the trace length. The resulting word `[(z_1, z_0)^N, z1, z0]` is stored in the
+#! global memory address `exec.z_ptr` reservedfor it.
+#!
+#! Input: [X, ...]
+#! Output: [...]
+#! Note: The top word on the stack is consumed by this procedure.
+#! Cycles: 21 + 10 * log(N)
+export.generate_z_zN
+    # Load z (first two felts of the random coin state) and log trace length N
+    exec.constants::r1_ptr mem_loadw
+    drop drop
+
+    # 2^0
+    dup.1 dup.1
+
+    # 2^3
+    dup.1 dup.1
+    repeat.3
+        dup.1 dup.1
+        ext2mul
+    end
+    # => [z3_1, z3_0, z_1, z_0, z_1, z_0, ...]
+    dup.1 dup.1
+    repeat.1
+        dup.1 dup.1
+        ext2mul
+    end
+    # => [z4_1, z4_0, z3_1, z3_0, z_1, z_0, z_1, z_0, ...]
+
+    dup.1 dup.1
+    repeat.2
+        dup.1 dup.1
+        ext2mul
+    end
+    # => [z6_1, z6_0, z4_1, z4_0, z3_1, z3_0, z_1, z_0, z_1, z_0, ...]
+
+    repeat.3
+        ext2mul
+    end
+
+    # Store z and z^N
+    exec.constants::z_ptr mem_storew
+    dropw
+end

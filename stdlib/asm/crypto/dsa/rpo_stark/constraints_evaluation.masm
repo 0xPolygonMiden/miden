@@ -1,0 +1,338 @@
+use.std::crypto::dsa::rpo_stark::mds_sbox
+use.std::crypto::dsa::rpo_stark::constants
+use.std::crypto::dsa::rpo_stark::ood_frames
+
+#! Performs the DEEP consistency check at the out-of-domain point. 
+#!
+#!
+#! Input: [...]
+#! Output: [...]
+#!
+#! Cycles: ~ 8320
+export.deep_consistency_check
+    padw exec.constants::z_ptr mem_loadw
+    exec.ood_frames::compute_Hz
+    # => [Hz1, Hz0, z1, z0, ...]
+
+    exec.constants::public_inputs_ptr add.1
+    exec.constants::composition_coef_ptr
+    # => [rnd_ptr, pk_ptr, Hz1, Hz0, z1, z0, ...]
+    movup.5 movup.5
+    exec.constants::ood_trace_ptr
+    # => [ood_ptr, z1, z0, rnd_ptr, pk_ptr, Hz1, Hz0, ...]
+    exec.evaluate_constraints
+
+    movup.2 assert_eq
+    assert_eq
+    dropw
+end
+
+#! Evaluates constraints, both transitional and boundary, linearly combines then and divides by
+#! their appropriate divisors.
+#!
+#! Input: [ood_ptr, z1, z0, rnd_ptr, pk_ptr, ...]
+#! Output: [res1, res0, ...]
+#!
+#! Cycles: ~ 7975
+export.evaluate_constraints.24
+
+    # Split the trace OOD evaluation frame into a current portion and a next portion
+    locaddr.0 dup add.6
+    # =>  [ood_cur_ptr, ood_nxt_ptr, ood_ptr, z1, z0, rnd_ptr, pk_ptr, ...]
+    exec.disentangle_ood_frame
+    # =>  [z1, z0, rnd_ptr, pk_ptr, ...]
+
+    # Apply the first half of the RPO constraint
+    locaddr.0 dup add.6
+    dup.3 dup.3
+    # =>  [z1, z0, ood_cur_ptr, ood_nxt_ptr, z1, z0, rnd_ptr, pk_ptr, ...]
+    locaddr.0 add.12
+    # =>  [res_ptr, z1, z0, ood_cur_ptr, ood_nxt_ptr, z1, z0, rnd_ptr, pk_ptr, ...]
+    dup.3
+    # =>  [ood_cur_ptr, res_ptr, z1, z0, ood_cur_ptr, ood_nxt_ptr, z1, z0, rnd_ptr, pk_ptr, ...]
+
+    exec.mds_sbox::multiply_mds_add_constant_apply_sbox_round
+    # =>  [ood_cur_ptr, ood_nxt_ptr, z1, z0, rnd_ptr, pk_ptr, ...]
+    dup.3 dup.3
+    locaddr.0 add.18
+    locaddr.0 add.12
+    exec.mds_sbox::multiply_mds_add_constant
+
+    # Apply the second half of the RPO constraint
+    dup.4
+    # =>  [rnd_ptr, ood_cur_ptr, ood_nxt_ptr, z1, z0, rnd_ptr, pk_ptr, ...]
+    locaddr.0 add.18
+    # =>  [res_ptr, rnd_ptr, ood_cur_ptr, ood_nxt_ptr, z1, z0, rnd_ptr, pk_ptr, ...]
+    movup.3
+    # =>  [ood_nxt_ptr, res_ptr, rnd_ptr, ood_cur_ptr, z1, z0, rnd_ptr, pk_ptr, ...]
+    exec.mds_sbox::sbox_next_and_compute_random_linear_combination
+    # =>  [tr_num1, tr_num0, ood_cur_ptr, z1, z0, rnd_ptr, pk_ptr, ...]
+ 
+    # Divide by the transition constraints divisor
+    dup.4 dup.4
+    # =>  [z1, z0, tr_num1, tr_num0, ood_cur_ptr, z1, z0, rnd_ptr, pk_ptr, ...]
+    exec.divide_transition_divisor
+    # =>  [val1, val0, ood_cur_ptr, z1, z0, rnd_ptr, pk_ptr, ...]
+
+    # Movup the pointer to the public key and the pointer to the randomness to batch
+    # boundary constraints.
+    movup.6  movup.6 add.6
+    # =>  [rnd_ptr, pk_ptr, val1, val0, ood_cur_ptr, z1, z0, ...]
+
+    # We need the pointer to the current row of the OOD frame
+    movup.4
+    # =>  [ood_cur_ptr, rnd_ptr, pk_ptr, val1, val0, z1, z0, ...]
+
+    # Compute the combined numerator for boundary constraints against first trace row
+    exec.compute_boundary_initial_step
+    # =>  [bnd_first1, bnd_first0, ood_cur_ptr, rnd_ptr, pk_ptr, val1, val0, z1, z0, ...]
+
+    # Compute the combined numerator for boundary constraints against last tace row
+    movdn.4 movdn.4
+    exec.compute_boundary_final_step
+    # =>  [bnd_last1, bnd_last0, bnd_first1, bnd_first0, val1, val0, z1, z0, ...]
+
+    # Divide numerator
+    dup.7 dup.7
+    # =>  [z1, z0, bnd_last1, bnd_last0, bnd_first1, bnd_first0, val1, val0, z1, z0, ...]
+    exec.divide_boundary_last
+    # =>  [tmp1, tmp0, bnd_first1, bnd_first0, val1, val0, z1, z0, ...]
+ 
+    # Divide numerator
+    movup.3 movup.3 movup.7 movup.7
+    # =>  [z1, z0, bnd_first1, bnd_first0, tmp1, tmp0, val1, val0, ...]
+    exec.divide_boundary_first
+    # =>  [tmp1, tmp0, tmp1, tmp0, val1, val0, ...]
+
+    # Compute the final result
+    ext2add ext2add
+    # =>  [res1, res0, ...]
+end    
+
+#! Given the OOD evaluation frame of the main trace polynomials, which is stored at address
+#! `ood_ptr` with the current and next rows interleaved, the following procedure disentangles
+#! the current row from the main row and saves them in `ood_cur_ptr` and `ood_nxt_ptr`,
+#! respectively.
+#!
+#! Input: [ood_cur_ptr, ood_nxt_ptr, ood_ptr, ...]
+#! Output: [...]
+#! Cycles: ~ 270
+export.disentangle_ood_frame
+    padw padw
+    # => [X, X, ood_cur_ptr, ood_nxt_ptr, ood_ptr, ...]
+
+    repeat.6
+        dup.10 mem_loadw
+        # => [x1, x0, a1, a0, X, ood_cur_ptr, ood_nxt_ptr, ood_ptr, ...]
+
+        swapw dup.10 add.2 swap.11 add.1 mem_loadw
+        # => [y1, y0, b1, b0, x1, x0, a1, a0, ood_cur_ptr, ood_nxt_ptr, ood_ptr + 2, ...]
+
+        movup.7 movup.7 movup.5 movup.5
+        # => [b1, b0, a1, a0, y1, y0, x1, x0, ood_cur_ptr, ood_nxt_ptr, ood_ptr + 2, ...]
+
+        dup.8 add.1 swap.9 mem_storew
+        # => [b1, b0, a1, a0, y1, y0, x1, x0, ood_cur_ptr + 1, ood_nxt_ptr, ood_ptr + 2, ...]
+
+        swapw dup.9 add.1 swap.10 mem_storew
+        # => [y1, y0, x1, x0, b1, b0, a1, a0, ood_cur_ptr + 1, ood_nxt_ptr + 1, ood_ptr + 2, ...]
+    end
+
+    dropw dropw drop drop drop
+    # => [...]
+end
+
+#! Divides the linearly combined evaluations of transitional constraints by their common divisor.
+#!
+#! Input:  [z1, z0, tr_num1, tr_num0, ...]
+#! Output:  [val1, val0, ...]
+#!
+#! Cycles: 43
+export.divide_transition_divisor
+
+    # Compute z^8
+    dup.1 dup.1
+    repeat.3
+        dup.1 dup.1
+        ext2mul
+    end
+    # => [z81, z80, z1, z0, tr_num1, tr_num0, ...]
+
+    # Multiply by (z - g^(8 - 1))
+    movdn.5 movdn.5
+    # => [z1, z0, tr_num1, tr_num0, z81, z80, ...]
+    swap exec.constants::minus_domain_gen_pow_7 add swap ext2mul
+    # => [num1, num0, z81, z80, ...]
+
+    # Divide by (z^8 - 1)
+    movup.3 exec.constants::minus_one add movup.3
+    # => [den1, den0, num1, num0, ...]
+    ext2div
+end
+
+#! Computes the linearly combined evaluations of boundary constraints against first trace row.
+#!
+#! Input: [ood_cur_ptr, rnd_ptr, ...]
+#! Output: [bnd_first1, bnd_first0,  ood_cur_ptr, rnd_ptr, ...]
+#!
+#! Cycles: 190
+export.compute_boundary_initial_step
+    dup.1 dup.1
+    repeat.2
+        exec.load_and_multiply_tuples_ext2
+    end
+
+    add.2
+
+    repeat.2
+        exec.load_and_multiply_tuples_ext2
+    end
+    drop drop
+
+    repeat.3
+        ext2add
+    end
+end
+
+#! Computes the linearly combined evaluations of boundary constraints against final trace row.
+#!
+#! Input: [ood_cur_ptr, rnd_ptr, pk_ptr, ...]
+#! Output: [bnd_last1, bnd_last0, ...]
+#!
+#! Cycles: 108
+export.compute_boundary_final_step
+
+    add.2 swap add.4 swap
+    # => [ood_cur_ptr, rnd_ptr, pk_ptr, ...]
+
+    # Compute the first two terms of the numerator
+
+    padw
+    dup.4 mem_loadw
+    # => [w1, w0, v1, v0, ood_cur_ptr, rnd_ptr, pk_ptr, ...]
+    padw movup.10 mem_loadw
+    # => [q1, q0, p1, p0, w1, w0, v1, v0, ood_cur_ptr, rnd_ptr, ...]
+    movup.7 movup.4 sub 
+    # => [v0 - p0, q1, q0, p1, w1, w0, v1, ood_cur_ptr, rnd_ptr, ...]
+    movup.6
+    # => [v1, v0 - p0, q1, q0, p1, w1, w0, ood_cur_ptr, rnd_ptr, ...]
+    movup.6 movup.5 sub
+    # => [w0 - p1, v1, v0 - p0, q1, q0, w1, ood_cur_ptr, rnd_ptr, ...]
+    movup.5
+    # => [w1, w0 - p1, v1, v0 - p0, q1, q0, ood_cur_ptr, rnd_ptr, ...]
+    padw dup.11 mem_loadw
+    # => [w1, w0 - p1, v1, v0 - p0, q1, q0, ood_cur_ptr, rnd_ptr, ...]
+    exec.mul_ext2_double
+    ext2add
+    # => [tmp1, tmp0, q1, q0, ood_cur_ptr, rnd_ptr, ...]
+
+    # Compute the second and last two terms of the numerator
+
+    padw movup.8 add.1 mem_loadw
+    # => [w1, w0, v1, v0, tmp1, tmp0, q1, q0, rnd_ptr, ...]
+    movup.3 movup.7 sub
+    # => [v0 - q0, w1, w0, v1, tmp1, tmp0, q1, rnd_ptr, ...]
+    movup.3
+    # => [v1, v0 - q0, w1, w0, tmp1, tmp0, q1, rnd_ptr, ...]
+    movup.3 movup.6 sub
+    # => [w0 - q1, v1, v0 - q0, w1, tmp1, tmp0, rnd_ptr, ...]
+    movup.3
+    # => [w1, w0 - q1, v1, v0 - q0, tmp1, tmp0, rnd_ptr, ...]
+    padw movup.10 add.1 mem_loadw
+    exec.mul_ext2_double
+    ext2add
+    # => [tmp'1, tmp'0, tmp1, tmp0, ...]
+    ext2add
+    # => [bnd_last1, bnd_last0, ...]
+end
+
+#! Computes the subtraction of two tuples of extension field elements.
+#!
+#! Input: [q1, q0, p1, p0, w1, w0, v1, v0, ..]
+#! Output: [g1, g0, f1, f0, ..]
+#!
+#! Cycles: 38
+export.subtract_ext2_double
+    movup.7 movup.7 movup.5 movup.5
+    # => [p1, p0, v1, v0, q1, q0, w1, w0, ..]
+    ext2sub
+    # => [f1, f0, q1, q0, w1, w0, ..]
+    movdn.5 movdn.5
+    # => [q1, q0, w1, w0, f1, f0, ..]
+    ext2sub
+    # => [g1, g0, f1, f0, ..]
+end
+
+#! Loads two tuples of extension field elements, multiplies them and then sums them.
+#!
+#! The result is kept on the stack and the pointers are incremented.
+#!
+#! Input: [b_ptr, a_ptr, ...]
+#! Output: [b_ptr + 1, a_ptr + 1, res1, res0, ...]
+#!
+#! Cycles: 45
+export.load_and_multiply_tuples_ext2
+    # Load the first 2 elements of the ood frame
+    padw dup.4 add.1 swap.5 mem_loadw
+    # => [w1, w0, v1, v0, ood_cur_ptr, rnd_ptr, ...]
+
+    # Load the first 2 random elements 
+    padw dup.9 add.1 swap.10 mem_loadw
+    # => [b1, b0, a1, a0, w1, w0, v1, v0, ood_cur_ptr, rnd_ptr, ...]
+
+    # Multiply each pair together
+    movup.7 movup.7 movup.5 movup.5
+    # => [a1, a0, v1, v0, b1, b0, w1, w0, ood_cur_ptr, rnd_ptr, ...]
+    ext2mul
+    # => [tmp1, tmp0, b1, b0, w1, w0, ood_cur_ptr, rnd_ptr, ...]
+    movdn.5 movdn.5
+    # => [b1, b0, w1, w0, tmp1, tmp0, ood_cur_ptr, rnd_ptr, ...]
+    ext2mul 
+    
+    ext2add
+    # => [res1, res0, ood_cur_ptr, rnd_ptr, ...]
+    movdn.3 movdn.3
+    # => [ood_cur_ptr, rnd_ptr, res1, res0, ...]
+end
+
+#! Multiplies two tuples of extension field elements.
+#!
+#! Input: [b1, b0, a1, a0, w1, w0, v1, v0, ...]
+#! Output: [t1, t0, s1, s0, ...]
+#!
+#! Cycles: 14
+export.mul_ext2_double
+    # Multiply each pair together
+    movup.7 movup.7 movup.5 movup.5
+    # => [a1, a0, v1, v0, b1, b0, w1, w0, ...]
+    ext2mul
+    # => [s1, s0, b1, b0, w1, w0, ...]
+    movdn.5 movdn.5
+    # => [b1, b0, w1, w0, s1, s0, ...]
+    ext2mul
+    # => [t1, t0, s1, s0, ...]
+end
+
+#! Divides by the evaluation at the OOD point of the divisor of the boundary constraint against
+#! the last row. 
+#!
+#! Input:  [z1, z0, bnd_last1, bnd_last0, ...]
+#! Output:  [res1, res0, ...]
+#!
+#! Cycles: 15
+export.divide_boundary_last
+    swap exec.constants::minus_domain_gen_pow_7 add swap
+    ext2div
+end
+
+#! Divides by the evaluation at the OOD point of the divisor of the boundary constraint against
+#! the first row. 
+#!
+#! Input:  [z1, z0, bnd_first1, bnd_first0, ...]
+#! Output:  [res1, res0, ...]
+#!
+#! Cycles: 15
+export.divide_boundary_first
+    swap exec.constants::minus_one add swap
+    ext2div
+end

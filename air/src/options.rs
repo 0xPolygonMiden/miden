@@ -19,19 +19,19 @@ impl ProvingOptions {
 
     /// Standard proof parameters for 96-bit conjectured security in non-recursive context.
     pub const REGULAR_96_BITS: WinterProofOptions =
-        WinterProofOptions::new(27, 8, 16, FieldExtension::Quadratic, 8, 255);
+        WinterProofOptions::new(27, 8, 16, FieldExtension::Quadratic, 8, 255, false);
 
     /// Standard proof parameters for 128-bit conjectured security in non-recursive context.
     pub const REGULAR_128_BITS: WinterProofOptions =
-        WinterProofOptions::new(27, 16, 21, FieldExtension::Cubic, 8, 255);
+        WinterProofOptions::new(27, 16, 21, FieldExtension::Cubic, 8, 255, false);
 
     /// Standard proof parameters for 96-bit conjectured security in recursive context.
     pub const RECURSIVE_96_BITS: WinterProofOptions =
-        WinterProofOptions::new(27, 8, 16, FieldExtension::Quadratic, 4, 7);
+        WinterProofOptions::new(11, 8, 12, FieldExtension::Quadratic, 4, 7, false);
 
     /// Standard proof parameters for 128-bit conjectured security in recursive context.
     pub const RECURSIVE_128_BITS: WinterProofOptions =
-        WinterProofOptions::new(27, 16, 21, FieldExtension::Cubic, 4, 7);
+        WinterProofOptions::new(27, 16, 21, FieldExtension::Cubic, 4, 7, false);
 
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
@@ -53,6 +53,7 @@ impl ProvingOptions {
             field_extension,
             fri_folding_factor,
             fri_remainder_max_degree,
+            false,
         );
         let exec_options = ExecutionOptions::default();
         Self { exec_options, proof_options, hash_fn }

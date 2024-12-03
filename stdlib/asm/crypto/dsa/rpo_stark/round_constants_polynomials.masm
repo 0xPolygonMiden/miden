@@ -1,0 +1,1157 @@
+use.std::crypto::dsa::rpo_stark::permutation_constants
+
+# ROUND CONSTANT POLYNOMIALS EVALUATION PROCEDURES
+# =================================================================================================
+
+#! Input: [z1, z0, ...]
+#! Output: [ev1, ev0, ...]
+#!
+#! Cycles: 68
+export.evaluate_ark1_index_0_at_z
+
+    dup.1
+    exec.permutation_constants::get_ark1_index_0_poly_coef_7
+    mul
+    dup.1
+    exec.permutation_constants::get_ark1_index_0_poly_coef_7
+    mul
+    # => [acc1, acc0, z1, z0, ...]
+    swap exec.permutation_constants::get_ark1_index_0_poly_coef_6 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_0_poly_coef_5 add swap
+    # => [acc1, acc0, z1, z0, ...]
+    
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_0_poly_coef_4 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_0_poly_coef_3 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_0_poly_coef_2 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_0_poly_coef_1 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    movup.3 movup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_0_poly_coef_0 add swap
+    # => [acc1, acc0, ...]
+end
+
+
+#! Input: [z1, z0, ...]
+#! Output: [ev1, ev0, ...]
+#!
+#! Cycles: 68
+export.evaluate_ark1_index_1_at_z
+
+    dup.1
+    exec.permutation_constants::get_ark1_index_1_poly_coef_7
+    mul
+    dup.1
+    exec.permutation_constants::get_ark1_index_1_poly_coef_7
+    mul
+    # => [acc1, acc0, z1, z0, ...]
+    swap exec.permutation_constants::get_ark1_index_1_poly_coef_6 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_1_poly_coef_5 add swap
+    # => [acc1, acc0, z1, z0, ...]
+    
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_1_poly_coef_4 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_1_poly_coef_3 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_1_poly_coef_2 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_1_poly_coef_1 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    movup.3 movup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_1_poly_coef_0 add swap
+    # => [acc1, acc0, ...]
+end
+
+
+#! Input: [z1, z0, ...]
+#! Output: [ev1, ev0, ...]
+#!
+#! Cycles: 68
+export.evaluate_ark1_index_2_at_z
+
+    dup.1
+    exec.permutation_constants::get_ark1_index_2_poly_coef_7
+    mul
+    dup.1
+    exec.permutation_constants::get_ark1_index_2_poly_coef_7
+    mul
+    # => [acc1, acc0, z1, z0, ...]
+    swap exec.permutation_constants::get_ark1_index_2_poly_coef_6 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_2_poly_coef_5 add swap
+    # => [acc1, acc0, z1, z0, ...]
+    
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_2_poly_coef_4 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_2_poly_coef_3 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_2_poly_coef_2 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_2_poly_coef_1 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    movup.3 movup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_2_poly_coef_0 add swap
+    # => [acc1, acc0, ...]
+end
+
+
+#! Input: [z1, z0, ...]
+#! Output: [ev1, ev0, ...]
+#!
+#! Cycles: 68
+export.evaluate_ark1_index_3_at_z
+
+    dup.1
+    exec.permutation_constants::get_ark1_index_3_poly_coef_7
+    mul
+    dup.1
+    exec.permutation_constants::get_ark1_index_3_poly_coef_7
+    mul
+    # => [acc1, acc0, z1, z0, ...]
+    swap exec.permutation_constants::get_ark1_index_3_poly_coef_6 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_3_poly_coef_5 add swap
+    # => [acc1, acc0, z1, z0, ...]
+    
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_3_poly_coef_4 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_3_poly_coef_3 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_3_poly_coef_2 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_3_poly_coef_1 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    movup.3 movup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_3_poly_coef_0 add swap
+    # => [acc1, acc0, ...]
+end
+
+
+#! Input: [z1, z0, ...]
+#! Output: [ev1, ev0, ...]
+#!
+#! Cycles: 68
+export.evaluate_ark1_index_4_at_z
+
+    dup.1
+    exec.permutation_constants::get_ark1_index_4_poly_coef_7
+    mul
+    dup.1
+    exec.permutation_constants::get_ark1_index_4_poly_coef_7
+    mul
+    # => [acc1, acc0, z1, z0, ...]
+    swap exec.permutation_constants::get_ark1_index_4_poly_coef_6 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_4_poly_coef_5 add swap
+    # => [acc1, acc0, z1, z0, ...]
+    
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_4_poly_coef_4 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_4_poly_coef_3 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_4_poly_coef_2 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_4_poly_coef_1 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    movup.3 movup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_4_poly_coef_0 add swap
+    # => [acc1, acc0, ...]
+end
+
+
+#! Input: [z1, z0, ...]
+#! Output: [ev1, ev0, ...]
+#!
+#! Cycles: 68
+export.evaluate_ark1_index_5_at_z
+
+    dup.1
+    exec.permutation_constants::get_ark1_index_5_poly_coef_7
+    mul
+    dup.1
+    exec.permutation_constants::get_ark1_index_5_poly_coef_7
+    mul
+    # => [acc1, acc0, z1, z0, ...]
+    swap exec.permutation_constants::get_ark1_index_5_poly_coef_6 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_5_poly_coef_5 add swap
+    # => [acc1, acc0, z1, z0, ...]
+    
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_5_poly_coef_4 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_5_poly_coef_3 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_5_poly_coef_2 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_5_poly_coef_1 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    movup.3 movup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_5_poly_coef_0 add swap
+    # => [acc1, acc0, ...]
+end
+
+
+#! Input: [z1, z0, ...]
+#! Output: [ev1, ev0, ...]
+#!
+#! Cycles: 68
+export.evaluate_ark1_index_6_at_z
+
+    dup.1
+    exec.permutation_constants::get_ark1_index_6_poly_coef_7
+    mul
+    dup.1
+    exec.permutation_constants::get_ark1_index_6_poly_coef_7
+    mul
+    # => [acc1, acc0, z1, z0, ...]
+    swap exec.permutation_constants::get_ark1_index_6_poly_coef_6 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_6_poly_coef_5 add swap
+    # => [acc1, acc0, z1, z0, ...]
+    
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_6_poly_coef_4 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_6_poly_coef_3 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_6_poly_coef_2 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_6_poly_coef_1 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    movup.3 movup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_6_poly_coef_0 add swap
+    # => [acc1, acc0, ...]
+end
+
+
+#! Input: [z1, z0, ...]
+#! Output: [ev1, ev0, ...]
+#!
+#! Cycles: 68
+export.evaluate_ark1_index_7_at_z
+
+    dup.1
+    exec.permutation_constants::get_ark1_index_7_poly_coef_7
+    mul
+    dup.1
+    exec.permutation_constants::get_ark1_index_7_poly_coef_7
+    mul
+    # => [acc1, acc0, z1, z0, ...]
+    swap exec.permutation_constants::get_ark1_index_7_poly_coef_6 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_7_poly_coef_5 add swap
+    # => [acc1, acc0, z1, z0, ...]
+    
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_7_poly_coef_4 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_7_poly_coef_3 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_7_poly_coef_2 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_7_poly_coef_1 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    movup.3 movup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_7_poly_coef_0 add swap
+    # => [acc1, acc0, ...]
+end
+
+
+#! Input: [z1, z0, ...]
+#! Output: [ev1, ev0, ...]
+#!
+#! Cycles: 68
+export.evaluate_ark1_index_8_at_z
+
+    dup.1
+    exec.permutation_constants::get_ark1_index_8_poly_coef_7
+    mul
+    dup.1
+    exec.permutation_constants::get_ark1_index_8_poly_coef_7
+    mul
+    # => [acc1, acc0, z1, z0, ...]
+    swap exec.permutation_constants::get_ark1_index_8_poly_coef_6 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_8_poly_coef_5 add swap
+    # => [acc1, acc0, z1, z0, ...]
+    
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_8_poly_coef_4 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_8_poly_coef_3 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_8_poly_coef_2 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_8_poly_coef_1 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    movup.3 movup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_8_poly_coef_0 add swap
+    # => [acc1, acc0, ...]
+end
+
+
+#! Input: [z1, z0, ...]
+#! Output: [ev1, ev0, ...]
+#!
+#! Cycles: 68
+export.evaluate_ark1_index_9_at_z
+
+    dup.1
+    exec.permutation_constants::get_ark1_index_9_poly_coef_7
+    mul
+    dup.1
+    exec.permutation_constants::get_ark1_index_9_poly_coef_7
+    mul
+    # => [acc1, acc0, z1, z0, ...]
+    swap exec.permutation_constants::get_ark1_index_9_poly_coef_6 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_9_poly_coef_5 add swap
+    # => [acc1, acc0, z1, z0, ...]
+    
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_9_poly_coef_4 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_9_poly_coef_3 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_9_poly_coef_2 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_9_poly_coef_1 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    movup.3 movup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_9_poly_coef_0 add swap
+    # => [acc1, acc0, ...]
+end
+
+
+#! Input: [z1, z0, ...]
+#! Output: [ev1, ev0, ...]
+#!
+#! Cycles: 68
+export.evaluate_ark1_index_10_at_z
+
+    dup.1
+    exec.permutation_constants::get_ark1_index_10_poly_coef_7
+    mul
+    dup.1
+    exec.permutation_constants::get_ark1_index_10_poly_coef_7
+    mul
+    # => [acc1, acc0, z1, z0, ...]
+    swap exec.permutation_constants::get_ark1_index_10_poly_coef_6 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_10_poly_coef_5 add swap
+    # => [acc1, acc0, z1, z0, ...]
+    
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_10_poly_coef_4 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_10_poly_coef_3 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_10_poly_coef_2 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_10_poly_coef_1 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    movup.3 movup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_10_poly_coef_0 add swap
+    # => [acc1, acc0, ...]
+end
+
+
+#! Input: [z1, z0, ...]
+#! Output: [ev1, ev0, ...]
+#!
+#! Cycles: 68
+export.evaluate_ark1_index_11_at_z
+
+    dup.1
+    exec.permutation_constants::get_ark1_index_11_poly_coef_7
+    mul
+    dup.1
+    exec.permutation_constants::get_ark1_index_11_poly_coef_7
+    mul
+    # => [acc1, acc0, z1, z0, ...]
+    swap exec.permutation_constants::get_ark1_index_11_poly_coef_6 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_11_poly_coef_5 add swap
+    # => [acc1, acc0, z1, z0, ...]
+    
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_11_poly_coef_4 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_11_poly_coef_3 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_11_poly_coef_2 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_11_poly_coef_1 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    movup.3 movup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark1_index_11_poly_coef_0 add swap
+    # => [acc1, acc0, ...]
+end
+
+
+
+#! Input: [z1, z0, ...]
+#! Output: [ev1, ev0, ...]
+#!
+#! Cycles: 68
+export.evaluate_ark2_index_0_at_z
+
+    dup.1
+    exec.permutation_constants::get_ark2_index_0_poly_coef_7
+    mul
+    dup.1
+    exec.permutation_constants::get_ark2_index_0_poly_coef_7
+    mul
+    # => [acc1, acc0, z1, z0, ...]
+    swap exec.permutation_constants::get_ark2_index_0_poly_coef_6 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_0_poly_coef_5 add swap
+    # => [acc1, acc0, z1, z0, ...]
+    
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_0_poly_coef_4 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_0_poly_coef_3 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_0_poly_coef_2 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_0_poly_coef_1 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    movup.3 movup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_0_poly_coef_0 add swap
+    # => [acc1, acc0, ...]
+end
+
+
+#! Input: [z1, z0, ...]
+#! Output: [ev1, ev0, ...]
+#!
+#! Cycles: 68
+export.evaluate_ark2_index_1_at_z
+
+    dup.1
+    exec.permutation_constants::get_ark2_index_1_poly_coef_7
+    mul
+    dup.1
+    exec.permutation_constants::get_ark2_index_1_poly_coef_7
+    mul
+    # => [acc1, acc0, z1, z0, ...]
+    swap exec.permutation_constants::get_ark2_index_1_poly_coef_6 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_1_poly_coef_5 add swap
+    # => [acc1, acc0, z1, z0, ...]
+    
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_1_poly_coef_4 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_1_poly_coef_3 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_1_poly_coef_2 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_1_poly_coef_1 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    movup.3 movup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_1_poly_coef_0 add swap
+    # => [acc1, acc0, ...]
+end
+
+
+#! Input: [z1, z0, ...]
+#! Output: [ev1, ev0, ...]
+#!
+#! Cycles: 68
+export.evaluate_ark2_index_2_at_z
+
+    dup.1
+    exec.permutation_constants::get_ark2_index_2_poly_coef_7
+    mul
+    dup.1
+    exec.permutation_constants::get_ark2_index_2_poly_coef_7
+    mul
+    # => [acc1, acc0, z1, z0, ...]
+    swap exec.permutation_constants::get_ark2_index_2_poly_coef_6 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_2_poly_coef_5 add swap
+    # => [acc1, acc0, z1, z0, ...]
+    
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_2_poly_coef_4 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_2_poly_coef_3 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_2_poly_coef_2 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_2_poly_coef_1 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    movup.3 movup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_2_poly_coef_0 add swap
+    # => [acc1, acc0, ...]
+end
+
+
+#! Input: [z1, z0, ...]
+#! Output: [ev1, ev0, ...]
+#!
+#! Cycles: 68
+export.evaluate_ark2_index_3_at_z
+
+    dup.1
+    exec.permutation_constants::get_ark2_index_3_poly_coef_7
+    mul
+    dup.1
+    exec.permutation_constants::get_ark2_index_3_poly_coef_7
+    mul
+    # => [acc1, acc0, z1, z0, ...]
+    swap exec.permutation_constants::get_ark2_index_3_poly_coef_6 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_3_poly_coef_5 add swap
+    # => [acc1, acc0, z1, z0, ...]
+    
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_3_poly_coef_4 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_3_poly_coef_3 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_3_poly_coef_2 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_3_poly_coef_1 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    movup.3 movup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_3_poly_coef_0 add swap
+    # => [acc1, acc0, ...]
+end
+
+
+#! Input: [z1, z0, ...]
+#! Output: [ev1, ev0, ...]
+#!
+#! Cycles: 68
+export.evaluate_ark2_index_4_at_z
+
+    dup.1
+    exec.permutation_constants::get_ark2_index_4_poly_coef_7
+    mul
+    dup.1
+    exec.permutation_constants::get_ark2_index_4_poly_coef_7
+    mul
+    # => [acc1, acc0, z1, z0, ...]
+    swap exec.permutation_constants::get_ark2_index_4_poly_coef_6 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_4_poly_coef_5 add swap
+    # => [acc1, acc0, z1, z0, ...]
+    
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_4_poly_coef_4 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_4_poly_coef_3 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_4_poly_coef_2 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_4_poly_coef_1 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    movup.3 movup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_4_poly_coef_0 add swap
+    # => [acc1, acc0, ...]
+end
+
+
+#! Input: [z1, z0, ...]
+#! Output: [ev1, ev0, ...]
+#!
+#! Cycles: 68
+export.evaluate_ark2_index_5_at_z
+
+    dup.1
+    exec.permutation_constants::get_ark2_index_5_poly_coef_7
+    mul
+    dup.1
+    exec.permutation_constants::get_ark2_index_5_poly_coef_7
+    mul
+    # => [acc1, acc0, z1, z0, ...]
+    swap exec.permutation_constants::get_ark2_index_5_poly_coef_6 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_5_poly_coef_5 add swap
+    # => [acc1, acc0, z1, z0, ...]
+    
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_5_poly_coef_4 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_5_poly_coef_3 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_5_poly_coef_2 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_5_poly_coef_1 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    movup.3 movup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_5_poly_coef_0 add swap
+    # => [acc1, acc0, ...]
+end
+
+
+#! Input: [z1, z0, ...]
+#! Output: [ev1, ev0, ...]
+#!
+#! Cycles: 68
+export.evaluate_ark2_index_6_at_z
+
+    dup.1
+    exec.permutation_constants::get_ark2_index_6_poly_coef_7
+    mul
+    dup.1
+    exec.permutation_constants::get_ark2_index_6_poly_coef_7
+    mul
+    # => [acc1, acc0, z1, z0, ...]
+    swap exec.permutation_constants::get_ark2_index_6_poly_coef_6 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_6_poly_coef_5 add swap
+    # => [acc1, acc0, z1, z0, ...]
+    
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_6_poly_coef_4 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_6_poly_coef_3 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_6_poly_coef_2 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_6_poly_coef_1 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    movup.3 movup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_6_poly_coef_0 add swap
+    # => [acc1, acc0, ...]
+end
+
+
+#! Input: [z1, z0, ...]
+#! Output: [ev1, ev0, ...]
+#!
+#! Cycles: 68
+export.evaluate_ark2_index_7_at_z
+
+    dup.1
+    exec.permutation_constants::get_ark2_index_7_poly_coef_7
+    mul
+    dup.1
+    exec.permutation_constants::get_ark2_index_7_poly_coef_7
+    mul
+    # => [acc1, acc0, z1, z0, ...]
+    swap exec.permutation_constants::get_ark2_index_7_poly_coef_6 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_7_poly_coef_5 add swap
+    # => [acc1, acc0, z1, z0, ...]
+    
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_7_poly_coef_4 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_7_poly_coef_3 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_7_poly_coef_2 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_7_poly_coef_1 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    movup.3 movup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_7_poly_coef_0 add swap
+    # => [acc1, acc0, ...]
+end
+
+
+#! Input: [z1, z0, ...]
+#! Output: [ev1, ev0, ...]
+#!
+#! Cycles: 68
+export.evaluate_ark2_index_8_at_z
+
+    dup.1
+    exec.permutation_constants::get_ark2_index_8_poly_coef_7
+    mul
+    dup.1
+    exec.permutation_constants::get_ark2_index_8_poly_coef_7
+    mul
+    # => [acc1, acc0, z1, z0, ...]
+    swap exec.permutation_constants::get_ark2_index_8_poly_coef_6 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_8_poly_coef_5 add swap
+    # => [acc1, acc0, z1, z0, ...]
+    
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_8_poly_coef_4 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_8_poly_coef_3 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_8_poly_coef_2 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_8_poly_coef_1 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    movup.3 movup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_8_poly_coef_0 add swap
+    # => [acc1, acc0, ...]
+end
+
+
+#! Input: [z1, z0, ...]
+#! Output: [ev1, ev0, ...]
+#!
+#! Cycles: 68
+export.evaluate_ark2_index_9_at_z
+
+    dup.1
+    exec.permutation_constants::get_ark2_index_9_poly_coef_7
+    mul
+    dup.1
+    exec.permutation_constants::get_ark2_index_9_poly_coef_7
+    mul
+    # => [acc1, acc0, z1, z0, ...]
+    swap exec.permutation_constants::get_ark2_index_9_poly_coef_6 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_9_poly_coef_5 add swap
+    # => [acc1, acc0, z1, z0, ...]
+    
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_9_poly_coef_4 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_9_poly_coef_3 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_9_poly_coef_2 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_9_poly_coef_1 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    movup.3 movup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_9_poly_coef_0 add swap
+    # => [acc1, acc0, ...]
+end
+
+
+#! Input: [z1, z0, ...]
+#! Output: [ev1, ev0, ...]
+#!
+#! Cycles: 68
+export.evaluate_ark2_index_10_at_z
+
+    dup.1
+    exec.permutation_constants::get_ark2_index_10_poly_coef_7
+    mul
+    dup.1
+    exec.permutation_constants::get_ark2_index_10_poly_coef_7
+    mul
+    # => [acc1, acc0, z1, z0, ...]
+    swap exec.permutation_constants::get_ark2_index_10_poly_coef_6 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_10_poly_coef_5 add swap
+    # => [acc1, acc0, z1, z0, ...]
+    
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_10_poly_coef_4 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_10_poly_coef_3 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_10_poly_coef_2 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_10_poly_coef_1 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    movup.3 movup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_10_poly_coef_0 add swap
+    # => [acc1, acc0, ...]
+end
+
+
+#! Input: [z1, z0, ...]
+#! Output: [ev1, ev0, ...]
+#!
+#! Cycles: 68
+export.evaluate_ark2_index_11_at_z
+
+    dup.1
+    exec.permutation_constants::get_ark2_index_11_poly_coef_7
+    mul
+    dup.1
+    exec.permutation_constants::get_ark2_index_11_poly_coef_7
+    mul
+    # => [acc1, acc0, z1, z0, ...]
+    swap exec.permutation_constants::get_ark2_index_11_poly_coef_6 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_11_poly_coef_5 add swap
+    # => [acc1, acc0, z1, z0, ...]
+    
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_11_poly_coef_4 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_11_poly_coef_3 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_11_poly_coef_2 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    dup.3 dup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_11_poly_coef_1 add swap
+    # => [acc1, acc0, z1, z0, ...]
+
+    movup.3 movup.3
+    ext2mul
+    swap exec.permutation_constants::get_ark2_index_11_poly_coef_0 add swap
+    # => [acc1, acc0, ...]
+end
+

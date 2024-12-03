@@ -1,0 +1,196 @@
+use.std::crypto::dsa::rpo_stark::constants
+use.std::crypto::dsa::rpo_stark::ood_frames
+use.std::crypto::dsa::rpo_stark::deep_queries
+use.std::crypto::dsa::rpo_stark::fri
+use.std::crypto::dsa::rpo_stark::random_coin
+use.std::crypto::dsa::rpo_stark::utils
+use.std::crypto::dsa::rpo_stark::constraints_evaluation
+use.std::crypto::stark::random_coin->stark_random_coin
+
+
+# RPO-STARK-BASED SIGNATURE SCHEME VERIFICATION ALGORITHM
+# =================================================================================================
+
+#! Verifies a signature against a public key and a message. The procedure gets as inputs the public
+#! key and the hash of the message via the operand stack. The signature is provided via the advice
+#! stack.
+#!
+#! The signature is valid if and only if the procedure returns.
+#!
+#! Input: [PK, MSG, ...]
+#! Output: [...]
+#!
+#! Cycles: ~ 13770 + 381 * num_queries + 81 * num_queries * num_layers
+export.verify
+
+    #==============================================================================================
+    #       I)  Hash proof context and hash-&-load public inputs
+    #==============================================================================================
+
+    # Initialize the seed using proof context and public inputs.
+    # This also saves the public inputs for later use
+    #
+    # Cycles: 56 + 54 = 110
+    exec.constants::public_inputs_ptr
+    exec.random_coin::init_seed
+    #=> [C]
+    # TODO: This should be reseed_with_salt
+    exec.random_coin::reseed
+    #=> [...]
+
+    #==============================================================================================
+    #       II) Draw constraint composition coefficients
+    #==============================================================================================
+
+    # Load main trace commitment and re-seed with it
+    #
+    # Cycles: 7 + 71 = 78
+    padw
+    adv_loadw
+    exec.constants::main_trace_com_ptr mem_storew
+    #=> [main_trace_commitment]
+    exec.random_coin::reseed_with_salt
+    #=> [...]
+
+    # Cycles: 204
+    exec.constants::composition_coef_ptr
+    exec.random_coin::generate_constraint_composition_coefficients
+    #=> [...]
+
+    #==============================================================================================
+    #       IV) Reseed with commitment to constraint composition polynomial H evaluations over LDE
+    #          and generate the Out-of-Domain (OOD) challenge z
+    #==============================================================================================
+
+    # Reseed with constraint composition polynomial commitment
+    #
+    # Cycles: 7 + 71 + 101 = 179
+    padw
+    adv_loadw
+    exec.constants::composition_poly_com_ptr mem_storew
+    exec.random_coin::reseed_with_salt
+    exec.random_coin::generate_z_zN
+    #=> [...]
+
+    #==============================================================================================
+    #       V) Read the OOD frames for the main trace, auxiliary trace and the trace of evaluations
+    #           of H over the LDE domain.
+    #==============================================================================================
+
+    # Cycles: 36
+    exec.ood_frames::load_evaluation_frame
+    #=> [OOD_FRAME_HASH, ...]
+
+    # Cycles: 71
+    exec.random_coin::reseed_with_salt
+
+    # Cycles: 160
+    exec.ood_frames::load_constraint_evaluations
+    #=> [CONSTR_EVAL_HASH, ...]
+
+    # Cycles: 71
+    exec.random_coin::reseed_with_salt
+    #=> [...]
+
+    #==============================================================================================
+    #       VI) Evaluate the constraints over the OOD frame and assert equality with H(z)
+    #==============================================================================================
+
+    # Cycles: 8320
+    exec.constraints_evaluation::deep_consistency_check
+    #=> [...]
+
+    #==============================================================================================
+    #       VII) FRI
+    #==============================================================================================
+
+    #============================================
+    #   1) Draw random coefficients for computing
+    #       DEEP composition polynomial.
+    #============================================
+
+    # Cycles: 521
+    exec.constants::deep_rand_coef_ptr
+    exec.random_coin::generate_deep_composition_random_coefficients
+
+    #============================================
+    #   2) Load and reseed with FRI layer commitments
+    #      and draw the folding challenges for
+    #      computing the degree respecting projection
+    #============================================
+
+    # Cycles: 273
+    exec.utils::load_fri_layer_commitments
+    #=> [...]
+
+    #============================================
+    #   4) Remainder of size 32 verification:
+    #       a) Check commitment to remainder polynomial
+    #            coefficients.
+    #       b) Load the NTT of remainder polynomial
+    #            into memory.
+    #       c) Check the NTT relationship.
+    #============================================
+
+    # Cycles: 3090
+    exec.utils::load_and_verify_remainder
+    #=> [...]
+
+    #============================================
+    #   5) Check PoW nonce
+    #============================================
+
+    # Cycles: 73
+    exec.stark_random_coin::check_pow
+    #=> [...]
+
+    #============================================
+    #   6) Compute evaluations of DEEP composition
+    #   polynomial at randomly chosen query positions
+    #============================================
+
+    # Compute the pointer to the first query using the pointer to
+    # the first layer commitment and total number of queries.
+    #
+    # Cycles: 5
+    exec.constants::fri_com_ptr
+    exec.constants::num_fri_queries
+    dup movdn.2
+    sub
+    #=> [query_ptr, num_queries, ...]
+
+    # Draw random query indices
+    #
+    # Cycles: 487 + 31 * num_queries
+    swap dup.1
+    exec.constants::initial_lde_domain_log_size
+    exec.constants::initial_lde_domain_size
+    exec.stark_random_coin::generate_list_indices
+    #=> [query_ptr, ...]
+
+    # Compute deep compostion polynomial queries
+    #
+    # Cycles: 24 + num_queries * 315
+    exec.deep_queries::compute_deep_composition_polynomial_queries
+    #=> [query_ptr, ...]
+  
+    #============================================
+    #   7) Call the FRI verifier
+    #============================================
+
+    # Get domain generator and pointers to the remainder
+    # codeword and first FRI layer commitment
+    #
+    # Cycles: 6
+    exec.constants::lde_domain_generator
+    exec.constants::fri_com_ptr exec.constants::remainder_codeword_offset add
+    exec.constants::fri_com_ptr
+    movup.3
+    #=> [query_ptr, fri_layer_ptr, remainder_ptr, domain_gen, ...]
+
+    # Call FRI verifier
+    #
+    # Cycles: 7 + 4 + num_queries * (40 + num_layers * 81 + 26)
+    exec.fri::verify
+    #=> ()
+end

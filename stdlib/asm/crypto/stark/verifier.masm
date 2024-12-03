@@ -216,6 +216,11 @@ export.verify
     #
     # Cycles: 470 + 236 * (num_queries / 8)
     swap dup.1
+    #=> [query_ptr, num_queries, query_ptr, ...]
+    padw exec.constants::lde_size_ptr mem_loadw
+    movup.2 drop
+    movup.2 drop
+    #=> [lde_domain_size, lde_domain_log_size, query_ptr, num_queries, query_ptr, ...]
     exec.random_coin::generate_list_indices
     #=> [query_ptr, ...]
 

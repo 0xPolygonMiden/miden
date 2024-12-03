@@ -625,9 +625,8 @@ end
 #! [0, lde_size] and store it in memory starting from `query_ptr`.
 #! The list is stored as `(r, depth, y, y)` where `depth` is `log(lde_domain_size)`.
 #!`depth` is needed when computing the deep queries.
-#! TODO: the case of duplicate queries
 #!
-#! Input: [query_ptr, num_queries, ...]
+#! Input: [lde_domain_size, lde_domain_log_size, query_ptr, num_queries, ...]
 #! Output: [...]
 #!
 #! Cycles: 267 + q * 236 + r * 29 where q = num_queries / 8 and r = num_queries % 8
@@ -635,19 +634,15 @@ end
 #! NOTE: This procedure is called first, and right after the PoW check, thus the first element
 #! in the rate portion of the state is discarded.
 #! NOTE: The cycles count can be estimated, using the fact that r < 8, via the more compact formula
-#!  470 + 236 * (num_queries / 8)
+#!  485 + 31 * num_queries
 export.generate_list_indices
     # Create mask
-    padw
-    exec.constants::lde_size_ptr mem_loadw
-    movup.2 drop
-    movup.2 drop
     sub.1
-    #=> [mask, depth, query_ptr, num_queries] where depth = log(lde_size)
+    #=> [mask, depth, query_ptr, num_queries, ...] where depth = log(lde_size)
 
     # Get address holding the integers (this will later hold the FRI queries)
     movup.2
-    #=> [query_ptr, mask, depth, num_queries]
+    #=> [query_ptr, mask, depth, num_queries, ...]
 
     # Load the first half of the rate portion of the state of the random coin. We discard the first
     # element as it is used for PoW and use the remaining the 3.

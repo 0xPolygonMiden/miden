@@ -1,0 +1,256 @@
+use.std::crypto::dsa::rpo_stark::constants
+use.std::crypto::hashes::rpo
+
+
+#! Loads OOD evaluation frame, with current and next rows interleaved, into memory. This ouputs
+#! the hash of the OOD for reseeding the random coin.
+#!
+#! Input: [...]
+#! Output: [OOD_FRAME_HASH, ...]
+#! Cycles: 36
+export.load_evaluation_frame
+    # We have 12 main trace columns for a total of 24 base field elements per row.
+    # Since we have two rows, i.e. current and next, the total number of field elements
+    # making up the OOD evaluation frame is 48.
+    # The elements are stored from the stack as (a1_1, a1_0, a0_1, a0_0) where a0 is from the
+    # current row and a1 from the next row.
+
+    exec.constants::ood_trace_ptr
+    padw padw padw
+    repeat.6
+        adv_pipe
+        hperm
+    end
+
+    dropw
+    swapw
+    dropw
+    movup.4
+    drop
+end
+
+
+#! Loads OOD constraint composition polynomial evaluation columns into memory and reseeds the random
+#! coin.
+#!
+#! Input: [...]
+#! Output: [EVAL_HASH, ...]
+#! Cycles: 160
+export.load_constraint_evaluations
+    # Read OOD constraint evaluations. These are 8 ExtFelt `value_i` such that the value of the
+    # constraint evaluation polynomial at `z` `H(z)` equals `\sum_0^7 z^(N * i) value_i` where N
+    # is the execution trace length.
+    # In order to facilitate the computation of the DEEP composition polynomial queries, we lay out
+    # the values in memory as [v0, v1, 0, 0] where v := (v0, v1) ranges over the 8 values `value_i`.
+
+    # Load value_0 and value_1
+    push.4.0.0.0
+    padw
+    adv_loadw
+    dup.3 dup.3 push.0.0
+    exec.constants::ood_constraint_evals_ptr mem_storew
+    dropw
+
+    dup.1 dup.1 push.0.0
+    exec.constants::ood_constraint_evals_ptr add.1
+    mem_storew
+
+    # Load value_2 and value_3
+    adv_loadw
+    dup.3 dup.3 push.0.0
+    exec.constants::ood_constraint_evals_ptr add.2
+    mem_storew
+    dropw
+
+    dup.1 dup.1 push.0.0
+    exec.constants::ood_constraint_evals_ptr add.3
+    mem_storew
+
+    dropw
+    hperm
+
+    # Load value_4 and value_5
+    adv_loadw
+    dup.3 dup.3 push.0.0
+    exec.constants::ood_constraint_evals_ptr add.4
+    mem_storew
+    dropw
+
+    dup.1 dup.1 push.0.0
+    exec.constants::ood_constraint_evals_ptr add.5
+    mem_storew
+    dropw
+
+    swapw
+
+    # Load value_6 and value_7
+    adv_loadw
+    dup.3 dup.3 push.0.0
+    exec.constants::ood_constraint_evals_ptr add.6
+    mem_storew
+    dropw
+
+    dup.1 dup.1 push.0.0
+    exec.constants::ood_constraint_evals_ptr add.7
+    mem_storew
+    dropw
+
+    hperm
+
+    # Load value_8 and value_9
+    adv_loadw
+    dup.3 dup.3 push.0.0
+    exec.constants::ood_constraint_evals_ptr add.8
+    mem_storew
+    dropw
+
+    # Load value_10
+    dup.1 dup.1 push.0.0
+    exec.constants::ood_constraint_evals_ptr add.9
+    mem_storew
+    dropw
+
+    swapw dropw
+    padw
+    hperm
+   
+    exec.rpo::squeeze_digest
+end
+
+#! Loads OOD constraint composition polynomial evaluation columns into memory and reseeds the random
+#! coin.
+#!
+#! Input: [...]
+#! Output: [EVAL_HASH, ...]
+#! Cycles: 160
+export.load_constraint_evaluations_old
+    # Read OOD constraint evaluations. These are 8 ExtFelt `value_i` such that the value of the
+    # constraint evaluation polynomial at `z` `H(z)` equals `\sum_0^7 z^(N * i) value_i` where N
+    # is the execution trace length.
+    # In order to facilitate the computation of the DEEP composition polynomial queries, we lay out
+    # the values in memory as [v0, v1, 0, 0] where v := (v0, v1) ranges over the 8 values `value_i`.
+
+    # Load value_0 and value_1
+    padw
+    padw
+    adv_loadw
+    dup.3 dup.3 push.0.0
+    exec.constants::ood_constraint_evals_ptr mem_storew
+    dropw
+
+    dup.1 dup.1 push.0.0
+    exec.constants::ood_constraint_evals_ptr add.1
+    mem_storew
+
+    # Load value_2 and value_3
+    adv_loadw
+    dup.3 dup.3 push.0.0
+    exec.constants::ood_constraint_evals_ptr add.2
+    mem_storew
+    dropw
+
+    dup.1 dup.1 push.0.0
+    exec.constants::ood_constraint_evals_ptr add.3
+    mem_storew
+
+    dropw
+    hperm
+
+    # Load value_4 and value_5
+    adv_loadw
+    dup.3 dup.3 push.0.0
+    exec.constants::ood_constraint_evals_ptr add.4
+    mem_storew
+    dropw
+
+    dup.1 dup.1 push.0.0
+    exec.constants::ood_constraint_evals_ptr add.5
+    mem_storew
+    dropw
+
+    swapw
+
+    # Load value_6 and value_7
+    adv_loadw
+    dup.3 dup.3 push.0.0
+    exec.constants::ood_constraint_evals_ptr add.6
+    mem_storew
+    dropw
+
+    dup.1 dup.1 push.0.0
+    exec.constants::ood_constraint_evals_ptr add.7
+    mem_storew
+    dropw
+
+    hperm
+
+    # Load value_8 and value_9
+    adv_loadw
+    dup.3 dup.3 push.0.0
+    exec.constants::ood_constraint_evals_ptr add.8
+    mem_storew
+    dropw
+
+    dup.1 dup.1 push.0.0
+    exec.constants::ood_constraint_evals_ptr add.9
+    mem_storew
+    dropw
+
+    swapw
+
+    # Load value_10 and value_11
+    adv_loadw
+    dup.3 dup.3 push.0.0
+    exec.constants::ood_constraint_evals_ptr add.10
+    mem_storew
+    dropw
+
+    dup.1 dup.1 push.0.0
+    exec.constants::ood_constraint_evals_ptr add.11
+    mem_storew
+    dropw
+
+    hperm
+   
+    exec.rpo::squeeze_digest
+end
+
+#! Computes the H(z) evaluation of the constraint composition polynomial at the OOD element z.
+#!
+#! Input: [coef_ptr, x1, x0, ...]
+#! Output: [res1, res0, ...]
+#!
+#! Cycles: 270
+export.compute_Hz
+    exec.constants::ood_constraint_evals_ptr add.11
+    movdn.2
+    push.0.0
+    # => [acc1, acc0, x1, x0, coef_ptr, ...]
+
+    repeat.6
+        padw
+        dup.8
+        mem_loadw
+        push.0 push.0
+        dup.10 sub.2 swap.11
+        sub.1 mem_loadw drop drop
+        # => [d1, d0, c1, c0, acc1, acc0, x1, x0, coef_ptr, ...]
+
+        dup.7 dup.7
+        # => [x1, x0, d1, d0, c1, c0, acc1, acc0, x1, x0, coef_ptr, ...]
+
+        movup.7 movup.7
+        # => [acc1, acc0, x1, x0, d1, d0, c1, c0, x1, x0, coef_ptr, ...]
+        ext2mul
+        # => [tmp1, tmp0, d1, d0, c1, c0, x1, x0, coef_ptr, ...]
+
+        movup.5 movup.5 ext2add
+        # => [acc1, acc0, d1, d0, x1, x0, coef_ptr, ...]
+
+        dup.5 dup.5 ext2mul ext2add
+        # => [acc1, acc0, x1, x0, coef_ptr, ...]
+    end
+
+    movdn.4 movdn.4
+    drop drop drop
+end

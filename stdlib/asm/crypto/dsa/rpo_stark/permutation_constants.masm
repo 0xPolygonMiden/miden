@@ -1,0 +1,1292 @@
+
+# MDS MATRIX CONSTANTS
+# =================================================================================================
+
+const.MDS_0=7
+const.MDS_1=23
+const.MDS_2=8
+const.MDS_3=26
+const.MDS_4=13
+const.MDS_5=10
+const.MDS_6=9
+const.MDS_7=7
+const.MDS_8=6
+const.MDS_9=22
+const.MDS_10=21
+const.MDS_11=8
+
+# First row
+
+export.get_mds_row_0_first_tuple
+    push.MDS_0 push.MDS_1
+end
+
+export.get_mds_row_0_second_tuple
+    push.MDS_2 push.MDS_3
+end
+
+export.get_mds_row_0_third_tuple
+    push.MDS_4 push.MDS_5
+end
+
+export.get_mds_row_0_fourth_tuple
+    push.MDS_6 push.MDS_7
+end
+
+export.get_mds_row_0_fifth_tuple
+    push.MDS_8 push.MDS_9
+end
+
+export.get_mds_row_0_sixth_tuple
+    push.MDS_10 push.MDS_11
+end
+
+# Second row
+
+export.get_mds_row_1_first_tuple
+    push.MDS_11 push.MDS_0
+end
+
+export.get_mds_row_1_second_tuple
+    push.MDS_1 push.MDS_2
+end
+
+export.get_mds_row_1_third_tuple
+    push.MDS_3 push.MDS_4
+end
+
+export.get_mds_row_1_fourth_tuple
+    push.MDS_5 push.MDS_6
+end
+
+export.get_mds_row_1_fifth_tuple
+    push.MDS_7 push.MDS_8
+end
+
+export.get_mds_row_1_sixth_tuple
+    push.MDS_9 push.MDS_10
+end
+
+# Third row
+
+export.get_mds_row_2_first_tuple
+    push.MDS_10 push.MDS_11
+end
+
+export.get_mds_row_2_second_tuple
+    push.MDS_0 push.MDS_1
+end
+
+export.get_mds_row_2_third_tuple
+    push.MDS_2 push.MDS_3
+end
+
+export.get_mds_row_2_fourth_tuple
+    push.MDS_4 push.MDS_5
+end
+
+export.get_mds_row_2_fifth_tuple
+    push.MDS_6 push.MDS_7
+end
+
+export.get_mds_row_2_sixth_tuple
+    push.MDS_8 push.MDS_9
+end
+
+# Fourth row
+
+export.get_mds_row_3_first_tuple
+    push.MDS_9 push.MDS_10
+end
+
+export.get_mds_row_3_second_tuple
+    push.MDS_11 push.MDS_0
+end
+
+export.get_mds_row_3_third_tuple
+    push.MDS_1 push.MDS_2
+end
+
+export.get_mds_row_3_fourth_tuple
+    push.MDS_3 push.MDS_4
+end
+
+export.get_mds_row_3_fifth_tuple
+    push.MDS_5 push.MDS_6
+end
+
+export.get_mds_row_3_sixth_tuple
+    push.MDS_7 push.MDS_8
+end
+
+# Fifth row
+
+export.get_mds_row_4_first_tuple
+    push.MDS_8 push.MDS_9
+end
+
+export.get_mds_row_4_second_tuple
+    push.MDS_10 push.MDS_11
+end
+
+export.get_mds_row_4_third_tuple
+    push.MDS_0 push.MDS_1
+end
+
+export.get_mds_row_4_fourth_tuple
+    push.MDS_2 push.MDS_3
+end
+
+export.get_mds_row_4_fifth_tuple
+    push.MDS_4 push.MDS_5
+end
+
+export.get_mds_row_4_sixth_tuple
+    push.MDS_6 push.MDS_7
+end
+
+# Sixth row
+
+export.get_mds_row_5_first_tuple
+    push.MDS_7 push.MDS_8
+end
+
+export.get_mds_row_5_second_tuple
+    push.MDS_9 push.MDS_10
+end
+
+export.get_mds_row_5_third_tuple
+    push.MDS_11 push.MDS_0
+end
+
+export.get_mds_row_5_fourth_tuple
+    push.MDS_1 push.MDS_2
+end
+
+export.get_mds_row_5_fifth_tuple
+    push.MDS_3 push.MDS_4
+end
+
+export.get_mds_row_5_sixth_tuple
+    push.MDS_5 push.MDS_6
+end
+
+# Seventh row
+
+export.get_mds_row_6_first_tuple
+    push.MDS_6 push.MDS_7
+end
+
+export.get_mds_row_6_second_tuple
+    push.MDS_8 push.MDS_9
+end
+
+export.get_mds_row_6_third_tuple
+    push.MDS_10 push.MDS_11
+end
+
+export.get_mds_row_6_fourth_tuple
+    push.MDS_0 push.MDS_1
+end
+
+export.get_mds_row_6_fifth_tuple
+    push.MDS_2 push.MDS_3
+end
+
+export.get_mds_row_6_sixth_tuple
+    push.MDS_4 push.MDS_5
+end
+
+# Eight row
+
+export.get_mds_row_7_first_tuple
+    push.MDS_5 push.MDS_6
+end
+
+export.get_mds_row_7_second_tuple
+    push.MDS_7 push.MDS_8
+end
+
+export.get_mds_row_7_third_tuple
+    push.MDS_9 push.MDS_10
+end
+
+export.get_mds_row_7_fourth_tuple
+    push.MDS_11 push.MDS_0
+end
+
+export.get_mds_row_7_fifth_tuple
+    push.MDS_1 push.MDS_2
+end
+
+export.get_mds_row_7_sixth_tuple
+    push.MDS_3 push.MDS_4
+end
+
+# Ninth row
+
+export.get_mds_row_8_first_tuple
+    push.MDS_4 push.MDS_5
+end
+
+export.get_mds_row_8_second_tuple
+    push.MDS_6 push.MDS_7
+end
+
+export.get_mds_row_8_third_tuple
+    push.MDS_8 push.MDS_9
+end
+
+export.get_mds_row_8_fourth_tuple
+    push.MDS_10 push.MDS_11
+end
+
+export.get_mds_row_8_fifth_tuple
+    push.MDS_0 push.MDS_1
+end
+
+export.get_mds_row_8_sixth_tuple
+    push.MDS_2 push.MDS_3
+end
+
+# Tenth row
+
+export.get_mds_row_9_first_tuple
+    push.MDS_3 push.MDS_4
+end
+
+export.get_mds_row_9_second_tuple
+    push.MDS_5 push.MDS_6
+end
+
+export.get_mds_row_9_third_tuple
+    push.MDS_7 push.MDS_8
+end
+
+export.get_mds_row_9_fourth_tuple
+    push.MDS_9 push.MDS_10
+end
+
+export.get_mds_row_9_fifth_tuple
+    push.MDS_11 push.MDS_0
+end
+
+export.get_mds_row_9_sixth_tuple
+    push.MDS_1 push.MDS_2
+end
+
+# Eleventh row
+
+export.get_mds_row_10_first_tuple
+    push.MDS_2 push.MDS_3
+end
+
+export.get_mds_row_10_second_tuple
+    push.MDS_4 push.MDS_5
+end
+
+export.get_mds_row_10_third_tuple
+    push.MDS_6 push.MDS_7
+end
+
+export.get_mds_row_10_fourth_tuple
+    push.MDS_8 push.MDS_9
+end
+
+export.get_mds_row_10_fifth_tuple
+    push.MDS_10 push.MDS_11
+end
+
+export.get_mds_row_10_sixth_tuple
+    push.MDS_0 push.MDS_1
+end
+
+# Twelvth row
+
+export.get_mds_row_11_first_tuple
+    push.MDS_1 push.MDS_2
+end
+
+export.get_mds_row_11_second_tuple
+    push.MDS_3 push.MDS_4
+end
+
+export.get_mds_row_11_third_tuple
+    push.MDS_5 push.MDS_6
+end
+
+export.get_mds_row_11_fourth_tuple
+    push.MDS_7 push.MDS_8
+end
+
+export.get_mds_row_11_fifth_tuple
+    push.MDS_9 push.MDS_10
+end
+
+export.get_mds_row_11_sixth_tuple
+    push.MDS_11 push.MDS_0
+end
+
+
+# ROUND CONSTANTS INTERPOLATING POLYNOMIALS COEFFICIENTS
+# =================================================================================================
+
+
+export.get_ark1_index_0_poly_coef_0
+    push.11161339744919841557
+end
+
+
+export.get_ark1_index_0_poly_coef_1
+    push.13524602409635810170
+end
+
+
+export.get_ark1_index_0_poly_coef_2
+    push.9922086147590952635
+end
+
+
+export.get_ark1_index_0_poly_coef_3
+    push.17016545619512577097
+end
+
+
+export.get_ark1_index_0_poly_coef_4
+    push.2418654603508424991
+end
+
+
+export.get_ark1_index_0_poly_coef_5
+    push.10286692761237010417
+end
+
+
+export.get_ark1_index_0_poly_coef_6
+    push.283349644643922063
+end
+
+
+export.get_ark1_index_0_poly_coef_7
+    push.14963467652898065746
+end
+
+
+export.get_ark1_index_1_poly_coef_0
+    push.4396886864075565886
+end
+
+
+export.get_ark1_index_1_poly_coef_1
+    push.14421256556794208365
+end
+
+
+export.get_ark1_index_1_poly_coef_2
+    push.17618762504959858245
+end
+
+
+export.get_ark1_index_1_poly_coef_3
+    push.16500226033358169876
+end
+
+
+export.get_ark1_index_1_poly_coef_4
+    push.9022700061563201986
+end
+
+
+export.get_ark1_index_1_poly_coef_5
+    push.8797682842773526496
+end
+
+
+export.get_ark1_index_1_poly_coef_6
+    push.1406606624688743502
+end
+
+
+export.get_ark1_index_1_poly_coef_7
+    push.8145419553858764711
+end
+
+
+export.get_ark1_index_2_poly_coef_0
+    push.12771104083879797304
+end
+
+
+export.get_ark1_index_2_poly_coef_1
+    push.4384096284379081589
+end
+
+
+export.get_ark1_index_2_poly_coef_2
+    push.10611032300457160935
+end
+
+
+export.get_ark1_index_2_poly_coef_3
+    push.14994324994142571878
+end
+
+
+export.get_ark1_index_2_poly_coef_4
+    push.9653495130142868572
+end
+
+
+export.get_ark1_index_2_poly_coef_5
+    push.1050988870128088335
+end
+
+
+export.get_ark1_index_2_poly_coef_6
+    push.17560352664313181270
+end
+
+
+export.get_ark1_index_2_poly_coef_7
+    push.2124731360259211283
+end
+
+
+export.get_ark1_index_3_poly_coef_0
+    push.918334021027209062
+end
+
+
+export.get_ark1_index_3_poly_coef_1
+    push.10152047439645494196
+end
+
+
+export.get_ark1_index_3_poly_coef_2
+    push.214997880704220386
+end
+
+
+export.get_ark1_index_3_poly_coef_3
+    push.6569423833286224818
+end
+
+
+export.get_ark1_index_3_poly_coef_4
+    push.533558171595040129
+end
+
+
+export.get_ark1_index_3_poly_coef_5
+    push.1280997866548339118
+end
+
+
+export.get_ark1_index_3_poly_coef_6
+    push.12874339497899932877
+end
+
+
+export.get_ark1_index_3_poly_coef_7
+    push.4456934672112444564
+end
+
+
+export.get_ark1_index_4_poly_coef_0
+    push.11692764253303674470
+end
+
+
+export.get_ark1_index_4_poly_coef_1
+    push.515284590742120187
+end
+
+
+export.get_ark1_index_4_poly_coef_2
+    push.17292488966298323792
+end
+
+
+export.get_ark1_index_4_poly_coef_3
+    push.10844018419856250332
+end
+
+
+export.get_ark1_index_4_poly_coef_4
+    push.18023781777216126430
+end
+
+
+export.get_ark1_index_4_poly_coef_5
+    push.13673939141435367318
+end
+
+
+export.get_ark1_index_4_poly_coef_6
+    push.6234658754536564709
+end
+
+
+export.get_ark1_index_4_poly_coef_7
+    push.1899018416707427428
+end
+
+
+export.get_ark1_index_5_poly_coef_0
+    push.4346339672760616239
+end
+
+
+export.get_ark1_index_5_poly_coef_1
+    push.8455287875953668445
+end
+
+
+export.get_ark1_index_5_poly_coef_2
+    push.7797109022092361792
+end
+
+
+export.get_ark1_index_5_poly_coef_3
+    push.3185550689235771247
+end
+
+
+export.get_ark1_index_5_poly_coef_4
+    push.17857685726367183274
+end
+
+
+export.get_ark1_index_5_poly_coef_5
+    push.1222554742061216844
+end
+
+
+export.get_ark1_index_5_poly_coef_6
+    push.14357877464027708054
+end
+
+
+export.get_ark1_index_5_poly_coef_7
+    push.13961894750151243783
+end
+
+
+export.get_ark1_index_6_poly_coef_0
+    push.12338144193459599473
+end
+
+
+export.get_ark1_index_6_poly_coef_1
+    push.4787262909192723447
+end
+
+
+export.get_ark1_index_6_poly_coef_2
+    push.18009332799257726044
+end
+
+
+export.get_ark1_index_6_poly_coef_3
+    push.1520757922292500220
+end
+
+
+export.get_ark1_index_6_poly_coef_4
+    push.3425116756870399082
+end
+
+
+export.get_ark1_index_6_poly_coef_5
+    push.82309007773463393
+end
+
+
+export.get_ark1_index_6_poly_coef_6
+    push.10999213665537908638
+end
+
+
+export.get_ark1_index_6_poly_coef_7
+    push.14153095467414650905
+end
+
+
+export.get_ark1_index_7_poly_coef_0
+    push.17721191843366953765
+end
+
+
+export.get_ark1_index_7_poly_coef_1
+    push.2981247010710770409
+end
+
+
+export.get_ark1_index_7_poly_coef_2
+    push.2629404272561006980
+end
+
+
+export.get_ark1_index_7_poly_coef_3
+    push.17998360743101617303
+end
+
+
+export.get_ark1_index_7_poly_coef_4
+    push.9696450523361047127
+end
+
+
+export.get_ark1_index_7_poly_coef_5
+    push.2820580057022838499
+end
+
+
+export.get_ark1_index_7_poly_coef_6
+    push.17030972937639676955
+end
+
+
+export.get_ark1_index_7_poly_coef_7
+    push.6253753013662739610
+end
+
+
+export.get_ark1_index_8_poly_coef_0
+    push.13086121874681361472
+end
+
+
+export.get_ark1_index_8_poly_coef_1
+    push.18420464834339013679
+end
+
+
+export.get_ark1_index_8_poly_coef_2
+    push.4941115579440263820
+end
+
+
+export.get_ark1_index_8_poly_coef_3
+    push.1400604787004895902
+end
+
+
+export.get_ark1_index_8_poly_coef_4
+    push.5744512854726105972
+end
+
+
+export.get_ark1_index_8_poly_coef_5
+    push.1832983366606572285
+end
+
+
+export.get_ark1_index_8_poly_coef_6
+    push.18156162340052117729
+end
+
+
+export.get_ark1_index_8_poly_coef_7
+    push.1717456198050769295
+end
+
+
+export.get_ark1_index_9_poly_coef_0
+    push.13529699806230160963
+end
+
+
+export.get_ark1_index_9_poly_coef_1
+    push.10237180984848504073
+end
+
+
+export.get_ark1_index_9_poly_coef_2
+    push.10148251122167516761
+end
+
+
+export.get_ark1_index_9_poly_coef_3
+    push.5675543704421645935
+end
+
+
+export.get_ark1_index_9_poly_coef_4
+    push.3100011361405407410
+end
+
+
+export.get_ark1_index_9_poly_coef_5
+    push.10203341767187748478
+end
+
+
+export.get_ark1_index_9_poly_coef_6
+    push.1728635344260683954
+end
+
+
+export.get_ark1_index_9_poly_coef_7
+    push.13678341586485649054
+end
+
+
+export.get_ark1_index_10_poly_coef_0
+    push.6968853056426555231
+end
+
+
+export.get_ark1_index_10_poly_coef_1
+    push.12773799811074245642
+end
+
+
+export.get_ark1_index_10_poly_coef_2
+    push.7576847717756774592
+end
+
+
+export.get_ark1_index_10_poly_coef_3
+    push.6366612445863536555
+end
+
+
+export.get_ark1_index_10_poly_coef_4
+    push.1978027386177818117
+end
+
+
+export.get_ark1_index_10_poly_coef_5
+    push.11053027413584437217
+end
+
+
+export.get_ark1_index_10_poly_coef_6
+    push.17425383571650433644
+end
+
+
+export.get_ark1_index_10_poly_coef_7
+    push.800595103462440440
+end
+
+
+export.get_ark1_index_11_poly_coef_0
+    push.8239981436827461892
+end
+
+
+export.get_ark1_index_11_poly_coef_1
+    push.3056366513263287059
+end
+
+
+export.get_ark1_index_11_poly_coef_2
+    push.1477273142604874244
+end
+
+
+export.get_ark1_index_11_poly_coef_3
+    push.6179499463670119678
+end
+
+
+export.get_ark1_index_11_poly_coef_4
+    push.697057001204997696
+end
+
+
+export.get_ark1_index_11_poly_coef_5
+    push.3315366854959170049
+end
+
+
+export.get_ark1_index_11_poly_coef_6
+    push.10854693463399578271
+end
+
+
+export.get_ark1_index_11_poly_coef_7
+    push.1284048563685561340
+end
+
+
+export.get_ark2_index_0_poly_coef_0
+    push.17541136370002042541
+end
+
+
+export.get_ark2_index_0_poly_coef_1
+    push.9207305567328033659
+end
+
+
+export.get_ark2_index_0_poly_coef_2
+    push.5302649368994107543
+end
+
+
+export.get_ark2_index_0_poly_coef_3
+    push.9295148820033412177
+end
+
+
+export.get_ark2_index_0_poly_coef_4
+    push.10458889936493236127
+end
+
+
+export.get_ark2_index_0_poly_coef_5
+    push.9250400196904370803
+end
+
+
+export.get_ark2_index_0_poly_coef_6
+    push.10120490625039566031
+end
+
+
+export.get_ark2_index_0_poly_coef_7
+    push.8688018155220772690
+end
+
+
+export.get_ark2_index_1_poly_coef_0
+    push.12290374148348092865
+end
+
+
+export.get_ark2_index_1_poly_coef_1
+    push.7598939068586646899
+end
+
+
+export.get_ark2_index_1_poly_coef_2
+    push.5676794387987529535
+end
+
+
+export.get_ark2_index_1_poly_coef_3
+    push.1808022546556847354
+end
+
+
+export.get_ark2_index_1_poly_coef_4
+    push.17375499837810978191
+end
+
+
+export.get_ark2_index_1_poly_coef_5
+    push.3553069938644104544
+end
+
+
+export.get_ark2_index_1_poly_coef_6
+    push.16222342997907433812
+end
+
+
+export.get_ark2_index_1_poly_coef_7
+    push.6092809452904130954
+end
+
+
+export.get_ark2_index_2_poly_coef_0
+    push.6330834748146988998
+end
+
+
+export.get_ark2_index_2_poly_coef_1
+    push.18232818846548175240
+end
+
+
+export.get_ark2_index_2_poly_coef_2
+    push.16738194939201375332
+end
+
+
+export.get_ark2_index_2_poly_coef_3
+    push.12422045225973843477
+end
+
+
+export.get_ark2_index_2_poly_coef_4
+    push.2649532336751053336
+end
+
+
+export.get_ark2_index_2_poly_coef_5
+    push.9144083707269204039
+end
+
+
+export.get_ark2_index_2_poly_coef_6
+    push.12856846028102044258
+end
+
+
+export.get_ark2_index_2_poly_coef_7
+    push.771358571379849309
+end
+
+
+export.get_ark2_index_3_poly_coef_0
+    push.6068602067966145177
+end
+
+
+export.get_ark2_index_3_poly_coef_1
+    push.5255602161993055124
+end
+
+
+export.get_ark2_index_3_poly_coef_2
+    push.16592542373283749979
+end
+
+
+export.get_ark2_index_3_poly_coef_3
+    push.13453764978722298280
+end
+
+
+export.get_ark2_index_3_poly_coef_4
+    push.2813161176846149028
+end
+
+
+export.get_ark2_index_3_poly_coef_5
+    push.13008840161409309674
+end
+
+
+export.get_ark2_index_3_poly_coef_6
+    push.12882021675720283520
+end
+
+
+export.get_ark2_index_3_poly_coef_7
+    push.17945725469014942220
+end
+
+
+export.get_ark2_index_4_poly_coef_0
+    push.1116014701074041230
+end
+
+
+export.get_ark2_index_4_poly_coef_1
+    push.12255682890262208133
+end
+
+
+export.get_ark2_index_4_poly_coef_2
+    push.15511186351910640359
+end
+
+
+export.get_ark2_index_4_poly_coef_3
+    push.4162444308275232160
+end
+
+
+export.get_ark2_index_4_poly_coef_4
+    push.18091011016833255590
+end
+
+
+export.get_ark2_index_4_poly_coef_5
+    push.9105441978990789270
+end
+
+
+export.get_ark2_index_4_poly_coef_6
+    push.13577569096164448709
+end
+
+
+export.get_ark2_index_4_poly_coef_7
+    push.13760205548494373198
+end
+
+
+export.get_ark2_index_5_poly_coef_0
+    push.13448103804003008392
+end
+
+
+export.get_ark2_index_5_poly_coef_1
+    push.10779183659020945945
+end
+
+
+export.get_ark2_index_5_poly_coef_2
+    push.13325354218459340225
+end
+
+
+export.get_ark2_index_5_poly_coef_3
+    push.14295910610635932367
+end
+
+
+export.get_ark2_index_5_poly_coef_4
+    push.8330371093400562539
+end
+
+
+export.get_ark2_index_5_poly_coef_5
+    push.12626397089873488158
+end
+
+
+export.get_ark2_index_5_poly_coef_6
+    push.14906872242999172719
+end
+
+
+export.get_ark2_index_5_poly_coef_7
+    push.16136339960217238365
+end
+
+
+export.get_ark2_index_6_poly_coef_0
+    push.1684770865143235919
+end
+
+
+export.get_ark2_index_6_poly_coef_1
+    push.5552056882756995901
+end
+
+
+export.get_ark2_index_6_poly_coef_2
+    push.4442419536195446696
+end
+
+
+export.get_ark2_index_6_poly_coef_3
+    push.232266114409147417
+end
+
+
+export.get_ark2_index_6_poly_coef_4
+    push.3314161303197956391
+end
+
+
+export.get_ark2_index_6_poly_coef_5
+    push.13532442853135532270
+end
+
+
+export.get_ark2_index_6_poly_coef_6
+    push.7914958773335845923
+end
+
+
+export.get_ark2_index_6_poly_coef_7
+    push.15091475497397269291
+end
+
+
+export.get_ark2_index_7_poly_coef_0
+    push.9634219295911269210
+end
+
+
+export.get_ark2_index_7_poly_coef_1
+    push.8265302361391121882
+end
+
+
+export.get_ark2_index_7_poly_coef_2
+    push.113009052876325830
+end
+
+
+export.get_ark2_index_7_poly_coef_3
+    push.5471962659021976827
+end
+
+
+export.get_ark2_index_7_poly_coef_4
+    push.16401896627521476325
+end
+
+
+export.get_ark2_index_7_poly_coef_5
+    push.15232515735988055298
+end
+
+
+export.get_ark2_index_7_poly_coef_6
+    push.18136037306670513314
+end
+
+
+export.get_ark2_index_7_poly_coef_7
+    push.10680270387070642097
+end
+
+
+export.get_ark2_index_8_poly_coef_0
+    push.4822559711433446189
+end
+
+
+export.get_ark2_index_8_poly_coef_1
+    push.2975769274803193496
+end
+
+
+export.get_ark2_index_8_poly_coef_2
+    push.11212733575482077029
+end
+
+
+export.get_ark2_index_8_poly_coef_3
+    push.3066360176188119622
+end
+
+
+export.get_ark2_index_8_poly_coef_4
+    push.6729123480959643901
+end
+
+
+export.get_ark2_index_8_poly_coef_5
+    push.927601220019329593
+end
+
+
+export.get_ark2_index_8_poly_coef_6
+    push.6019778753836356768
+end
+
+
+export.get_ark2_index_8_poly_coef_7
+    push.5596990898436677811
+end
+
+
+export.get_ark2_index_9_poly_coef_0
+    push.15684497769113983515
+end
+
+
+export.get_ark2_index_9_poly_coef_1
+    push.8545253256522768005
+end
+
+
+export.get_ark2_index_9_poly_coef_2
+    push.18215086275453877856
+end
+
+
+export.get_ark2_index_9_poly_coef_3
+    push.5016038390293382937
+end
+
+
+export.get_ark2_index_9_poly_coef_4
+    push.10346303444853625090
+end
+
+
+export.get_ark2_index_9_poly_coef_5
+    push.14397868846792134192
+end
+
+
+export.get_ark2_index_9_poly_coef_6
+    push.5834002991750433760
+end
+
+
+export.get_ark2_index_9_poly_coef_7
+    push.11338711761097304404
+end
+
+
+export.get_ark2_index_10_poly_coef_0
+    push.17520966244186076706
+end
+
+
+export.get_ark2_index_10_poly_coef_1
+    push.17628674693100098623
+end
+
+
+export.get_ark2_index_10_poly_coef_2
+    push.16883813969466615392
+end
+
+
+export.get_ark2_index_10_poly_coef_3
+    push.9443647939212324750
+end
+
+
+export.get_ark2_index_10_poly_coef_4
+    push.12928683089759827315
+end
+
+
+export.get_ark2_index_10_poly_coef_5
+    push.2645376024929508383
+end
+
+
+export.get_ark2_index_10_poly_coef_6
+    push.7237171422926818722
+end
+
+
+export.get_ark2_index_10_poly_coef_7
+    push.18008706076563744329
+end
+
+
+export.get_ark2_index_11_poly_coef_0
+    push.8182764617849825514
+end
+
+
+export.get_ark2_index_11_poly_coef_1
+    push.16332258635923638051
+end
+
+
+export.get_ark2_index_11_poly_coef_2
+    push.1569900429732542065
+end
+
+
+export.get_ark2_index_11_poly_coef_3
+    push.10042109738485744803
+end
+
+
+export.get_ark2_index_11_poly_coef_4
+    push.9638265557917565039
+end
+
+
+export.get_ark2_index_11_poly_coef_5
+    push.14826757489656136717
+end
+
+
+export.get_ark2_index_11_poly_coef_6
+    push.655724116770628941
+end
+
+
+export.get_ark2_index_11_poly_coef_7
+    push.8292530465339031919
+end

@@ -1,11 +1,42 @@
-mod verifier_recursive;
 use assembly::Assembler;
 use miden_air::{FieldExtension, HashFunction, PublicInputs};
-use processor::{DefaultHost, Program, ProgramInfo};
+use processor::{crypto::MerkleStore, DefaultHost, Digest, Program, ProgramInfo};
+use rand::SeedableRng;
+use rand_chacha::ChaCha20Rng;
+use signature::generate_advice_inputs_signature;
 use test_utils::{
-    prove, AdviceInputs, MemAdviceProvider, ProvingOptions, StackInputs, VerifierError,
+    crypto::rpo_stark::{PublicInputs as SignaturePublicInputs, SecretKey},
+    prove,
+    rand::rand_array,
+    AdviceInputs, MemAdviceProvider, ProvingOptions, StackInputs, VerifierError,
 };
-use verifier_recursive::{generate_advice_inputs, VerifierData};
+
+mod verifier_recursive;
+use verifier_recursive::generate_advice_inputs;
+use vm_core::Felt;
+
+mod signature;
+
+#[test]
+fn signature_verification() {
+    let VerifierData {
+        initial_stack,
+        advice_stack: tape,
+        store,
+        advice_map,
+    } = generate_signature_data().unwrap();
+
+    let source = "
+        use.std::crypto::dsa::rpo_stark::verifier
+        begin
+            exec.verifier::verify
+        end
+        ";
+
+    let test = build_test!(source, &initial_stack, &tape, store, advice_map);
+
+    test.expect_stack(&[]);
+}
 
 // Note: Changes to MidenVM may cause this test to fail when some of the assumptions documented
 // in `stdlib/asm/crypto/stark/verifier.masm` are violated.
@@ -44,7 +75,23 @@ fn stark_verifier_e2f4() {
     test.expect_stack(&[]);
 }
 
-// Helper function for recursive verification
+/// Helper function for signature generation.
+fn generate_signature_data() -> Result<VerifierData, VerifierError> {
+    let seed = [0_u8; 32];
+    let mut rng = ChaCha20Rng::from_seed(seed);
+    let sk = SecretKey::with_rng(&mut rng);
+    let pk = sk.compute_public_key();
+
+    let message = rand_array();
+    let signature = sk.sign(message);
+    let proof = signature.inner();
+    let pub_inputs = SignaturePublicInputs::new(pk.inner(), message);
+
+    let res = generate_advice_inputs_signature(proof, pub_inputs);
+    Ok(res.unwrap())
+}
+
+/// Helper function for recursive verification.
 pub fn generate_recursive_verifier_data(
     source: &str,
     stack_inputs: Vec<u64>,
@@ -64,6 +111,15 @@ pub fn generate_recursive_verifier_data(
 
     // build public inputs and generate the advice data needed for recursive proof verification
     let pub_inputs = PublicInputs::new(program_info, stack_inputs, stack_outputs);
+
     let (_, proof) = proof.into_parts();
     Ok(generate_advice_inputs(proof, pub_inputs).unwrap())
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct VerifierData {
+    pub initial_stack: Vec<u64>,
+    pub advice_stack: Vec<u64>,
+    pub store: MerkleStore,
+    pub advice_map: Vec<(Digest, Vec<Felt>)>,
 }

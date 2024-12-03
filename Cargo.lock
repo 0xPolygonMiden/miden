@@ -186,9 +186,9 @@ checksum = "b048fb63fd8b5923fc5aa7b340d8e156aec7ec02f0c78fa8a6ddc2613f6f71de"
 
 [[package]]
 name = "blake3"
-version = "1.5.4"
+version = "1.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d82033247fd8e890df8f740e407ad4d038debb9eb1f40533fffb32e7d17dc6f7"
+checksum = "b8ee0c1824c4dea5b5f81736aff91bae041d2c07ee1192bec91054e10e3e601e"
 dependencies = [
  "arrayref",
  "arrayvec",
@@ -243,9 +243,9 @@ checksum = "37b2a672a2cb129a2e41c10b1224bb368f9f37a2b16b612598138befd7b37eb5"
 
 [[package]]
 name = "cc"
-version = "1.2.1"
+version = "1.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd9de9f2205d5ef3fd67e685b0df337994ddd4495e2a28d185500d0e1edfea47"
+checksum = "f34d93e62b03caf570cccc334cbc6c2fceca82f39211051345108adcba3eebdc"
 dependencies = [
  "jobserver",
  "libc",
@@ -546,12 +546,12 @@ checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
 
 [[package]]
 name = "errno"
-version = "0.3.9"
+version = "0.3.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "534c5cf6194dfab3db3242765c03bbe257cf92f22b38f6bc0c58d59108a820ba"
+checksum = "33d852cb9b869c2a9b3df2f71a3074817f01e1844f839a144f5fcef059a4eb5d"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -775,9 +775,9 @@ checksum = "ce23b50ad8242c51a442f3ff322d56b02f08852c77e4c0b4d3fd684abc89c683"
 
 [[package]]
 name = "indexmap"
-version = "2.6.0"
+version = "2.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "707907fe3c25f5424cce2cb7e1cbcafee6bdbe735ca90ef77c29e84591e5b9da"
+checksum = "62f822373a4fe84d4bb149bf54e584a7f4abec90e072ed49cda0edea5b95471f"
 dependencies = [
  "equivalent",
  "hashbrown",
@@ -826,9 +826,9 @@ dependencies = [
 
 [[package]]
 name = "itoa"
-version = "1.0.13"
+version = "1.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "540654e97a3f4470a492cd30ff187bc95d89557a903a2bbf112e2fae98104ef2"
+checksum = "d75a2a4b1b190afb6f5425f10f6a8f959d2ea0b9c2b1d79553551850539e4674"
 
 [[package]]
 name = "jobserver"
@@ -841,10 +841,11 @@ dependencies = [
 
 [[package]]
 name = "js-sys"
-version = "0.3.72"
+version = "0.3.74"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a88f1bda2bd75b0452a14784937d796722fdebfe50df998aeb3f0b7603019a9"
+checksum = "a865e038f7f6ed956f788f0d7d60c541fff74c7bd74272c5d4cf15c63743e705"
 dependencies = [
+ "once_cell",
  "wasm-bindgen",
 ]
 
@@ -892,9 +893,9 @@ checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
 name = "libc"
-version = "0.2.164"
+version = "0.2.167"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "433bfe06b8c75da9b2e3fbea6e5329ff87748f0b144ef75306e674c3f6f7c13f"
+checksum = "09d6582e104315a817dff97f75133544b2e094ee22447d2acf4a74e189ba06fc"
 
 [[package]]
 name = "libm"
@@ -1053,8 +1054,7 @@ dependencies = [
 [[package]]
 name = "miden-crypto"
 version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a74af93a5640786def85a08a1fc25e02d8681ed0449ffb4898f4832a5fa08958"
+source = "git+https://github.com/0xPolygonMiden/crypto?branch=al-stark-signature-dev-masm#c41b45f3bda4b31b836a86865861e0b1ad8f31ed"
 dependencies = [
  "blake3",
  "cc",
@@ -1062,12 +1062,19 @@ dependencies = [
  "num",
  "num-complex",
  "rand",
+ "rand_chacha",
  "rand_core",
  "sha3",
  "thiserror 2.0.3",
+ "winter-air",
  "winter-crypto",
+ "winter-fri",
  "winter-math",
+ "winter-maybe-async",
+ "winter-prover",
  "winter-utils",
+ "winter-verifier",
+ "winterfell",
 ]
 
 [[package]]
@@ -1156,7 +1163,9 @@ dependencies = [
  "miden-gpu",
  "miden-processor",
  "pollster",
+ "rand_chacha",
  "tracing",
+ "winter-air",
  "winter-maybe-async",
  "winter-prover",
 ]
@@ -1176,10 +1185,12 @@ dependencies = [
  "num-bigint",
  "pretty_assertions",
  "rand",
+ "rand_chacha",
  "serde_json",
  "sha2",
  "sha3",
  "winter-air",
+ "winter-crypto",
  "winter-fri",
 ]
 
@@ -2005,18 +2016,18 @@ checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
 name = "supports-color"
-version = "3.0.1"
+version = "3.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8775305acf21c96926c900ad056abeef436701108518cf890020387236ac5a77"
+checksum = "c64fc7232dd8d2e4ac5ce4ef302b1d81e0b80d055b9d77c7c4f51f6aa4c867d6"
 dependencies = [
  "is_ci",
 ]
 
 [[package]]
 name = "supports-hyperlinks"
-version = "3.0.0"
+version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c0a1e5168041f5f3ff68ff7d95dcb9c8749df29f6e7e89ada40dd4c9de404ee"
+checksum = "804f44ed3c63152de6a9f90acbea1a110441de43006ea51bcce8f436196a288b"
 
 [[package]]
 name = "supports-unicode"
@@ -2026,9 +2037,9 @@ checksum = "b7401a30af6cb5818bb64852270bb722533397edcfc7344954a38f420819ece2"
 
 [[package]]
 name = "syn"
-version = "2.0.89"
+version = "2.0.90"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44d46482f1c1c87acd84dea20c1bf5ebff4c757009ed6bf19cfd36fb10e92c4e"
+checksum = "919d3b74a5dd0ccd15aeb8f93e7006bd9e14c295087c9896a110f490752bcf31"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2239,9 +2250,9 @@ dependencies = [
 
 [[package]]
 name = "tracing"
-version = "0.1.40"
+version = "0.1.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c3523ab5a71916ccf420eebdf5521fcef02141234bbc0b8a49f2fdc4544364ef"
+checksum = "784e0ac535deb450455cbfa28a6f0df145ea1bb7ae51b821cf5e7927fdcfbdd0"
 dependencies = [
  "pin-project-lite",
  "tracing-attributes",
@@ -2250,9 +2261,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-attributes"
-version = "0.1.27"
+version = "0.1.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "34704c8d6ebcbc939824180af020566b01a7c01f80641264eba0999f6c2b6be7"
+checksum = "395ae124c09f9e6918a2310af6038fba074bcf474ac352496d5910dd59a2226d"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2261,9 +2272,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-core"
-version = "0.1.32"
+version = "0.1.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c06d3da6113f116aaee68e4d601191614c9053067f9ab7f6edbcb161237daa54"
+checksum = "e672c95779cf947c5311f83787af4fa8fffd12fb27e4993211a84bdfd9610f9c"
 dependencies = [
  "once_cell",
  "valuable",
@@ -2295,9 +2306,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-subscriber"
-version = "0.3.18"
+version = "0.3.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ad0f048c97dbd9faa9b7df56362b8ebcaa52adb06b498c050d2f4e32f90a7a8b"
+checksum = "e8189decb5ac0fa7bc8b96b7cb9b2701d60d48805aca84a238004d665fcc4008"
 dependencies = [
  "matchers",
  "nu-ansi-term",
@@ -2446,9 +2457,9 @@ checksum = "9c8d87e72b64a3b4db28d11ce29237c246188f4f51057d65a7eab63b7987e423"
 
 [[package]]
 name = "wasm-bindgen"
-version = "0.2.95"
+version = "0.2.97"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "128d1e363af62632b8eb57219c8fd7877144af57558fb2ef0368d0087bddeb2e"
+checksum = "d15e63b4482863c109d70a7b8706c1e364eb6ea449b201a76c5b89cedcec2d5c"
 dependencies = [
  "cfg-if",
  "once_cell",
@@ -2457,9 +2468,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-backend"
-version = "0.2.95"
+version = "0.2.97"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cb6dd4d3ca0ddffd1dd1c9c04f94b868c37ff5fac97c30b97cff2d74fce3a358"
+checksum = "8d36ef12e3aaca16ddd3f67922bc63e48e953f126de60bd33ccc0101ef9998cd"
 dependencies = [
  "bumpalo",
  "log",
@@ -2472,9 +2483,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-macro"
-version = "0.2.95"
+version = "0.2.97"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e79384be7f8f5a9dd5d7167216f022090cf1f9ec128e6e6a482a2cb5c5422c56"
+checksum = "705440e08b42d3e4b36de7d66c944be628d579796b8090bfa3471478a2260051"
 dependencies = [
  "quote",
  "wasm-bindgen-macro-support",
@@ -2482,9 +2493,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-macro-support"
-version = "0.2.95"
+version = "0.2.97"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "26c6ab57572f7a24a4985830b120de1594465e5d500f24afe89e16b4e833ef68"
+checksum = "98c9ae5a76e46f4deecd0f0255cc223cfa18dc9b261213b8aa0c7b36f61b3f1d"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2495,15 +2506,15 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-shared"
-version = "0.2.95"
+version = "0.2.97"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "65fc09f10666a9f147042251e0dda9c18f166ff7de300607007e96bdebc1068d"
+checksum = "6ee99da9c5ba11bd675621338ef6fa52296b76b83305e9b6e5c77d4c286d6d49"
 
 [[package]]
 name = "web-sys"
-version = "0.3.72"
+version = "0.3.74"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6488b90108c040df0fe62fa815cbdee25124641df01814dd7282749234c6112"
+checksum = "a98bc3c33f0fe7e59ad7cd041b89034fa82a7c2d4365ca538dda6cdaf513863c"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
@@ -2764,8 +2775,7 @@ dependencies = [
 [[package]]
 name = "winter-air"
 version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a8fdb702503625f54dcaf9222aa2c7a0b2e868b3eb84b90d1837d68034bf999"
+source = "git+https://github.com/Al-Kindi-0/winterfell?branch=al-zk#606ffe7344aa165a5b58053cf678a5fb4f27ebcb"
 dependencies = [
  "libm",
  "winter-crypto",
@@ -2777,10 +2787,11 @@ dependencies = [
 [[package]]
 name = "winter-crypto"
 version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "67c57748fd2da77742be601f03eda639ff6046879738fd1faae86e80018263cb"
+source = "git+https://github.com/Al-Kindi-0/winterfell?branch=al-zk#606ffe7344aa165a5b58053cf678a5fb4f27ebcb"
 dependencies = [
  "blake3",
+ "rand",
+ "rand_chacha",
  "sha3",
  "winter-math",
  "winter-utils",
@@ -2789,9 +2800,10 @@ dependencies = [
 [[package]]
 name = "winter-fri"
 version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f9f999bc248c6254138b627035cb6d2c319580eb37dadcab6672298dbf00e41"
+source = "git+https://github.com/Al-Kindi-0/winterfell?branch=al-zk#606ffe7344aa165a5b58053cf678a5fb4f27ebcb"
 dependencies = [
+ "rand",
+ "rand_chacha",
  "winter-crypto",
  "winter-math",
  "winter-utils",
@@ -2800,8 +2812,7 @@ dependencies = [
 [[package]]
 name = "winter-math"
 version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6020c17839fa107ce4a7cc178e407ebbc24adfac1980f4fa2111198e052700ab"
+source = "git+https://github.com/Al-Kindi-0/winterfell?branch=al-zk#606ffe7344aa165a5b58053cf678a5fb4f27ebcb"
 dependencies = [
  "winter-utils",
 ]
@@ -2809,8 +2820,7 @@ dependencies = [
 [[package]]
 name = "winter-maybe-async"
 version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91ce144fde121b98523bb8a6c15a311773e1d534d33c1cb47f5580bba9cff8e7"
+source = "git+https://github.com/Al-Kindi-0/winterfell?branch=al-zk#606ffe7344aa165a5b58053cf678a5fb4f27ebcb"
 dependencies = [
  "quote",
  "syn",
@@ -2819,23 +2829,24 @@ dependencies = [
 [[package]]
 name = "winter-prover"
 version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6c2f3cf80955f084fd614c86883195331116b6c96dc88532d43d6836bd7adee"
+source = "git+https://github.com/Al-Kindi-0/winterfell?branch=al-zk#606ffe7344aa165a5b58053cf678a5fb4f27ebcb"
 dependencies = [
+ "rand",
+ "rand_chacha",
  "tracing",
  "winter-air",
  "winter-crypto",
  "winter-fri",
  "winter-math",
  "winter-maybe-async",
+ "winter-rand-utils",
  "winter-utils",
 ]
 
 [[package]]
 name = "winter-rand-utils"
 version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "226e4c455f6eb72f64ac6eeb7642df25e21ff2280a4f6b09db75392ad6b390ef"
+source = "git+https://github.com/Al-Kindi-0/winterfell?branch=al-zk#606ffe7344aa165a5b58053cf678a5fb4f27ebcb"
 dependencies = [
  "rand",
  "winter-utils",
@@ -2844,8 +2855,7 @@ dependencies = [
 [[package]]
 name = "winter-utils"
 version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1507ef312ea5569d54c2c7446a18b82143eb2a2e21f5c3ec7cfbe8200c03bd7c"
+source = "git+https://github.com/Al-Kindi-0/winterfell?branch=al-zk#606ffe7344aa165a5b58053cf678a5fb4f27ebcb"
 dependencies = [
  "rayon",
 ]
@@ -2853,14 +2863,23 @@ dependencies = [
 [[package]]
 name = "winter-verifier"
 version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56d949eab6c26328733477ec56ca054fdc69c0c1b8267fa03d8b618ffe2193c4"
+source = "git+https://github.com/Al-Kindi-0/winterfell?branch=al-zk#606ffe7344aa165a5b58053cf678a5fb4f27ebcb"
 dependencies = [
  "winter-air",
  "winter-crypto",
  "winter-fri",
  "winter-math",
  "winter-utils",
+]
+
+[[package]]
+name = "winterfell"
+version = "0.11.0"
+source = "git+https://github.com/Al-Kindi-0/winterfell?branch=al-zk#606ffe7344aa165a5b58053cf678a5fb4f27ebcb"
+dependencies = [
+ "winter-air",
+ "winter-prover",
+ "winter-verifier",
 ]
 
 [[package]]

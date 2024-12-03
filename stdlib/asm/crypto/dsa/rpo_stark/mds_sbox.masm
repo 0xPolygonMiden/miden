@@ -1,0 +1,1304 @@
+use.std::crypto::dsa::rpo_stark::round_constants_polynomials
+use.std::crypto::dsa::rpo_stark::permutation_constants
+
+#! Computes the result of the first matrix-vector multiplication of the state vector by the MDS
+#! matrix, followed by component-wise addition of round constants and component-wise exponentiation
+#! to the seventh power.
+#! All of the operations happen over the quadratic extension field.
+#! 
+#! Input: [state_ptr, out_ptr, z1, z0, ...]
+#! Output: [...]
+#!
+#! Cycles: ~ 3420
+export.multiply_mds_add_constant_apply_sbox_round
+    dup
+    exec.multiply_mds_0_row
+    # => [state0_1, state0_0, state_ptr, out_ptr, z1, z0, ...]
+    dup.5 dup.5 
+    exec.round_constants_polynomials::evaluate_ark1_index_0_at_z 
+    ext2add
+    exec.sbox
+    # => [state0_1, state0_0, state_ptr, out_ptr, z1, z0, ...]
+
+    dup.2
+    exec.multiply_mds_1_row
+    # => [state1_1, state1_0, state0_1, state0_0, state_ptr, out_ptr, z1, z0, ...]
+    dup.7 dup.7 exec.round_constants_polynomials::evaluate_ark1_index_1_at_z 
+    ext2add
+    exec.sbox
+    # => [state1_1, state1_0, state0_1, state0_0, state_ptr, out_ptr, z1, z0, ...]
+
+    dup.5 mem_storew dropw
+    # => [state_ptr, out_ptr, z1, z0, ...]
+
+    dup
+    exec.multiply_mds_2_row
+    # => [state2_1, state2_0, state_ptr, out_ptr, z1, z0, ...]
+    dup.5 dup.5 exec.round_constants_polynomials::evaluate_ark1_index_2_at_z 
+    ext2add
+    exec.sbox
+    # => [state2_1, state2_0, state_ptr, out_ptr, z1, z0, ...]
+
+    dup.2
+    exec.multiply_mds_3_row
+    # => [state3_1, state3_0, state2_1, state2_0, state_ptr, out_ptr, z1, z0, ...]
+    dup.7 dup.7 exec.round_constants_polynomials::evaluate_ark1_index_3_at_z 
+    ext2add
+    exec.sbox
+    # => [state3_1, state3_0, state2_1, state2_0, state_ptr, out_ptr, z1, z0, ...]
+
+    dup.5 add.1 mem_storew dropw
+    # => [state_ptr, out_ptr, z1, z0, ...]
+
+    dup
+    exec.multiply_mds_4_row
+    # => [state4_1, state4_0, state_ptr, out_ptr, z1, z0, ...]
+    dup.5 dup.5 exec.round_constants_polynomials::evaluate_ark1_index_4_at_z 
+    ext2add
+    exec.sbox
+    # => [state4_1, state4_0, state_ptr, out_ptr, z1, z0, ...]
+
+    dup.2
+    exec.multiply_mds_5_row
+    # => [state5_1, state5_0, state4_1, state4_0, state_ptr, out_ptr, z1, z0, ...]
+    dup.7 dup.7 exec.round_constants_polynomials::evaluate_ark1_index_5_at_z ext2add
+    exec.sbox
+    # => [state5_1, state5_0, state4_1, state4_0, state_ptr, out_ptr, z1, z0, ...]
+
+    dup.5 add.2 mem_storew dropw
+    # => [state_ptr, out_ptr, z1, z0, ...]
+
+
+    dup
+    exec.multiply_mds_6_row
+    # => [state6_1, state6_0, state_ptr, out_ptr, z1, z0, ...]
+    dup.5 dup.5 exec.round_constants_polynomials::evaluate_ark1_index_6_at_z 
+    ext2add
+    exec.sbox
+    # => [state6_1, state6_0, state_ptr, out_ptr, z1, z0, ...]
+
+    dup.2
+    exec.multiply_mds_7_row
+    # => [state7_1, state7_0, state6_1, state6_0, state_ptr, out_ptr, z1, z0, ...]
+    dup.7 dup.7 exec.round_constants_polynomials::evaluate_ark1_index_7_at_z ext2add
+    exec.sbox
+    # => [state7_1, state7_0, state6_1, state6_0, state_ptr, out_ptr, z1, z0, ...]
+
+    dup.5 add.3 mem_storew dropw
+    # => [state_ptr, out_ptr, z1, z0, ...]
+
+    dup
+    exec.multiply_mds_8_row
+    # => [state8_1, state8_0, state_ptr, out_ptr, z1, z0, ...]
+    dup.5 dup.5 exec.round_constants_polynomials::evaluate_ark1_index_8_at_z 
+    ext2add
+    exec.sbox
+    # => [state8_1, state8_0, state_ptr, out_ptr, z1, z0, ...]
+
+    dup.2
+    exec.multiply_mds_9_row
+    # => [state9_1, state9_0, state8_1, state8_0, state_ptr, out_ptr, z1, z0, ...]
+    dup.7 dup.7 exec.round_constants_polynomials::evaluate_ark1_index_9_at_z ext2add
+    exec.sbox
+    # => [state9_1, state9_0, state8_1, state8_0, state_ptr, out_ptr, z1, z0, ...]
+
+    dup.5 add.4 mem_storew dropw
+    # => [state_ptr, out_ptr, z1, z0, ...]
+
+    dup
+    exec.multiply_mds_10_row
+    # => [state10_1, state10_0, state_ptr, out_ptr, z1, z0, ...]
+    dup.5 dup.5 exec.round_constants_polynomials::evaluate_ark1_index_10_at_z 
+    ext2add
+    exec.sbox
+    # => [state10_1, state10_0, state_ptr, out_ptr, z1, z0, ...]
+
+    dup.2
+    exec.multiply_mds_11_row
+    # => [state11_1, state11_0, state10_1, state10_0, state_ptr, out_ptr, z1, z0, ...]
+    dup.7 dup.7 exec.round_constants_polynomials::evaluate_ark1_index_11_at_z ext2add
+    exec.sbox
+    # => [state11_1, state11_0, state10_1, state10_0, state_ptr, out_ptr, z1, z0, ...]
+
+    dup.5 add.5 mem_storew dropw dropw
+    # => [state_ptr, out_ptr, z1, z0, ...]
+end
+
+#! Computes the result of the second matrix-vector multiplication of the state vector by the MDS
+#! matrix followed by component-wise addition of round constants.
+#! All of the operations happen over the quadratic extension field.
+#!
+#! Input: [state_ptr, out_ptr, z1, z0, ...]
+#! Output: [...]
+#!
+#! Cycles: 3156
+export.multiply_mds_add_constant
+    dup
+    exec.multiply_mds_0_row
+    # => [state0_1, state0_0, state_ptr, out_ptr, z1, z0, ...]
+    dup.5 dup.5 exec.round_constants_polynomials::evaluate_ark2_index_0_at_z 
+    ext2add
+    # => [state0_1, state0_0, state_ptr, out_ptr, z1, z0, ...]
+
+    dup.2
+    exec.multiply_mds_1_row
+    # => [state1_1, state1_0, state0_1, state0_0, state_ptr, out_ptr, z1, z0, ...]
+    dup.7 dup.7 exec.round_constants_polynomials::evaluate_ark2_index_1_at_z 
+    ext2add
+    # => [state1_1, state1_0, state0_1, state0_0, state_ptr, out_ptr, z1, z0, ...]
+
+    dup.5 mem_storew dropw
+    # => [state_ptr, out_ptr, z1, z0, ...]
+
+    dup
+    exec.multiply_mds_2_row
+    # => [state2_1, state2_0, state_ptr, out_ptr, z1, z0, ...]
+    dup.5 dup.5 exec.round_constants_polynomials::evaluate_ark2_index_2_at_z 
+    ext2add
+    # => [state2_1, state2_0, state_ptr, out_ptr, z1, z0, ...]
+
+    dup.2
+    exec.multiply_mds_3_row
+    # => [state3_1, state3_0, state2_1, state2_0, state_ptr, out_ptr, z1, z0, ...]
+    dup.7 dup.7 exec.round_constants_polynomials::evaluate_ark2_index_3_at_z 
+    ext2add
+    # => [state3_1, state3_0, state2_1, state2_0, state_ptr, out_ptr, z1, z0, ...]
+
+    dup.5 add.1 mem_storew dropw
+    # => [state_ptr, out_ptr, z1, z0, ...]
+
+    dup
+    exec.multiply_mds_4_row
+    # => [state4_1, state4_0, state_ptr, out_ptr, z1, z0, ...]
+    dup.5 dup.5 exec.round_constants_polynomials::evaluate_ark2_index_4_at_z 
+    ext2add
+    # => [state4_1, state4_0, state_ptr, out_ptr, z1, z0, ...]
+
+    dup.2
+    exec.multiply_mds_5_row
+    # => [state5_1, state5_0, state4_1, state4_0, state_ptr, out_ptr, z1, z0, ...]
+    dup.7 dup.7 exec.round_constants_polynomials::evaluate_ark2_index_5_at_z 
+    ext2add
+    # => [state5_1, state5_0, state4_1, state4_0, state_ptr, out_ptr, z1, z0, ...]
+
+    dup.5 add.2 mem_storew dropw
+    # => [state_ptr, out_ptr, z1, z0, ...]
+
+
+    dup
+    exec.multiply_mds_6_row
+    # => [state6_1, state6_0, state_ptr, out_ptr, z1, z0, ...]
+    dup.5 dup.5 exec.round_constants_polynomials::evaluate_ark2_index_6_at_z 
+    ext2add
+    # => [state6_1, state6_0, state_ptr, out_ptr, z1, z0, ...]
+
+    dup.2
+    exec.multiply_mds_7_row
+    # => [state7_1, state7_0, state6_1, state6_0, state_ptr, out_ptr, z1, z0, ...]
+    dup.7 dup.7 exec.round_constants_polynomials::evaluate_ark2_index_7_at_z 
+    ext2add
+    # => [state7_1, state7_0, state6_1, state6_0, state_ptr, out_ptr, z1, z0, ...]
+
+    dup.5 add.3 mem_storew dropw
+    # => [state_ptr, out_ptr, z1, z0, ...]
+
+    dup
+    exec.multiply_mds_8_row
+    # => [state8_1, state8_0, state_ptr, out_ptr, z1, z0, ...]
+    dup.5 dup.5 exec.round_constants_polynomials::evaluate_ark2_index_8_at_z 
+    ext2add
+    # => [state8_1, state8_0, state_ptr, out_ptr, z1, z0, ...]
+
+    dup.2
+    exec.multiply_mds_9_row
+    # => [state9_1, state9_0, state8_1, state8_0, state_ptr, out_ptr, z1, z0, ...]
+    dup.7 dup.7 exec.round_constants_polynomials::evaluate_ark2_index_9_at_z 
+    ext2add
+    # => [state9_1, state9_0, state8_1, state8_0, state_ptr, out_ptr, z1, z0, ...]
+
+    dup.5 add.4 mem_storew dropw
+    # => [state_ptr, out_ptr, z1, z0, ...]
+
+    dup
+    exec.multiply_mds_10_row
+    # => [state10_1, state10_0, state_ptr, out_ptr, z1, z0, ...]
+    dup.5 dup.5 exec.round_constants_polynomials::evaluate_ark2_index_10_at_z 
+    ext2add
+    # => [state10_1, state10_0, state_ptr, out_ptr, z1, z0, ...]
+
+    dup.2
+    exec.multiply_mds_11_row
+    # => [state11_1, state11_0, state10_1, state10_0, state_ptr, out_ptr, z1, z0, ...]
+    dup.7 dup.7 exec.round_constants_polynomials::evaluate_ark2_index_11_at_z 
+    ext2add
+    # => [state11_1, state11_0, state10_1, state10_0, state_ptr, out_ptr, z1, z0, ...]
+
+    dup.5 add.5 mem_storew dropw
+    # => [state_ptr, out_ptr, z1, z0, ...]
+
+    dropw
+end
+
+#! Computes the sbox in the backward direction and outputs the final random linear combination
+#! of all transitional constraints.
+#! 
+#! Input: [nxt_ptr, fwd_ptr, rnd_ptr, ...]
+#! Output: [val1, val0, ...]
+#!
+#! Cycles: 685
+export.sbox_next_and_compute_random_linear_combination
+
+    repeat.6
+        # 1) Compute the sbox on the next state
+        padw dup.4 mem_loadw
+        #=> [t1_1, t1_0, t0_1, t0_0, nxt_ptr, fwd_ptr, rnd_ptr, ...]
+
+        exec.sbox_double
+        #=> [t1_1, t1_0, t0_1, t0_0, nxt_ptr, fwd_ptr, rnd_ptr, ...]
+
+        # 2) Compute the difference between forward and backward
+
+        padw dup.9 mem_loadw 
+        #=> [s1_1, s1_0, s0_1, s0_0, t1_1, t1_0, t0_1, t0_0, nxt_ptr, fwd_ptr, rnd_ptr, ...]
+
+        exec.compute_difference_double
+        #=> [d1_1, d1_0, d0_1, d0_0, nxt_ptr, fwd_ptr, rnd_ptr, ...]
+
+        # 3) Multiply with randomness
+
+        padw dup.10 mem_loadw 
+        #=> [r1_1, r1_0, r0_1, r0_0, d1_1, d1_0, d0_1, d0_0, nxt_ptr, fwd_ptr, rnd_ptr, ...]
+
+
+        exec.multiply_extension_double
+        #=> [a1_1, a1_0, a0_1, a0_0, nxt_ptr, fwd_ptr, rnd_ptr, ...]
+
+        # 4) Sum the two values
+        ext2add
+        #=> [a1, a0, nxt_ptr, fwd_ptr, rnd_ptr, ...]
+
+        # 5) Update pointers and prepare for next iteration
+        repeat.3
+            movup.4 add.1
+        end
+        #=> [nxt_ptr, fwd_ptr, rnd_ptr, a1, a0, ...]
+    end
+
+    drop drop drop
+
+    repeat.5
+        ext2add
+    end
+    #=> [val1, val0, ...]
+
+end
+
+# MDS MATRIX MULTIPLICATION PROCEDURES
+# =================================================================================================
+
+#! Computes coordinate 0 of the result of the MDS multiplication.
+#! 
+#! Input: [state_ptr, ...]
+#! Output: [res1, res0, ...]
+#!
+#! Cycles: 190
+export.multiply_mds_0_row
+     
+    # load the first set of 2 state elements
+    padw dup.4 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, state_ptr, ...]
+
+    # multiply with the first 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_0_first_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the second set of 2 state elements
+    padw dup.6 add.1 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the second 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_0_second_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the third set of 2 state elements
+    padw dup.6 add.2 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the third 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_0_third_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the fourth set of 2 state elements
+    padw dup.6 add.3 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the fourth 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_0_fourth_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the fifth set of 2 state elements
+    padw dup.6 add.4 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the fifth 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_0_fifth_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+    
+    # load the sixth set of 2 state elements
+    padw movup.6 add.5 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, ...]
+
+    # multiply with the sixth 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_0_sixth_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, ...]
+end
+
+#! Computes coordinate 1 of the result of the MDS multiplication.
+#! 
+#! Input: [state_ptr, ...]
+#! Output: [res1, res0, ...]
+#!
+#! Cycles: 190
+export.multiply_mds_1_row
+     
+    # load the first set of 2 state elements
+    padw dup.4 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, state_ptr, ...]
+
+    # multiply with the first 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_1_first_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the second set of 2 state elements
+    padw dup.6 add.1 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the second 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_1_second_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the third set of 2 state elements
+    padw dup.6 add.2 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the third 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_1_third_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the fourth set of 2 state elements
+    padw dup.6 add.3 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the fourth 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_1_fourth_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the fifth set of 2 state elements
+    padw dup.6 add.4 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the fifth 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_1_fifth_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+    
+    # load the sixth set of 2 state elements
+    padw movup.6 add.5 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, ...]
+
+    # multiply with the sixth 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_1_sixth_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, ...]
+end
+
+#! Computes coordinate 2 of the result of the MDS multiplication.
+#! 
+#! Input: [state_ptr, ...]
+#! Output: [res1, res0, ...]
+#!
+#! Cycles: 190
+export.multiply_mds_2_row
+     
+    # load the first set of 2 state elements
+    padw dup.4 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, state_ptr, ...]
+
+    # multiply with the first 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_2_first_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the second set of 2 state elements
+    padw dup.6 add.1 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the second 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_2_second_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the third set of 2 state elements
+    padw dup.6 add.2 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the third 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_2_third_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the fourth set of 2 state elements
+    padw dup.6 add.3 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the fourth 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_2_fourth_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the fifth set of 2 state elements
+    padw dup.6 add.4 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the fifth 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_2_fifth_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+    
+    # load the sixth set of 2 state elements
+    padw movup.6 add.5 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, ...]
+
+    # multiply with the sixth 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_2_sixth_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, ...]
+end
+
+#! Computes coordinate 3 of the result of the MDS multiplication.
+#! 
+#! Input: [state_ptr, ...]
+#! Output: [res1, res0, ...]
+#!
+#! Cycles: 190
+export.multiply_mds_3_row
+     
+    # load the first set of 2 state elements
+    padw dup.4 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, state_ptr, ...]
+
+    # multiply with the first 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_3_first_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the second set of 2 state elements
+    padw dup.6 add.1 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the second 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_3_second_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the third set of 2 state elements
+    padw dup.6 add.2 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the third 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_3_third_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the fourth set of 2 state elements
+    padw dup.6 add.3 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the fourth 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_3_fourth_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the fifth set of 2 state elements
+    padw dup.6 add.4 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the fifth 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_3_fifth_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+    
+    # load the sixth set of 2 state elements
+    padw movup.6 add.5 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, ...]
+
+    # multiply with the sixth 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_3_sixth_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, ...]
+end
+
+#! Computes coordinate 4 of the result of the MDS multiplication.
+#! 
+#! Input: [state_ptr, ...]
+#! Output: [res1, res0, ...]
+#!
+#! Cycles: 190
+export.multiply_mds_4_row
+     
+    # load the first set of 2 state elements
+    padw dup.4 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, state_ptr, ...]
+
+    # multiply with the first 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_4_first_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the second set of 2 state elements
+    padw dup.6 add.1 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the second 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_4_second_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the third set of 2 state elements
+    padw dup.6 add.2 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the third 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_4_third_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the fourth set of 2 state elements
+    padw dup.6 add.3 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the fourth 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_4_fourth_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the fifth set of 2 state elements
+    padw dup.6 add.4 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the fifth 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_4_fifth_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+    
+    # load the sixth set of 2 state elements
+    padw movup.6 add.5 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, ...]
+
+    # multiply with the sixth 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_4_sixth_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, ...]
+end
+
+#! Computes coordinate 5 of the result of the MDS multiplication.
+#! 
+#! Input: [state_ptr, ...]
+#! Output: [res1, res0, ...]
+#!
+#! Cycles: 190
+export.multiply_mds_5_row
+     
+    # load the first set of 2 state elements
+    padw dup.4 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, state_ptr, ...]
+
+    # multiply with the first 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_5_first_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the second set of 2 state elements
+    padw dup.6 add.1 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the second 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_5_second_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the third set of 2 state elements
+    padw dup.6 add.2 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the third 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_5_third_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the fourth set of 2 state elements
+    padw dup.6 add.3 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the fourth 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_5_fourth_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the fifth set of 2 state elements
+    padw dup.6 add.4 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the fifth 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_5_fifth_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+    
+    # load the sixth set of 2 state elements
+    padw movup.6 add.5 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, ...]
+
+    # multiply with the sixth 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_5_sixth_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, ...]
+end
+
+#! Computes coordinate 6 of the result of the MDS multiplication.
+#! 
+#! Input: [state_ptr, ...]
+#! Output: [res1, res0, ...]
+#!
+#! Cycles: 190
+export.multiply_mds_6_row
+     
+    # load the first set of 2 state elements
+    padw dup.4 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, state_ptr, ...]
+
+    # multiply with the first 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_6_first_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the second set of 2 state elements
+    padw dup.6 add.1 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the second 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_6_second_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the third set of 2 state elements
+    padw dup.6 add.2 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the third 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_6_third_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the fourth set of 2 state elements
+    padw dup.6 add.3 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the fourth 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_6_fourth_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the fifth set of 2 state elements
+    padw dup.6 add.4 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the fifth 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_6_fifth_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+    
+    # load the sixth set of 2 state elements
+    padw movup.6 add.5 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, ...]
+
+    # multiply with the sixth 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_6_sixth_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, ...]
+end
+
+#! Computes coordinate 7 of the result of the MDS multiplication.
+#! 
+#! Input: [state_ptr, ...]
+#! Output: [res1, res0, ...]
+#!
+#! Cycles: 190
+export.multiply_mds_7_row
+     
+    # load the first set of 2 state elements
+    padw dup.4 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, state_ptr, ...]
+
+    # multiply with the first 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_7_first_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the second set of 2 state elements
+    padw dup.6 add.1 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the second 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_7_second_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the third set of 2 state elements
+    padw dup.6 add.2 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the third 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_7_third_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the fourth set of 2 state elements
+    padw dup.6 add.3 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the fourth 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_7_fourth_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the fifth set of 2 state elements
+    padw dup.6 add.4 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the fifth 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_7_fifth_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+    
+    # load the sixth set of 2 state elements
+    padw movup.6 add.5 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, ...]
+
+    # multiply with the sixth 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_7_sixth_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, ...]
+end
+
+#! Computes coordinate 8 of the result of the MDS multiplication.
+#! 
+#! Input: [state_ptr, ...]
+#! Output: [res1, res0, ...]
+#!
+#! Cycles: 190
+export.multiply_mds_8_row
+     
+    # load the first set of 2 state elements
+    padw dup.4 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, state_ptr, ...]
+
+    # multiply with the first 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_8_first_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the second set of 2 state elements
+    padw dup.6 add.1 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the second 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_8_second_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the third set of 2 state elements
+    padw dup.6 add.2 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the third 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_8_third_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the fourth set of 2 state elements
+    padw dup.6 add.3 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the fourth 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_8_fourth_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the fifth set of 2 state elements
+    padw dup.6 add.4 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the fifth 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_8_fifth_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+    
+    # load the sixth set of 2 state elements
+    padw movup.6 add.5 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, ...]
+
+    # multiply with the sixth 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_8_sixth_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, ...]
+end
+
+#! Computes coordinate 9 of the result of the MDS multiplication.
+#! 
+#! Input: [state_ptr, ...]
+#! Output: [res1, res0, ...]
+#!
+#! Cycles: 190
+export.multiply_mds_9_row
+     
+    # load the first set of 2 state elements
+    padw dup.4 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, state_ptr, ...]
+
+    # multiply with the first 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_9_first_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the second set of 2 state elements
+    padw dup.6 add.1 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the second 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_9_second_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the third set of 2 state elements
+    padw dup.6 add.2 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the third 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_9_third_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the fourth set of 2 state elements
+    padw dup.6 add.3 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the fourth 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_9_fourth_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the fifth set of 2 state elements
+    padw dup.6 add.4 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the fifth 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_9_fifth_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+    
+    # load the sixth set of 2 state elements
+    padw movup.6 add.5 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, ...]
+
+    # multiply with the sixth 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_9_sixth_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, ...]
+end
+
+#! Computes coordinate 10 of the result of the MDS multiplication.
+#! 
+#! Input: [state_ptr, ...]
+#! Output: [res1, res0, ...]
+#!
+#! Cycles: 190
+export.multiply_mds_10_row
+     
+    # load the first set of 2 state elements
+    padw dup.4 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, state_ptr, ...]
+
+    # multiply with the first 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_10_first_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the second set of 2 state elements
+    padw dup.6 add.1 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the second 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_10_second_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the third set of 2 state elements
+    padw dup.6 add.2 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the third 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_10_third_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the fourth set of 2 state elements
+    padw dup.6 add.3 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the fourth 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_10_fourth_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the fifth set of 2 state elements
+    padw dup.6 add.4 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the fifth 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_10_fifth_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+    
+    # load the sixth set of 2 state elements
+    padw movup.6 add.5 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, ...]
+
+    # multiply with the sixth 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_10_sixth_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, ...]
+end
+
+#! Computes coordinate 11 of the result of the MDS multiplication.
+#! 
+#! Input: [state_ptr, ...]
+#! Output: [res1, res0, ...]
+#!
+#! Cycles: 190
+export.multiply_mds_11_row
+     
+    # load the first set of 2 state elements
+    padw dup.4 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, state_ptr, ...]
+
+    # multiply with the first 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_11_first_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the second set of 2 state elements
+    padw dup.6 add.1 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the second 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_11_second_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the third set of 2 state elements
+    padw dup.6 add.2 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the third 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_11_third_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the fourth set of 2 state elements
+    padw dup.6 add.3 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the fourth 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_11_fourth_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+
+    # load the fifth set of 2 state elements
+    padw dup.6 add.4 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+
+    # multiply with the fifth 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_11_fifth_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, state_ptr, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, state_ptr, ...]
+    
+    # load the sixth set of 2 state elements
+    padw movup.6 add.5 mem_loadw
+    # => [s1_1, s1_0, s0_1, s0_0, acc1, acc0, ...]
+
+    # multiply with the sixth 2 elements of the current row of the MDS matrix
+    exec.permutation_constants::get_mds_row_11_sixth_tuple
+    # => [k1, k0, s1_1, s1_0, s0_1, s0_0, acc1, acc0, ...]
+    exec.multiply_double_extension_by_base
+    ext2add
+    # => [acc1, acc0, ...]
+end
+
+
+# FIELD ARITHMETIC HELPER FUNCTIONS
+# =================================================================================================
+
+#! Multiplies a tuple of quadratic extension field elements by a tuple of base field elements.
+#!
+#! Input: [k1, k0, s1_1, s1_0, s0_1, s0_0, ...]
+#! Output: [res1, res0, ...] where res = (res1, res0) = s0 * k0 + s1 * k1 and sj = (sj_0, sj_1) are
+#! two elements in the quadratic extension field for j = 0, 1.
+#!
+#! Cycles: 17
+export.multiply_double_extension_by_base
+    dup movup.4 mul
+    # => [s1_0 * k1, k1, k0, s1_1, s0_1, s0_0, ...]
+
+    swap movup.3 mul
+    # => [s1_1 * k1, s1_0 * k1, k0, s0_1, s0_0, ...]
+    
+    dup.2 movup.4 mul add
+    # => [res1, s1_0 * k1, k0, s0_0, ...] where res1 = s0_1 * k0 + s1_1 * k1
+
+    swap.2 movup.3 mul add
+    # => [res0, res1, ...] where res0 = s0_0 * k0 + s1_0 * k1
+
+    swap
+    # => [res1, res0, ...]
+end
+
+#! Computes the sbox map on an element in the quadratic extension field.
+#!
+#! Input: [x1, x0, ...]
+#! Output: [y1, y0, ...] where y = x^7 in the quadratic extension field.
+#!
+#! Cycles: 24
+export.sbox
+    dup.1 dup.1
+    # => [x1, x0, x1, x0, ...]
+
+    dup.1 dup.1 ext2mul
+    # => [xsq1, xsq0, x1, x0, ...]
+
+    dup.1 dup.1 dup.1 dup.1
+    # => [xsq1, xsq0, xsq1, xsq0, xsq1, xsq0, x1, x0, ...]
+
+    ext2mul
+    # => [xquad1, xquad0, xsq1, xsq0, x1, x0, ...]
+
+    movdn.5 movdn.5
+    # => [xsq1, xsq0, x1, x0, xquad1, xquad0, ...]
+
+    ext2mul
+    # => [xcub1, xcub0, xquad1, xquad0, ...]
+
+    ext2mul
+    # => [y1, y0, ...]
+end
+
+#! Computes the sbox map on tuple of elements in the quadratic extension field.
+#!
+#! Input: [y1, y0, x1, x0, ...]
+#! Output: [w1, w0, v1, v0, ...] where v = x^7 and w = y^7 in the quadratic extension field.
+#!
+#! Cycles: 52
+export.sbox_double
+    movup.3 movup.3
+    exec.sbox
+    movup.3 movup.3
+    exec.sbox
+end
+
+    
+#! Subtracts two pairs of elements in the quadratic extension field.
+#!
+#! Input: [s1_1, s1_0, s0_1, s0_0, t1_1, t1_0, t0_1, t0_0, ...]
+#! Output: [d1_1, d1_0, d0_1, d0_0, ...]
+#!
+#! where:
+#! - d0 = t0 - s0.
+#! - d1 = t1 - s1.
+#!
+#! Cycles: 24
+proc.compute_difference_double
+    # 1) Compute d0
+    movup.7 movup.4 neg add
+    # => [t0_0 - s0_0, s1_1, s1_0, s0_1, t1_1, t1_0, t0_1, ...]
+    movup.6 movup.4 neg add
+    # => [t0_1 - s0_1, t0_0 - s0_0, s1_1, s1_0, t1_1, t1_0, ...]
+
+    # 2) Compute d1
+    movup.5 movup.4 neg add
+    # => [t1_0 - s1_0, t0_1 - s0_1, t0_0 - s0_0, s1_1, t1_1, ...]
+    movup.4 movup.4 neg add
+    # => [s1_1, t1_1, t1_0 - s1_0, t0_1 - s0_1, t0_0 - s0_0, ...]
+end
+
+#! Multiplies two pairs of elements in the quadratic extension field.
+#!
+#! Input: [s1_1, s1_0, s0_1, s0_0, t1_1, t1_0, t0_1, t0_0, ...]
+#! Output: [d1_1, d1_0, d0_1, d0_0, ...]
+#!
+#! where:
+#! - d0 = t0 * s0.
+#! - d1 = t1 * s1.
+#!
+#! Cycles: 18
+proc.multiply_extension_double
+    # 1) Compute d0
+    movup.7 movup.7 movup.5 movup.5
+    # => [s0_1, s0_0, t0_1, t0_0, s1_1, s1_0, t1_1, t1_0, ...]
+    ext2mul
+    # => [d0_1, d0_0, s1_1, s1_0, t1_1, t1_0, ...]
+
+    # 2) Compute d1
+    movdn.5 movdn.5
+    # => [s1_1, s1_0, t1_1, t1_0, d0_1, d0_0, ...]
+    ext2mul
+    # => [d1_1, d1_0, d0_1, d0_0, ...]
+end

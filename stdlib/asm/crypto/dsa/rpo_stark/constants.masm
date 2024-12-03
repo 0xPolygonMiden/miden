@@ -1,0 +1,300 @@
+# CONSTANTS
+# =================================================================================================
+
+const.ROOT_UNITY=7277203076849721926
+const.DOMAIN_OFFSET=7
+const.DOMAIN_OFFSET_INV=2635249152773512046
+const.MINUS_ONE=18446744069414584320
+const.BLOWUP_FACTOR=8
+const.FRI_FOLDING_FACTOR=4
+const.FRI_LOG_FOLDING_FACTOR=2
+
+# Instant-specific constants
+# Changing the number of queries has a cascading effect on the following constants. The reason for
+# this is related to the dependence of the degree of the zero-knowledge randomizing polynomial on
+# the number of FRI queries.
+# Moreover, the changes also affect the following places:
+#
+# 1. Seed initialization in `random_coin::init_seed`.
+# 2. The number of constraint composition segment polynomial, which affects:
+#   a. The power `N` in `random_coin::generate_z_zN`
+#   b. The size of the constraint OOD frame in `ood_frames::load_constraint_evaluations`
+#   c. The size of the trace domain and LDE domains.
+#   d. The size of the remainder polynomial and remainder codewords in `exec.utils::load_and_verify_remainder`
+#   e. The size of the constraint composition frame for each DEEP query, which affects:
+#        i) The hashing and storing of the constraint composition part in `load_query_row`
+#        ii) Computing the random linear combination in `combine_constraint_poly_columns`
+const.NUM_FRI_QUERIES=30
+const.NUM_FRI_LAYERS=2
+const.REMAINDER_CODEWORD_OFFSET=4 # this is two times NUM_FRI_LAYERS
+const.SIZE_OF_REMAINDER_CODEWORD=64
+const.SIZE_OF_REMAINDER_CODEWORD_DIV_BY_2=32
+const.INITIAL_LDE_SIZE=1024
+const.INITIAL_LDE_LOG_SIZE=10
+const.TRACE_DOMAIN_GEN=16777216
+const.MINUS_DOMAIN_GEN_POW_7=1099511627520
+const.LDE_DOMAIN_GEN=4255134452441852017
+const.GRINDING_FACTOR=12
+
+# MEMORY POINTERS
+# =================================================================================================
+
+# Public inputs
+const.PUBLIC_INPUTS_PTR=4294800000
+
+# OOD Frames
+# 12 * 2 * 2 Felt for current and next trace rows and 12 * 2 Felt for constraint composition
+# polynomials. Total memory slots required: (12 * 2 * 2 + 12 * 2) / 4 = 18
+const.OOD_TRACE_PTR=4294900000
+const.OOD_CONSTRAINT_EVALS_PTR=4294900012
+
+# Current trace row
+# 12 Felt for main portion of trace and 12 * 2 Felt for constraint composition polynomials.
+# There is also one extension field element corresponding to the randomizer polynomial.
+const.CURRENT_TRACE_ROW_PTR=4294900100
+
+# We need 2 Felt for each constraint. We take 2800 slots as an upper bound
+const.COMPOSITION_COEF_PTR=4294900200
+
+# We need 2 Felt for each trace column and each of the 12 constraint composition columns. We thus need
+# (12 + 12) * 2 Felt i.e. 6 memory slots.
+const.DEEP_RAND_CC_PTR=4294903000
+
+# FRI
+#
+#       (FRI_COM_PTR - NUM_FRI_QUERIES)    ---|
+#              .
+#              .                              | <- FRI queries
+#              .
+#         FRI_COM_PTR                      ---|
+#              .
+#              .                              | <- FRI layer commitments and folding challenges
+#              .
+#       (FRI_COM_PTR + 32)                 ---|
+#              .
+#              .                              | <- Remainder codeword and polynomial
+#              .
+#       (FRI_COM_PTR + 66-1)               ---|
+#
+# For each FRI layer, we need 2 memory slots, one for storing the FRI layer commitment and one for
+# storing the word [a0, a1, log2(lde_size), lde_size] where a := (a0, a1) is the folding randomness
+# and lde_size is the size of the LDE domain. Since we are using a folding factor of 4 and the
+# maximal degree of the remainder polynomial that we allow is 15, an upper limit of 4 FRI layers is
+# ample and the number of memory slots we thus allocate for this is 8. Moreover, we allocate
+# an additional maximum 64 slots for the remainder codeword and maximum 4 for the remainder polynomial.
+# These are expected to be laid out right after the FRI commitments.
+# The total number of slots thus becomes 72.
+const.FRI_COM_PTR=4294903200
+
+# Commitment to main, auxiliary and composition polynomials traces
+const.MAIN_TRACE_COM_PTR=4294903300
+const.COMPOSITION_POLY_COM_PTR=4294903301
+
+# The OOD point as well as z^N
+const.Z_PTR=4294903304
+
+# RPO capacity initialization words
+const.ZERO_WORD_PTR=4294903309
+const.ZERO_ZERO_ZERO_FOUR_PTR=4294903310
+
+# State of RPO-based random coin
+const.C_PTR=4294903311
+const.R1_PTR=4294903312
+const.R2_PTR=4294903313
+
+# Address used for storing temporary values:
+const.TMP1=4294903315
+const.TMP2=4294903316
+const.TMP3=4294903317
+const.TMP4=4294903318
+
+
+#   The following is a table summarizing the memory pointers used:
+#   +------------------------------------------+-------------------------+
+#   |                  ID                      |        Address          |
+#   +------------------------------------------+-------------------------+
+#   | PUBLIC_INPUTS_PTR                        |       4294800000        |
+#   | OOD_TRACE_PTR                            |       4294900000        |
+#   | OOD_CONSTRAINT_EVALS_PTR                 |       4294900077        |
+#   | CURRENT_TRACE_ROW_PTR                    |       4294900100        |
+#   | COMPOSITION_COEF_PTR                     |       4294900200        |
+#   | DEEP_RAND_CC_PTR                         |       4294903000        |
+#   | FRI_COM_PTR                              |       4294903200        |
+#   | MAIN_TRACE_COM_PTR                       |       4294903300        |
+#   | COMPOSITION_POLY_COM_PTR                 |       4294903301        |
+#   | Z_PTR                                    |       4294903304        |
+#   | ZERO_WORD_PTR                            |       4294903309        |
+#   | ZERO_ZERO_ZERO_FOUR_PTR                  |       4294903310        |
+#   | C_PTR                                    |       4294903311        |
+#   | R1_PTR                                   |       4294903312        |
+#   | R2_PTR                                   |       4294903313        |
+#   | TMP1                                     |       4294903315        |
+#   | TMP2                                     |       4294903316        |
+#   | TMP3                                     |       4294903317        |
+#   | TMP4                                     |       4294903318        |
+#   +------------------------------------------+-------------------------+
+
+# ACCESSORS
+# =================================================================================================
+
+export.domain_offset
+    push.DOMAIN_OFFSET
+end
+
+export.blowup_factor
+    push.BLOWUP_FACTOR
+end
+
+export.grinding_factor
+    push.GRINDING_FACTOR
+end
+
+export.num_fri_queries
+    push.NUM_FRI_QUERIES
+end
+
+export.number_of_fri_layers
+    push.NUM_FRI_LAYERS
+end
+
+export.folding_factor
+    push.FRI_FOLDING_FACTOR
+end
+
+export.log_folding_factor
+    push.FRI_LOG_FOLDING_FACTOR
+end
+
+export.initial_lde_domain_size
+    push.INITIAL_LDE_SIZE
+end
+
+export.initial_lde_domain_log_size
+    push.INITIAL_LDE_LOG_SIZE
+end
+
+export.remainder_codeword_size_div_by_2
+    push.SIZE_OF_REMAINDER_CODEWORD_DIV_BY_2
+end
+
+export.remainder_codeword_offset
+    push.REMAINDER_CODEWORD_OFFSET
+end
+
+export.domain_offset_inv
+    push.DOMAIN_OFFSET_INV
+end
+
+export.trace_domain_generator
+    push.TRACE_DOMAIN_GEN
+end
+
+export.lde_domain_generator
+    push.LDE_DOMAIN_GEN
+end
+
+export.minus_one
+    push.MINUS_ONE
+end
+
+export.minus_domain_gen_pow_7
+    push.MINUS_DOMAIN_GEN_POW_7
+end
+
+export.public_inputs_ptr
+    push.PUBLIC_INPUTS_PTR
+end
+
+export.ood_trace_ptr
+    push.OOD_TRACE_PTR
+end
+
+export.ood_constraint_evals_ptr
+    push.OOD_CONSTRAINT_EVALS_PTR
+end
+
+export.current_trace_row_ptr
+    push.CURRENT_TRACE_ROW_PTR
+end
+
+export.composition_coef_ptr
+    push.COMPOSITION_COEF_PTR
+end
+
+export.deep_rand_coef_ptr
+    push.DEEP_RAND_CC_PTR
+end
+
+export.fri_com_ptr
+    push.FRI_COM_PTR
+end
+
+export.main_trace_com_ptr
+    push.MAIN_TRACE_COM_PTR
+end
+
+export.composition_poly_com_ptr
+    push.COMPOSITION_POLY_COM_PTR
+end
+
+#! Address for the point `z` and its exponentiation `z^N` where `N=trace_len`.
+#!
+#! Memory is `[(z_1, z_0)^n, z_1, z_0]`
+export.z_ptr
+    push.Z_PTR
+end
+
+#! Load the capacity initialization state when the length of the hashed sequence is divisible by 8.
+export.zero_word
+    push.ZERO_WORD_PTR
+end
+
+#! Load the capacity initialization state when the length of the hashed sequence is equal
+#! to 4 modulo 8.
+export.zero_zero_zero_four_word
+    push.ZERO_ZERO_ZERO_FOUR_PTR
+end
+
+#! Returns the pointer to the capacity word of the random coin.
+#!
+#! Note: The random coin is implemented using a hash function, this returns the
+#! capacity portion of the RPO.
+export.c_ptr
+    push.C_PTR
+end
+
+#! Returns the pointer to the first rate word of the random coin.
+#!
+#! Note: The random coin is implemented using a hash function, this returns the
+#! first rate word of the RPO.
+export.r1_ptr
+    push.R1_PTR
+end
+
+#! Returns the pointer to the second rate word of the random coin.
+#!
+#! Note: The random coin is implemented using a hash function, this returns the
+#! second rate word of the RPO.
+export.r2_ptr
+    push.R2_PTR
+end
+
+#! Address to store temporary values.
+export.tmp1
+    push.TMP1
+end
+
+#! Address to store temporary values.
+export.tmp2
+    push.TMP2
+end
+
+#! Address to store temporary values.
+export.tmp3
+    push.TMP3
+end
+
+#! Address to store temporary values.
+export.tmp4
+    push.TMP4
+end

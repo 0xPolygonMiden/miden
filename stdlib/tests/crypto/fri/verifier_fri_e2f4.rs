@@ -8,8 +8,9 @@ use test_utils::{
     crypto::{MerklePath, NodeIndex, PartialMerkleTree, Rpo256 as MidenHasher},
     group_slice_elements,
     math::fft,
-    Felt, FieldElement, MerkleTreeVC, QuadFelt as QuadExt, StarkField, EMPTY_WORD,
+    Felt, FieldElement, MockPrng, QuadFelt as QuadExt, StarkField, EMPTY_WORD,
 };
+use winter_crypto::VectorCommitment;
 use winter_fri::{
     folding::fold_positions, DefaultProverChannel, FriOptions, FriProof, FriProver, VerifierError,
 };
@@ -52,7 +53,9 @@ pub struct FriResult {
 //  The main purpose of this function is to build the non-deterministic inputs needed to verify
 //  a FRI proof inside the Miden VM.
 //  The output is organized as follows:
-pub fn fri_prove_verify_fold4_ext2(trace_length_e: usize) -> Result<FriResult, VerifierError> {
+pub fn fri_prove_verify_fold4_ext2<VC: VectorCommitment<MidenHasher>>(
+    trace_length_e: usize,
+) -> Result<FriResult, VerifierError> {
     let max_remainder_size_e = 3;
     let folding_factor_e = 2;
     let trace_length = 1 << trace_length_e;
@@ -66,7 +69,7 @@ pub fn fri_prove_verify_fold4_ext2(trace_length_e: usize) -> Result<FriResult, V
     let evaluations = build_evaluations(trace_length, lde_blowup);
 
     // instantiate the prover and generate the proof
-    let mut prover = FriProver::<_, _, _, MerkleTreeVC<MidenHasher>>::new(options.clone());
+    let mut prover = FriProver::<_, _, _, VC>::new(options.clone());
     prover.build_layers(&mut channel, evaluations.clone());
     let positions = channel.draw_query_positions(nonce);
     let proof = prover.build_proof(&positions);
@@ -122,8 +125,8 @@ pub fn fri_prove_verify_fold4_ext2(trace_length_e: usize) -> Result<FriResult, V
 pub fn build_prover_channel(
     trace_length: usize,
     options: &FriOptions,
-) -> DefaultProverChannel<QuadExt, MidenHasher, WinterRandomCoin<MidenHasher>> {
-    DefaultProverChannel::new(trace_length * options.blowup_factor(), 32)
+) -> DefaultProverChannel<QuadExt, MidenHasher, MockPrng, WinterRandomCoin<MidenHasher>> {
+    DefaultProverChannel::new(trace_length * options.blowup_factor(), 32, false, None)
 }
 
 pub fn build_evaluations(trace_length: usize, lde_blowup: usize) -> Vec<QuadExt> {

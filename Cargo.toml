@@ -32,3 +32,17 @@ inherits = "release"
 debug = true
 debug-assertions = true
 overflow-checks = true
+
+
+[patch.crates-io]
+winter-air = {git = 'https://github.com/Al-Kindi-0/winterfell', branch = 'al-zk', package = 'winter-air'   }
+winter-crypto = {git = 'https://github.com/Al-Kindi-0/winterfell', branch = 'al-zk', package = 'winter-crypto'  }
+winter-prover = {git = 'https://github.com/Al-Kindi-0/winterfell', branch = 'al-zk', package = 'winter-prover'  }
+winter-verifier = { git = 'https://github.com/Al-Kindi-0/winterfell', branch = 'al-zk', package = 'winter-verifier'  }
+winter-math = {git = 'https://github.com/Al-Kindi-0/winterfell', branch = 'al-zk', package = 'winter-math'  }
+winter-fri = {git = 'https://github.com/Al-Kindi-0/winterfell', branch = 'al-zk', package = 'winter-fri'  }
+winter-maybe-async = {git = 'https://github.com/Al-Kindi-0/winterfell', branch = 'al-zk', package = 'winter-maybe-async'  }
+winter-utils = {git = 'https://github.com/Al-Kindi-0/winterfell', branch = 'al-zk', package = 'winter-utils'  }
+winter-rand-utils = {git = 'https://github.com/Al-Kindi-0/winterfell', branch = 'al-zk', package = 'winter-rand-utils'  }
+
+miden-crypto = {git = 'https://github.com/0xPolygonMiden/crypto', branch = 'al-stark-signature-dev-masm' }

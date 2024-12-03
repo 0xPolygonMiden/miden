@@ -1,9 +1,8 @@
 use alloc::vec::Vec;
 
-use miden_air::ProcessorAir;
 use processor::crypto::RpoRandomCoin;
 use test_utils::{
-    crypto::{MerkleStore, RandomCoin, Rpo256, RpoDigest},
+    crypto::{rpo_stark::RescueAir, MerkleStore, RandomCoin, Rpo256, RpoDigest},
     math::{fft, FieldElement, QuadExtension, StarkField, ToElements},
     Felt, VerifierError,
 };
@@ -18,56 +17,38 @@ use super::VerifierData;
 pub const BLOWUP_FACTOR: usize = 8;
 pub type QuadExt = QuadExtension<Felt>;
 
-pub fn generate_advice_inputs(
+pub fn generate_advice_inputs_signature(
     proof: Proof,
-    pub_inputs: <ProcessorAir as Air>::PublicInputs,
+    pub_inputs: <RescueAir as Air>::PublicInputs,
 ) -> Result<VerifierData, VerifierError> {
     // we need to provide the following instance specific data through the operand stack
-    let initial_stack = vec![
-        proof.context.options().grinding_factor() as u64,
-        proof.context.options().blowup_factor().ilog2() as u64,
-        proof.context.options().num_queries() as u64,
-        proof.context.trace_info().length().ilog2() as u64,
-    ];
+    let initial_stack = pub_inputs.to_elements().iter().map(|a| a.as_int()).collect();
 
     // build a seed for the public coin; the initial seed is the hash of public inputs and proof
     // context, but as the protocol progresses, the coin will be reseeded with the info received
     // from the prover
-    let mut advice_stack = vec![];
+    let mut tape = vec![];
     let mut public_coin_seed = proof.context.to_elements();
+
     public_coin_seed.append(&mut pub_inputs.to_elements());
 
-    // add the public inputs, which is nothing but the input and output stacks to the VM, to the
-    // advice tape
-    let pub_inputs_int: Vec<u64> = pub_inputs.to_elements().iter().map(|a| a.as_int()).collect();
-    advice_stack.extend_from_slice(&pub_inputs_int[..]);
-
     // create AIR instance for the computation specified in the proof
-    let air = ProcessorAir::new(proof.trace_info().to_owned(), pub_inputs, proof.options().clone());
+    let air = RescueAir::new(proof.trace_info().to_owned(), pub_inputs, proof.options().clone());
     let seed_digest = Rpo256::hash_elements(&public_coin_seed);
     let mut public_coin: RpoRandomCoin = RpoRandomCoin::new(seed_digest.into());
     let mut channel = VerifierChannel::new(&air, proof)?;
+    let mut fs_salts = channel.read_salts();
 
     // 1 ----- main segment trace -----------------------------------------------------------------
     let trace_commitments = channel.read_trace_commitments();
 
     // reseed the coin with the commitment to the main segment trace
-    public_coin.reseed(trace_commitments[0]);
-    advice_stack.extend_from_slice(&digest_to_int_vec(trace_commitments));
+    let fs_salt = fs_salts.remove(0);
+    public_coin.reseed_with_salt(trace_commitments[0], fs_salt);
+    tape.extend_from_slice(&digest_to_int_vec(trace_commitments));
+    tape.extend_from_slice(&digest_to_int_vec(&[fs_salt.unwrap()]));
 
-    // 2 ----- auxiliary segment trace ------------------------------------------------------------
-
-    // generate the auxiliary random elements
-    let mut aux_trace_rand_elements = vec![];
-    for commitment in trace_commitments.iter().skip(1) {
-        let rand_elements: Vec<QuadExt> = air
-            .get_aux_rand_elements(&mut public_coin)
-            .map_err(|_| VerifierError::RandomCoinError)?;
-        aux_trace_rand_elements.push(rand_elements);
-        public_coin.reseed(*commitment);
-    }
-
-    // 3 ----- constraint composition trace -------------------------------------------------------
+    // 2 ----- constraint composition trace -------------------------------------------------------
 
     // build random coefficients for the composition polynomial. we don't need them but we have to
     // generate them in order to update the random coin
@@ -75,10 +56,12 @@ pub fn generate_advice_inputs(
         .get_constraint_composition_coefficients(&mut public_coin)
         .map_err(|_| VerifierError::RandomCoinError)?;
     let constraint_commitment = channel.read_constraint_commitment();
-    advice_stack.extend_from_slice(&digest_to_int_vec(&[constraint_commitment]));
-    public_coin.reseed(constraint_commitment);
+    let fs_salt = fs_salts.remove(0);
+    public_coin.reseed_with_salt(constraint_commitment, fs_salt);
+    tape.extend_from_slice(&digest_to_int_vec(&[constraint_commitment]));
+    tape.extend_from_slice(&digest_to_int_vec(&[fs_salt.unwrap()]));
 
-    // 4 ----- OOD frames --------------------------------------------------------------
+    // 3 ----- OOD frames --------------------------------------------------------------
 
     // generate the the OOD point
     let _z: QuadExt = public_coin.draw().unwrap();
@@ -88,27 +71,30 @@ pub fn generate_advice_inputs(
     let _ood_main_trace_frame = ood_trace_frame.main_frame();
     let _ood_aux_trace_frame = ood_trace_frame.aux_frame();
 
-    let mut main_and_aux_frame_states = Vec::new();
+    let mut main_frame_states = Vec::new();
     for col in 0.._ood_main_trace_frame.current().len() {
-        main_and_aux_frame_states.push(_ood_main_trace_frame.current()[col]);
-        main_and_aux_frame_states.push(_ood_main_trace_frame.next()[col]);
+        main_frame_states.push(_ood_main_trace_frame.current()[col]);
+        main_frame_states.push(_ood_main_trace_frame.next()[col]);
     }
-    for col in 0.._ood_aux_trace_frame.as_ref().unwrap().current().len() {
-        main_and_aux_frame_states.push(_ood_aux_trace_frame.as_ref().unwrap().current()[col]);
-        main_and_aux_frame_states.push(_ood_aux_trace_frame.as_ref().unwrap().next()[col]);
-    }
-    advice_stack.extend_from_slice(&to_int_vec(&main_and_aux_frame_states));
-    public_coin.reseed(Rpo256::hash_elements(&main_and_aux_frame_states));
+
+    let fs_salt = fs_salts.remove(0);
+    public_coin.reseed_with_salt(Rpo256::hash_elements(&main_frame_states), fs_salt);
+    tape.extend_from_slice(&to_int_vec(&main_frame_states));
+    tape.extend_from_slice(&digest_to_int_vec(&[fs_salt.unwrap()]));
 
     // read OOD evaluations of composition polynomial columns
     let ood_constraint_evaluations = channel.read_ood_constraint_evaluations();
-    advice_stack.extend_from_slice(&to_int_vec(&ood_constraint_evaluations));
-    public_coin.reseed(Rpo256::hash_elements(&ood_constraint_evaluations));
+    let fs_salt = fs_salts.remove(0);
+    public_coin.reseed_with_salt(Rpo256::hash_elements(&ood_constraint_evaluations), fs_salt);
+    tape.extend_from_slice(&to_int_vec(&ood_constraint_evaluations));
+    tape.extend_from_slice(&digest_to_int_vec(&[fs_salt.unwrap()]));
+    assert!(fs_salts.is_empty());
 
-    // 5 ----- FRI  -------------------------------------------------------------------------------
+    // 4 ----- FRI  -------------------------------------------------------------------------------
 
     // read the FRI layer committments as well as remainder polynomial
     let fri_commitments_digests = channel.read_fri_layer_commitments();
+    let mut salts = channel.read_fri_salts();
     let poly = channel.read_remainder().unwrap();
 
     // Reed-Solomon encode the remainder polynomial as this is needed for the probabilistic NTT
@@ -116,11 +102,16 @@ pub fn generate_advice_inputs(
     let fri_remainder =
         fft::evaluate_poly_with_offset(&poly, &twiddles, Felt::GENERATOR, BLOWUP_FACTOR);
 
+    let fri_commitments_and_salts: Vec<RpoDigest> = fri_commitments_digests
+        .iter()
+        .zip(salts.iter())
+        .flat_map(|(com, salt)| [*com, salt.unwrap()])
+        .collect();
     // add the above to the advice tape
-    let fri_commitments: Vec<u64> = digest_to_int_vec(&fri_commitments_digests);
-    advice_stack.extend_from_slice(&fri_commitments);
-    advice_stack.extend_from_slice(&to_int_vec(&poly));
-    advice_stack.extend_from_slice(&to_int_vec(&fri_remainder));
+    let fri_commitments: Vec<u64> = digest_to_int_vec(&fri_commitments_and_salts);
+    tape.extend_from_slice(&fri_commitments);
+    tape.extend_from_slice(&to_int_vec(&poly));
+    tape.extend_from_slice(&to_int_vec(&fri_remainder));
 
     // reseed with FRI layer commitments
     let _deep_coefficients = air
@@ -128,11 +119,12 @@ pub fn generate_advice_inputs(
         .map_err(|_| VerifierError::RandomCoinError)?;
     let layer_commitments = fri_commitments_digests.clone();
     for commitment in layer_commitments.iter() {
-        public_coin.reseed(*commitment);
+        let salt = salts.remove(0);
+        public_coin.reseed_with_salt(*commitment, salt);
         let _alpha: QuadExt = public_coin.draw().expect("failed to draw random indices");
     }
 
-    // 6 ----- trace and constraint queries -------------------------------------------------------
+    // 5 ----- trace and constraint queries -------------------------------------------------------
 
     // read proof-of-work nonce sent by the prover and draw pseudo-random query positions for
     // the LDE domain from the public coin
@@ -140,7 +132,7 @@ pub fn generate_advice_inputs(
     let mut query_positions = public_coin
         .draw_integers(air.options().num_queries(), air.lde_domain_size(), pow_nonce)
         .map_err(|_| VerifierError::RandomCoinError)?;
-    advice_stack.extend_from_slice(&[pow_nonce]);
+    tape.extend_from_slice(&[pow_nonce]);
     query_positions.sort();
     query_positions.dedup();
 
@@ -150,7 +142,6 @@ pub fn generate_advice_inputs(
         channel.read_queried_trace_states(&query_positions)?;
     let (mut constraint_adv_map, partial_tree_constraint) =
         channel.read_constraint_evaluations(&query_positions)?;
-
     let (mut partial_trees_fri, mut fri_adv_map) = channel.unbatch_fri_layer_proofs::<4>(
         &query_positions,
         air.lde_domain_size(),
@@ -171,7 +162,7 @@ pub fn generate_advice_inputs(
 
     Ok(VerifierData {
         initial_stack,
-        advice_stack,
+        advice_stack: tape,
         store,
         advice_map: main_aux_adv_map,
     })

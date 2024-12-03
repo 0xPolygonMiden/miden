@@ -1,22 +1,24 @@
 use alloc::vec::Vec;
 
-use miden_air::ProcessorAir;
+use assembly::utils::Deserializable;
+use rand_chacha::ChaCha20Rng;
 use test_utils::{
-    crypto::{BatchMerkleProof, PartialMerkleTree, Rpo256, RpoDigest},
+    crypto::{rpo_stark::RescueAir, BatchMerkleProof, PartialMerkleTree, Rpo256, RpoDigest},
     group_slice_elements,
     math::{FieldElement, QuadExtension, StarkField},
-    Felt, MerkleTreeVC, VerifierError,
+    Felt, VerifierError,
 };
 use winter_air::{
     proof::{Proof, Queries, Table, TraceOodFrame},
     Air,
 };
+use winter_crypto::{SaltedMerkleTree, VectorCommitment};
 use winter_fri::{folding::fold_positions, VerifierChannel as FriVerifierChannel};
 
 pub type QuadExt = QuadExtension<Felt>;
 
 type AdvMap = Vec<(RpoDigest, Vec<Felt>)>;
-
+type SaltedBatchMerkleProof<Rpo256> = (Vec<RpoDigest>, BatchMerkleProof<Rpo256>);
 /// A view into a [Proof] for a computation structured to simulate an "interactive" channel.
 ///
 /// A channel is instantiated for a specific proof, which is parsed into structs over the
@@ -31,22 +33,24 @@ pub struct VerifierChannel {
     constraint_queries: Option<ConstraintQueries>,
     // FRI proof
     fri_roots: Option<Vec<RpoDigest>>,
-    fri_layer_proofs: Vec<BatchMerkleProof<Rpo256>>,
+    fri_layer_proofs: Vec<SaltedBatchMerkleProof<Rpo256>>,
     fri_layer_queries: Vec<Vec<QuadExt>>,
     fri_remainder: Option<Vec<QuadExt>>,
     fri_num_partitions: usize,
+    fri_salts: Vec<Option<RpoDigest>>,
     // out-of-domain frame
     ood_trace_frame: Option<TraceOodFrame<QuadExt>>,
     ood_constraint_evaluations: Option<Vec<QuadExt>>,
     // query proof-of-work
     pow_nonce: u64,
+    salts: Vec<Option<RpoDigest>>,
 }
 
 impl VerifierChannel {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Creates and returns a new [VerifierChannel] initialized from the specified `proof`.
-    pub fn new(air: &ProcessorAir, proof: Proof) -> Result<Self, VerifierError> {
+    pub fn new(air: &RescueAir, proof: Proof) -> Result<Self, VerifierError> {
         let Proof {
             context,
             commitments,
@@ -57,7 +61,7 @@ impl VerifierChannel {
             pow_nonce,
             num_unique_queries,
             gkr_proof: _,
-            salts: _,
+            salts,
         } = proof;
 
         // make AIR and proof base fields are the same
@@ -86,8 +90,12 @@ impl VerifierChannel {
         let fri_remainder = fri_proof
             .parse_remainder()
             .map_err(|err| VerifierError::ProofDeserializationError(err.to_string()))?;
+
+        let fri_salts = fri_proof
+            .parse_salts::<QuadExt, Rpo256>()
+            .map_err(|err| VerifierError::ProofDeserializationError(err.to_string()))?;
         let (fri_layer_queries, fri_layer_proofs) = fri_proof
-            .parse_layers::<QuadExt, Rpo256, MerkleTreeVC<Rpo256>>(
+            .parse_layers::<QuadExt, Rpo256, SaltedMerkleTree<Rpo256, ChaCha20Rng>>(
                 lde_domain_size,
                 fri_options.folding_factor(),
             )
@@ -96,6 +104,10 @@ impl VerifierChannel {
         // --- parse out-of-domain evaluation frame -----------------------------------------------
         let (ood_trace_evaluations, ood_constraint_evaluations) = ood_frame
             .parse(main_trace_width, aux_trace_width, constraint_frame_width)
+            .map_err(|err| VerifierError::ProofDeserializationError(err.to_string()))?;
+
+        // --- parse Fiat-Shamir salts -----------------------------------------------
+        let salts: Vec<Option<RpoDigest>> = Vec::read_from_bytes(&salts)
             .map_err(|err| VerifierError::ProofDeserializationError(err.to_string()))?;
 
         Ok(VerifierChannel {
@@ -111,11 +123,14 @@ impl VerifierChannel {
             fri_layer_queries,
             fri_remainder: Some(fri_remainder),
             fri_num_partitions,
+            fri_salts,
             // out-of-domain evaluation
             ood_trace_frame: Some(ood_trace_evaluations),
             ood_constraint_evaluations: Some(ood_constraint_evaluations),
             // query seed
             pow_nonce,
+            // FS salts
+            salts,
         })
     }
 
@@ -156,12 +171,18 @@ impl VerifierChannel {
         self.pow_nonce
     }
 
+    /// Returns the salts needed for Fiat-Shamir.
+    pub fn read_salts(&self) -> Vec<Option<RpoDigest>> {
+        self.salts.clone()
+    }
+
+    /// Returns the salts needed for Fiat-Shamir in FRI.
+    pub(crate) fn read_fri_salts(&self) -> Vec<Option<RpoDigest>> {
+        self.fri_salts.clone()
+    }
+
     /// Returns trace states at the specified positions of the LDE domain. This also checks if
     /// the trace states are valid against the trace commitment sent by the prover.
-    ///
-    /// For computations requiring multiple trace segments, trace states for auxiliary segments
-    /// are also included as the second value of the returned tuple (trace states for all auxiliary
-    /// segments are merged into a single table). Otherwise, the second value is None.
     #[allow(clippy::type_complexity)]
     pub fn read_queried_trace_states(
         &mut self,
@@ -170,25 +191,13 @@ impl VerifierChannel {
         let queries = self.trace_queries.take().expect("already read");
         let proofs = queries.query_proofs;
         let main_queries = queries.main_states;
-        let aux_queries = queries.aux_states;
         let main_queries_vec: Vec<Vec<Felt>> = main_queries.rows().map(|a| a.to_owned()).collect();
 
-        let aux_queries_vec: Vec<Vec<Felt>> = aux_queries
-            .as_ref()
-            .unwrap()
-            .rows()
-            .map(|a| QuadExt::slice_as_base_elements(a).to_vec())
-            .collect();
-
-        let (main_trace_pmt, mut main_trace_adv_map) =
+        let (main_trace_pmt, main_trace_adv_map) =
             unbatch_to_partial_mt(positions.to_vec(), main_queries_vec, proofs[0].clone());
-        let (aux_trace_pmt, mut aux_trace_adv_map) =
-            unbatch_to_partial_mt(positions.to_vec(), aux_queries_vec, proofs[1].clone());
 
-        let mut trees = vec![main_trace_pmt];
-        trees.push(aux_trace_pmt);
+        let trees = vec![main_trace_pmt];
 
-        main_trace_adv_map.append(&mut aux_trace_adv_map);
         Ok((main_trace_adv_map, trees))
     }
 
@@ -214,7 +223,7 @@ impl VerifierChannel {
     }
 
     /// Returns the FRI layers Merkle batch proofs.
-    pub fn fri_layer_proofs(&self) -> Vec<BatchMerkleProof<Rpo256>> {
+    pub fn fri_layer_proofs(&self) -> Vec<SaltedBatchMerkleProof<Rpo256>> {
         self.fri_layer_proofs.clone()
     }
 
@@ -262,7 +271,7 @@ impl VerifierChannel {
 
 impl FriVerifierChannel<QuadExt> for VerifierChannel {
     type Hasher = Rpo256;
-    type VectorCommitment = MerkleTreeVC<Self::Hasher>;
+    type VectorCommitment = SaltedMerkleTree<Self::Hasher, ChaCha20Rng>;
 
     fn read_fri_num_partitions(&self) -> usize {
         self.fri_num_partitions
@@ -272,7 +281,9 @@ impl FriVerifierChannel<QuadExt> for VerifierChannel {
         self.fri_roots.take().expect("already read")
     }
 
-    fn take_next_fri_layer_proof(&mut self) -> BatchMerkleProof<Rpo256> {
+    fn take_next_fri_layer_proof(
+        &mut self,
+    ) -> <Self::VectorCommitment as VectorCommitment<Self::Hasher>>::MultiProof {
         self.fri_layer_proofs.remove(0)
     }
 
@@ -285,7 +296,7 @@ impl FriVerifierChannel<QuadExt> for VerifierChannel {
     }
 
     fn take_salt(&mut self) -> Option<<Self::Hasher as processor::crypto::Hasher>::Digest> {
-        todo!()
+        self.salts.remove(0)
     }
 }
 
@@ -293,14 +304,11 @@ impl FriVerifierChannel<QuadExt> for VerifierChannel {
 // ================================================================================================
 
 /// Container of trace query data, including:
-/// * Queried states for all trace segments.
+/// * Queried states for main trace segment.
 /// * Merkle authentication paths for all queries.
-///
-/// Trace states for all auxiliary segments are stored in a single table.
 struct TraceQueries {
-    query_proofs: Vec<BatchMerkleProof<Rpo256>>,
+    query_proofs: Vec<SaltedBatchMerkleProof<Rpo256>>,
     main_states: Table<Felt>,
-    aux_states: Option<Table<QuadExt>>,
 }
 
 impl TraceQueries {
@@ -308,7 +316,7 @@ impl TraceQueries {
     /// corresponding Merkle authentication paths.
     pub fn new(
         mut queries: Vec<Queries>,
-        air: &ProcessorAir,
+        air: &RescueAir,
         num_queries: usize,
     ) -> Result<Self, VerifierError> {
         // parse main trace segment queries; parsing also validates that hashes of each table row
@@ -316,7 +324,7 @@ impl TraceQueries {
         let main_segment_width = air.trace_info().main_trace_width();
         let main_segment_queries = queries.remove(0);
         let (main_segment_query_proofs, main_segment_states) = main_segment_queries
-            .parse::<Felt, Rpo256, MerkleTreeVC<Rpo256>>(
+            .parse::<Felt, Rpo256, SaltedMerkleTree<Rpo256, ChaCha20Rng>>(
                 air.lde_domain_size(),
                 num_queries,
                 main_segment_width,
@@ -328,38 +336,11 @@ impl TraceQueries {
             })?;
 
         // all query proofs will be aggregated into a single vector
-        let mut query_proofs = vec![main_segment_query_proofs];
-
-        // parse auxiliary trace segment queries (if any); parsing also validates that hashes of
-        // each table row form the leaves of Merkle authentication paths in the proofs
-        let aux_trace_states = if air.trace_info().is_multi_segment() {
-            assert_eq!(queries.len(), 1);
-            let segment_width = air.trace_info().aux_segment_width();
-            let aux_segment_queries = queries.remove(0);
-
-            let (segment_query_proof, segment_trace_states) = aux_segment_queries
-                .parse::<QuadExt, Rpo256, MerkleTreeVC<Rpo256>>(
-                    air.lde_domain_size(),
-                    num_queries,
-                    segment_width,
-                )
-                .map_err(|err| {
-                    VerifierError::ProofDeserializationError(format!(
-                        "auxiliary trace segment query deserialization failed: {err}"
-                    ))
-                })?;
-
-            query_proofs.push(segment_query_proof);
-
-            Some(segment_trace_states)
-        } else {
-            None
-        };
+        let query_proofs = vec![main_segment_query_proofs];
 
         Ok(Self {
             query_proofs,
             main_states: main_segment_states,
-            aux_states: aux_trace_states,
         })
     }
 }
@@ -371,7 +352,7 @@ impl TraceQueries {
 /// * Queried constraint evaluation values.
 /// * Merkle authentication paths for all queries.
 struct ConstraintQueries {
-    query_proofs: BatchMerkleProof<Rpo256>,
+    query_proofs: SaltedBatchMerkleProof<Rpo256>,
     evaluations: Table<QuadExt>,
 }
 
@@ -380,14 +361,16 @@ impl ConstraintQueries {
     /// corresponding Merkle authentication paths.
     pub fn new(
         queries: Queries,
-        air: &ProcessorAir,
+        air: &RescueAir,
         num_queries: usize,
     ) -> Result<Self, VerifierError> {
+        let constraint_frame_width = air.context().num_constraint_composition_columns() + 1;
+
         let (query_proofs, evaluations) = queries
-            .parse::<QuadExt, Rpo256, MerkleTreeVC<Rpo256>>(
+            .parse::<QuadExt, Rpo256, SaltedMerkleTree<Rpo256, ChaCha20Rng>>(
                 air.lde_domain_size(),
                 num_queries,
-                air.ce_blowup_factor(),
+                constraint_frame_width,
             )
             .map_err(|err| {
                 VerifierError::ProofDeserializationError(format!(
@@ -409,11 +392,18 @@ impl ConstraintQueries {
 pub fn unbatch_to_partial_mt(
     positions: Vec<usize>,
     queries: Vec<Vec<Felt>>,
-    proof: BatchMerkleProof<Rpo256>,
+    proof: SaltedBatchMerkleProof<Rpo256>,
 ) -> (PartialMerkleTree, Vec<(RpoDigest, Vec<Felt>)>) {
-    // hash the query values in order to get the leaf
-    let leaves: Vec<RpoDigest> = queries.iter().map(|row| Rpo256::hash_elements(row)).collect();
-
+    // hash the query values with the salts in order to get the leaf
+    let (salts, proof) = proof;
+    let leaves: Vec<RpoDigest> = queries
+        .iter()
+        .zip(salts.iter())
+        .map(|(row, salt)| {
+            let leaf = Rpo256::hash_elements(row);
+            Rpo256::merge(&[leaf, *salt])
+        })
+        .collect();
     // use the computed leaves with the indices in order to unbatch the Merkle proof batch proof
     let unbatched_proof = proof
         .into_openings(&leaves, &positions)
@@ -431,9 +421,14 @@ pub fn unbatch_to_partial_mt(
 
     // construct the advice key map linking leaves to query values
     let mut adv_key_map = Vec::new();
-    leaves.into_iter().zip(queries.iter()).for_each(|(leaf, query_data)| {
-        adv_key_map.push((leaf, query_data.to_owned()));
-    });
+    leaves.into_iter().zip(queries.iter().zip(salts.iter())).for_each(
+        |(leaf, (query_data, salt))| {
+            adv_key_map.push((
+                leaf,
+                query_data.iter().copied().chain(salt.as_elements().iter().copied()).collect(),
+            ));
+        },
+    );
 
     (
         PartialMerkleTree::with_paths(paths_with_leaves).expect("should not fail from paths"),
