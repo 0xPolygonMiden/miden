@@ -8,7 +8,7 @@ use.std::crypto::dsa::rpo_stark::constraints_evaluation
 use.std::crypto::stark::random_coin->stark_random_coin
 
 
-# RPO-STARK-BASED SIGNATURE SCHEME VERIFICATION ALGORITHM
+# RPO STARK-BASED SIGNATURE SCHEME VERIFICATION ALGORITHM
 # =================================================================================================
 
 #! Verifies a signature against a public key and a message. The procedure gets as inputs the public
@@ -24,22 +24,31 @@ use.std::crypto::stark::random_coin->stark_random_coin
 export.verify
 
     #==============================================================================================
-    #       I)  Hash proof context and hash-&-load public inputs
+    #       I)  Generate the signature and load the verification data into the advice provider
+    #==============================================================================================
+
+    # generate the signature using the secret key associated to PK on message MSG
+    adv.push_sig.rpo_stark_sig
+    # => [PK, MSG, ...]
+
+    #==============================================================================================
+    #       II)  Hash proof context and hash-&-load public inputs
     #==============================================================================================
 
     # Initialize the seed using proof context and public inputs.
     # This also saves the public inputs for later use
     #
     # Cycles: 56 + 54 = 110
+    swapw
     exec.constants::public_inputs_ptr
     exec.random_coin::init_seed
-    #=> [C]
+    #=> [C, ...]
     # TODO: This should be reseed_with_salt
     exec.random_coin::reseed
     #=> [...]
 
     #==============================================================================================
-    #       II) Draw constraint composition coefficients
+    #       III) Draw constraint composition coefficients
     #==============================================================================================
 
     # Load main trace commitment and re-seed with it

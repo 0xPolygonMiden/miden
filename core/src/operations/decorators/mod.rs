@@ -125,12 +125,14 @@ impl<'a> Iterator for DecoratorIterator<'a> {
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SignatureKind {
     RpoFalcon512,
+    RpoStark,
 }
 
 impl fmt::Display for SignatureKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::RpoFalcon512 => write!(f, "rpo_falcon512"),
+            Self::RpoStark => write!(f, "rpo_stark_sig"),
         }
     }
 }

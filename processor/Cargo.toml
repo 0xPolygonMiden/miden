@@ -27,7 +27,11 @@ testing = ["miden-air/testing"]
 miden-air = { package = "miden-air", path = "../air", version = "0.11", default-features = false }
 tracing = { version = "0.1", default-features = false, features = ["attributes"] }
 vm-core = { package = "miden-core", path = "../core", version = "0.11", default-features = false }
+verifier = { package = "miden-verifier", path = "../verifier", version = "0.11", default-features = false }
 winter-prover = { package = "winter-prover", version = "0.11", default-features = false }
+winter-fri = { package = "winter-fri", version = "0.11" }
+winter-utils = { package = "winter-utils", version = "0.11" }
+rand_chacha = { version = "0.3", default-features = false }
 
 [dev-dependencies]
 assembly = { package = "miden-assembly", path = "../assembly", version = "0.11", default-features = false }

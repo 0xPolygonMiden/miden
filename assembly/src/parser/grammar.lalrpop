@@ -141,6 +141,7 @@ extern {
         "rcomb_base" => Token::RCombBase,
         "repeat" => Token::Repeat,
         "rpo_falcon512" => Token::RpoFalcon512,
+        "rpo_stark_sig" => Token::RpoStark,
         "sdepth" => Token::Sdepth,
         "stack" => Token::Stack,
         "sub" => Token::Sub,
@@ -1587,6 +1588,7 @@ QualifiedName: (Ident, LibraryPath) = {
 
 SignatureKind: SignatureKind = {
     "rpo_falcon512" => SignatureKind::RpoFalcon512,
+    "rpo_stark_sig" => SignatureKind::RpoStark,
 }
 
 OpcodeName: Ident = {

@@ -1,24 +1,24 @@
-use alloc::vec::Vec;
+use std::{borrow::ToOwned, string::ToString, vec::Vec};
 
-use assembly::utils::Deserializable;
 use rand_chacha::ChaCha20Rng;
-use test_utils::{
-    crypto::{rpo_stark::RescueAir, BatchMerkleProof, PartialMerkleTree, Rpo256, RpoDigest},
-    group_slice_elements,
-    math::{FieldElement, QuadExtension, StarkField},
-    Felt, VerifierError,
+use verifier::{Digest, VerifierError};
+use vm_core::{
+    crypto::{dsa::rpo_stark::RescueAir, hash::Rpo256, merkle::PartialMerkleTree},
+    Felt, FieldElement, QuadExtension, StarkField,
 };
-use winter_air::{
-    proof::{Proof, Queries, Table, TraceOodFrame},
-    Air,
-};
-use winter_crypto::{SaltedMerkleTree, VectorCommitment};
 use winter_fri::{folding::fold_positions, VerifierChannel as FriVerifierChannel};
+use winter_prover::{
+    crypto::{BatchMerkleProof, Hasher, SaltedMerkleTree, VectorCommitment},
+    proof::{Queries, Table, TraceOodFrame},
+    Air, Proof,
+};
+use winter_utils::{group_slice_elements, Deserializable};
 
 pub type QuadExt = QuadExtension<Felt>;
 
-type AdvMap = Vec<(RpoDigest, Vec<Felt>)>;
-type SaltedBatchMerkleProof<Rpo256> = (Vec<RpoDigest>, BatchMerkleProof<Rpo256>);
+type AdvMap = Vec<(Digest, Vec<Felt>)>;
+type SaltedBatchMerkleProof<Rpo256> = (Vec<Digest>, BatchMerkleProof<Rpo256>);
+
 /// A view into a [Proof] for a computation structured to simulate an "interactive" channel.
 ///
 /// A channel is instantiated for a specific proof, which is parsed into structs over the
@@ -26,24 +26,25 @@ type SaltedBatchMerkleProof<Rpo256> = (Vec<RpoDigest>, BatchMerkleProof<Rpo256>)
 /// well-formed in the context of the computation for the specified [Air].
 pub struct VerifierChannel {
     // trace queries
-    trace_roots: Vec<RpoDigest>,
+    trace_roots: Vec<Digest>,
     trace_queries: Option<TraceQueries>,
     // constraint queries
-    constraint_root: RpoDigest,
+    constraint_root: Digest,
     constraint_queries: Option<ConstraintQueries>,
     // FRI proof
-    fri_roots: Option<Vec<RpoDigest>>,
+    fri_roots: Option<Vec<Digest>>,
     fri_layer_proofs: Vec<SaltedBatchMerkleProof<Rpo256>>,
     fri_layer_queries: Vec<Vec<QuadExt>>,
     fri_remainder: Option<Vec<QuadExt>>,
     fri_num_partitions: usize,
-    fri_salts: Vec<Option<RpoDigest>>,
+    fri_salts: Vec<Option<Digest>>,
     // out-of-domain frame
     ood_trace_frame: Option<TraceOodFrame<QuadExt>>,
     ood_constraint_evaluations: Option<Vec<QuadExt>>,
     // query proof-of-work
     pow_nonce: u64,
-    salts: Vec<Option<RpoDigest>>,
+    // Fiat-Shamir salts
+    salts: Vec<Option<Digest>>,
 }
 
 impl VerifierChannel {
@@ -107,7 +108,7 @@ impl VerifierChannel {
             .map_err(|err| VerifierError::ProofDeserializationError(err.to_string()))?;
 
         // --- parse Fiat-Shamir salts -----------------------------------------------
-        let salts: Vec<Option<RpoDigest>> = Vec::read_from_bytes(&salts)
+        let salts: Vec<Option<Digest>> = Vec::read_from_bytes(&salts)
             .map_err(|err| VerifierError::ProofDeserializationError(err.to_string()))?;
 
         Ok(VerifierChannel {
@@ -129,7 +130,7 @@ impl VerifierChannel {
             ood_constraint_evaluations: Some(ood_constraint_evaluations),
             // query seed
             pow_nonce,
-            // FS salts
+            // Fiat-Shamir salts
             salts,
         })
     }
@@ -141,12 +142,12 @@ impl VerifierChannel {
     ///
     /// For computations requiring multiple trace segment, the returned slice will contain a
     /// commitment for each trace segment.
-    pub fn read_trace_commitments(&self) -> &[RpoDigest] {
+    pub fn read_trace_commitments(&self) -> &[Digest] {
         &self.trace_roots
     }
 
     /// Returns constraint evaluation commitment sent by the prover.
-    pub fn read_constraint_commitment(&self) -> RpoDigest {
+    pub fn read_constraint_commitment(&self) -> Digest {
         self.constraint_root
     }
 
@@ -172,12 +173,12 @@ impl VerifierChannel {
     }
 
     /// Returns the salts needed for Fiat-Shamir.
-    pub fn read_salts(&self) -> Vec<Option<RpoDigest>> {
+    pub fn read_salts(&self) -> Vec<Option<Digest>> {
         self.salts.clone()
     }
 
     /// Returns the salts needed for Fiat-Shamir in FRI.
-    pub(crate) fn read_fri_salts(&self) -> Vec<Option<RpoDigest>> {
+    pub(crate) fn read_fri_salts(&self) -> Vec<Option<Digest>> {
         self.fri_salts.clone()
     }
 
@@ -233,8 +234,8 @@ impl VerifierChannel {
         &mut self,
         positions_: &[usize],
         domain_size: usize,
-        layer_commitments: Vec<RpoDigest>,
-    ) -> (Vec<PartialMerkleTree>, Vec<(RpoDigest, Vec<Felt>)>) {
+        layer_commitments: Vec<Digest>,
+    ) -> (Vec<PartialMerkleTree>, Vec<(Digest, Vec<Felt>)>) {
         let all_layers_queries = self.fri_layer_queries.clone();
         let mut current_domain_size = domain_size;
         let mut positions = positions_.to_vec();
@@ -277,7 +278,7 @@ impl FriVerifierChannel<QuadExt> for VerifierChannel {
         self.fri_num_partitions
     }
 
-    fn read_fri_layer_commitments(&mut self) -> Vec<RpoDigest> {
+    fn read_fri_layer_commitments(&mut self) -> Vec<Digest> {
         self.fri_roots.take().expect("already read")
     }
 
@@ -295,7 +296,7 @@ impl FriVerifierChannel<QuadExt> for VerifierChannel {
         self.fri_remainder.take().expect("already read")
     }
 
-    fn take_salt(&mut self) -> Option<<Self::Hasher as processor::crypto::Hasher>::Digest> {
+    fn take_salt(&mut self) -> Option<<Self::Hasher as Hasher>::Digest> {
         self.salts.remove(0)
     }
 }
@@ -393,10 +394,10 @@ pub fn unbatch_to_partial_mt(
     positions: Vec<usize>,
     queries: Vec<Vec<Felt>>,
     proof: SaltedBatchMerkleProof<Rpo256>,
-) -> (PartialMerkleTree, Vec<(RpoDigest, Vec<Felt>)>) {
+) -> (PartialMerkleTree, Vec<(Digest, Vec<Felt>)>) {
     // hash the query values with the salts in order to get the leaf
     let (salts, proof) = proof;
-    let leaves: Vec<RpoDigest> = queries
+    let leaves: Vec<Digest> = queries
         .iter()
         .zip(salts.iter())
         .map(|(row, salt)| {

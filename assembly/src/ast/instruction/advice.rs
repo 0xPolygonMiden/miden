@@ -41,6 +41,7 @@ impl From<&SystemEventNode> for SystemEvent {
             InsertHperm => Self::HpermToMap,
             PushSignature { kind } => match kind {
                 SignatureKind::RpoFalcon512 => Self::FalconSigToStack,
+                SignatureKind::RpoStark => Self::StarkSigToStack,
             },
         }
     }
@@ -75,12 +76,14 @@ impl fmt::Display for SystemEventNode {
 #[repr(u8)]
 pub enum SignatureKind {
     RpoFalcon512 = 0,
+    RpoStark = 1,
 }
 
 impl From<SignatureKind> for vm_core::SignatureKind {
     fn from(kind: SignatureKind) -> Self {
         match kind {
             SignatureKind::RpoFalcon512 => Self::RpoFalcon512,
+            SignatureKind::RpoStark => Self::RpoStark,
         }
     }
 }

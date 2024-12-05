@@ -183,6 +183,13 @@ where
             .map(|v| v.into())
             .map_err(ExecutionError::MerkleStoreMergeFailed)
     }
+
+    fn extend_store<I: IntoIterator<Item = vm_core::crypto::merkle::InnerNodeInfo>>(
+        &mut self,
+        iter: I,
+    ) {
+        self.store.extend(iter);
+    }
 }
 
 // MEMORY ADVICE PROVIDER
@@ -272,6 +279,10 @@ impl AdviceProvider for MemAdviceProvider {
 
     fn merge_roots(&mut self, lhs: Word, rhs: Word) -> Result<Word, ExecutionError> {
         self.provider.merge_roots(lhs, rhs)
+    }
+
+    fn extend_store<I: IntoIterator<Item = vm_core::crypto::merkle::InnerNodeInfo>>(&mut self, iter: I) {
+        self.provider.extend_store(iter);
     }
 }
 
@@ -378,6 +389,10 @@ impl AdviceProvider for RecAdviceProvider {
 
     fn merge_roots(&mut self, lhs: Word, rhs: Word) -> Result<Word, ExecutionError> {
         self.provider.merge_roots(lhs, rhs)
+    }
+
+    fn extend_store<I: IntoIterator<Item = vm_core::crypto::merkle::InnerNodeInfo>>(&mut self, iter: I) {
+        self.provider.extend_store(iter);
     }
 }
 

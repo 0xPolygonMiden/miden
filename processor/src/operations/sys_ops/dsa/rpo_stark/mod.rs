@@ -1,18 +1,22 @@
-use alloc::vec::Vec;
+use std::{borrow::ToOwned, vec::Vec};
 
-use processor::crypto::RpoRandomCoin;
-use test_utils::{
-    crypto::{rpo_stark::RescueAir, MerkleStore, RandomCoin, Rpo256, RpoDigest},
-    math::{fft, FieldElement, QuadExtension, StarkField, ToElements},
-    Felt, VerifierError,
+use channel::VerifierChannel;
+use verifier::VerifierError;
+use vm_core::{
+    crypto::{
+        dsa::rpo_stark::RescueAir,
+        hash::{Rpo256, RpoDigest},
+        merkle::MerkleStore,
+        random::{RandomCoin, RpoRandomCoin},
+    },
+    Felt, FieldElement, QuadExtension, StarkField, ToElements,
 };
-use winter_air::{proof::Proof, Air};
 use winter_fri::VerifierChannel as FriVerifierChannel;
+use winter_prover::{math::fft, Air, ConstraintCompositionCoefficients, Proof};
+
+use super::SignatureData;
 
 mod channel;
-use channel::VerifierChannel;
-
-use super::VerifierData;
 
 pub const BLOWUP_FACTOR: usize = 8;
 pub type QuadExt = QuadExtension<Felt>;
@@ -20,10 +24,7 @@ pub type QuadExt = QuadExtension<Felt>;
 pub fn generate_advice_inputs_signature(
     proof: Proof,
     pub_inputs: <RescueAir as Air>::PublicInputs,
-) -> Result<VerifierData, VerifierError> {
-    // we need to provide the following instance specific data through the operand stack
-    let initial_stack = pub_inputs.to_elements().iter().map(|a| a.as_int()).collect();
-
+) -> Result<SignatureData, VerifierError> {
     // build a seed for the public coin; the initial seed is the hash of public inputs and proof
     // context, but as the protocol progresses, the coin will be reseeded with the info received
     // from the prover
@@ -52,7 +53,7 @@ pub fn generate_advice_inputs_signature(
 
     // build random coefficients for the composition polynomial. we don't need them but we have to
     // generate them in order to update the random coin
-    let _constraint_coeffs: winter_air::ConstraintCompositionCoefficients<QuadExt> = air
+    let _constraint_coeffs: ConstraintCompositionCoefficients<QuadExt> = air
         .get_constraint_composition_coefficients(&mut public_coin)
         .map_err(|_| VerifierError::RandomCoinError)?;
     let constraint_commitment = channel.read_constraint_commitment();
@@ -160,11 +161,11 @@ pub fn generate_advice_inputs_signature(
         store.extend(partial_tree.inner_nodes());
     }
 
-    Ok(VerifierData {
-        initial_stack,
-        advice_stack: tape,
-        store,
-        advice_map: main_aux_adv_map,
+    let advice_stack = tape.iter().map(|v| Felt::new(*v)).collect();
+    Ok(SignatureData {
+        advice_stack,
+        store: Some(store),
+        advice_map: Some(main_aux_adv_map),
     })
 }
 

@@ -1,7 +1,10 @@
 use alloc::vec::Vec;
 
 use vm_core::{
-    crypto::{hash::RpoDigest, merkle::MerklePath},
+    crypto::{
+        hash::RpoDigest,
+        merkle::{InnerNodeInfo, MerklePath},
+    },
     Felt,
 };
 
@@ -162,4 +165,7 @@ pub trait AdviceProvider: Sized {
     /// It is not checked whether a Merkle tree for either of the specified roots can be found in
     /// this advice provider.
     fn merge_roots(&mut self, lhs: Word, rhs: Word) -> Result<Word, ExecutionError>;
+
+    /// Extends the Merkle store using an iterator.
+    fn extend_store<I: IntoIterator<Item = InnerNodeInfo>>(&mut self, iter: I);
 }

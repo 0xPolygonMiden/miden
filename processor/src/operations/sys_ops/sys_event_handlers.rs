@@ -10,7 +10,7 @@ use vm_core::{
 };
 use winter_prover::math::fft;
 
-use super::dsa;
+use super::dsa::{self, SignatureData};
 use crate::{
     AdviceProvider, AdviceSource, ExecutionError, Ext2InttError, Host, Process, ProcessState,
     QuadFelt,
@@ -59,6 +59,9 @@ impl Process {
             SystemEvent::HpermToMap => insert_hperm_into_adv_map(advice_provider, process_state),
             SystemEvent::FalconSigToStack => {
                 push_signature(advice_provider, process_state, SignatureKind::RpoFalcon512)
+            },
+            SystemEvent::StarkSigToStack => {
+                push_signature(advice_provider, process_state, SignatureKind::RpoStark)
             },
         }
     }
@@ -458,8 +461,7 @@ pub fn push_ext2_intt_result(
     Ok(())
 }
 
-/// Pushes values onto the advice stack which are required for verification of a DSA in Miden
-/// VM.
+/// Pushes values onto the advice stack which are required for verification of a DSA in Miden VM.
 ///
 /// Inputs:
 ///   Operand stack: [PK, MSG, ...]
@@ -468,6 +470,8 @@ pub fn push_ext2_intt_result(
 /// Outputs:
 ///   Operand stack: [PK, MSG, ...]
 ///   Advice stack: \[DATA\]
+///   Advice map:   \[DATA\]
+///   Advice store: \[DATA\]
 ///
 /// Where:
 /// - PK is the digest of an expanded public.
@@ -482,10 +486,22 @@ pub fn push_signature(
 ) -> Result<(), ExecutionError> {
     let pub_key = process.get_stack_word(0);
     let msg = process.get_stack_word(1);
-    let result: Vec<Felt> = get_signature(advice_provider, kind, pub_key, msg)?;
-    for r in result {
-        advice_provider.push_stack(AdviceSource::Value(r))?;
+    let SignatureData { advice_stack, store, advice_map } =
+        get_signature(advice_provider, kind, pub_key, msg)?;
+    for r in advice_stack.iter().rev() {
+        advice_provider.push_stack(AdviceSource::Value(*r))?;
     }
+
+    if let Some(store) = store {
+        advice_provider.extend_store(store.inner_nodes());
+    }
+
+    if let Some(advice_map) = advice_map {
+        for (key, values) in advice_map.into_iter() {
+            advice_provider.insert_into_map(key.into(), values);
+        }
+    }
+
     Ok(())
 }
 
@@ -644,15 +660,16 @@ pub fn push_smtpeek_result(
 pub fn get_signature(
     advice_provider: &impl AdviceProvider,
     kind: SignatureKind,
-    pub_key: Word,
-    msg: Word,
-) -> Result<Vec<Felt>, ExecutionError> {
-    let pk_sk = advice_provider
-        .get_mapped_values(&pub_key.into())
-        .ok_or(ExecutionError::AdviceMapKeyNotFound(pub_key))?;
+    public_key: Word,
+    message: Word,
+) -> Result<SignatureData, ExecutionError> {
+    let secret_key = advice_provider
+        .get_mapped_values(&public_key.into())
+        .ok_or(ExecutionError::AdviceMapKeyNotFound(public_key))?;
 
     match kind {
-        SignatureKind::RpoFalcon512 => dsa::falcon_sign(pk_sk, msg),
+        SignatureKind::RpoFalcon512 => dsa::falcon_sign(secret_key, message),
+        SignatureKind::RpoStark => dsa::rpo_stark_sign(secret_key, message),
     }
 }
 

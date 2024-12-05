@@ -28,6 +28,7 @@ mod constants {
     pub const EVENT_HDWORD_TO_MAP_WITH_DOMAIN: u32    = 2822590340;
     pub const EVENT_HPERM_TO_MAP: u32                 = 3297060969;
     pub const EVENT_FALCON_SIG_TO_STACK: u32          = 3419226139;
+    pub const EVENT_STARK_SIG_TO_STACK: u32           = 3419226140;
 }
 
 /// Defines a set of actions which can be initiated from the VM to inject new data into the advice
@@ -300,6 +301,23 @@ pub enum SystemEvent {
     /// Where PK is the public key corresponding to the signing key, MSG is the message, SIG_DATA
     /// is the signature data.
     FalconSigToStack,
+
+    /// Reads two words from the stack and pushes values onto the advice stack which are required
+    /// for verification of the RPO STARK-based DSA in Miden VM.
+    ///
+    /// Inputs:
+    ///   Operand stack: [PK, MSG, ...]
+    ///   Advice stack: [...]
+    ///
+    /// Outputs:
+    ///   Operand stack: [PK, MSG, ...]
+    ///   Advice stack: \[SIG_DATA\]
+    ///   Advice store: \[SIG_DATA\]
+    ///   Advice map: \[SIG_DATA\]
+    ///
+    /// Where PK is the public key corresponding to the signing key, MSG is the message, SIG_DATA
+    /// is the signature data.
+    StarkSigToStack,
 }
 
 impl SystemEvent {
@@ -323,6 +341,7 @@ impl SystemEvent {
             SystemEvent::HdwordToMapWithDomain => EVENT_HDWORD_TO_MAP_WITH_DOMAIN,
             SystemEvent::HpermToMap => EVENT_HPERM_TO_MAP,
             SystemEvent::FalconSigToStack => EVENT_FALCON_SIG_TO_STACK,
+            SystemEvent::StarkSigToStack => EVENT_STARK_SIG_TO_STACK,
         }
     }
 
@@ -348,6 +367,7 @@ impl SystemEvent {
             EVENT_HDWORD_TO_MAP_WITH_DOMAIN => Some(SystemEvent::HdwordToMapWithDomain),
             EVENT_HPERM_TO_MAP => Some(SystemEvent::HpermToMap),
             EVENT_FALCON_SIG_TO_STACK => Some(SystemEvent::FalconSigToStack),
+            EVENT_STARK_SIG_TO_STACK => Some(SystemEvent::StarkSigToStack),
             _ => None,
         }
     }
@@ -380,6 +400,7 @@ impl fmt::Display for SystemEvent {
             Self::HdwordToMapWithDomain => write!(f, "hdword_to_map_with_domain"),
             Self::HpermToMap => write!(f, "hperm_to_map"),
             Self::FalconSigToStack => write!(f, "sig_to_stack.{}", SignatureKind::RpoFalcon512),
+            Self::StarkSigToStack => write!(f, "sig_to_stack.{}", SignatureKind::RpoStark),
         }
     }
 }

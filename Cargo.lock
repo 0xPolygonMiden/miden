@@ -287,9 +287,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.5.21"
+version = "4.5.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb3b4b9e5a7c7514dfa52869339ee98b3156b0bfb4e8a77c4ff4babb64b1604f"
+checksum = "69371e34337c4c984bbe322360c2547210bf632eb2814bbe78a6e87a2935bd2b"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -297,9 +297,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.5.21"
+version = "4.5.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b17a95aa67cc7b5ebd32aa5370189aa0d79069ef1c64ce893bd30fb24bff20ec"
+checksum = "6e24c1b4099818523236a8ca881d2b45db98dadfb4625cf6608c12069fcbbde1"
 dependencies = [
  "anstream",
  "anstyle",
@@ -1054,7 +1054,7 @@ dependencies = [
 [[package]]
 name = "miden-crypto"
 version = "0.13.0"
-source = "git+https://github.com/0xPolygonMiden/crypto?branch=al-stark-signature-dev-masm#c41b45f3bda4b31b836a86865861e0b1ad8f31ed"
+source = "git+https://github.com/0xPolygonMiden/crypto?branch=al-stark-signature-dev-masm#e67dc6f042af2a9f1dca2564c07cf06deeb6a56f"
 dependencies = [
  "blake3",
  "cc",
@@ -1065,7 +1065,7 @@ dependencies = [
  "rand_chacha",
  "rand_core",
  "sha3",
- "thiserror 2.0.3",
+ "thiserror 2.0.4",
  "winter-air",
  "winter-crypto",
  "winter-fri",
@@ -1148,6 +1148,8 @@ dependencies = [
  "miden-assembly",
  "miden-core",
  "miden-test-utils",
+ "miden-verifier",
+ "rand_chacha",
  "tracing",
  "winter-fri",
  "winter-prover",
@@ -2156,11 +2158,11 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "2.0.3"
+version = "2.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c006c85c7651b3cf2ada4584faa36773bd07bac24acfb39f3c431b36d7e667aa"
+checksum = "2f49a1853cf82743e3b7950f77e0f4d622ca36cf4317cba00c767838bac8d490"
 dependencies = [
- "thiserror-impl 2.0.3",
+ "thiserror-impl 2.0.4",
 ]
 
 [[package]]
@@ -2176,9 +2178,9 @@ dependencies = [
 
 [[package]]
 name = "thiserror-impl"
-version = "2.0.3"
+version = "2.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f077553d607adc1caf65430528a576c757a71ed73944b66ebb58ef2bbd243568"
+checksum = "8381894bb3efe0c4acac3ded651301ceee58a15d47c2e34885ed1908ad667061"
 dependencies = [
  "proc-macro2",
  "quote",
