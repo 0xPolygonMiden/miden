@@ -34,7 +34,7 @@ std = [
 lock_api = { version = "0.4", features = ["arc_lock"] }
 math = { package = "winter-math", version = "0.11", default-features = false }
 memchr = { version = "2.7", default-features = false }
-miden-crypto = { version = "0.13", default-features = false }
+miden-crypto = { git = "https://github.com/0xPolygonMiden/crypto.git", branch = "polydez-mutations-access", default-features = false }
 miden-formatting = { version = "0.1", default-features = false }
 miette = { package = "miden-miette", version = "8.0", default-features = false, optional = true, features = [
     "fancy-no-syscall",

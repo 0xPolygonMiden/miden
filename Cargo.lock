@@ -1053,12 +1053,10 @@ dependencies = [
 [[package]]
 name = "miden-crypto"
 version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a74af93a5640786def85a08a1fc25e02d8681ed0449ffb4898f4832a5fa08958"
+source = "git+https://github.com/0xPolygonMiden/crypto.git?branch=polydez-mutations-access#9d86631b3a8f0ab95163fcc88754f7b4b22d61c1"
 dependencies = [
  "blake3",
  "cc",
- "glob",
  "num",
  "num-complex",
  "rand",
