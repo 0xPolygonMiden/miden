@@ -7,20 +7,20 @@ use.std::crypto::hashes::rpo
 #!
 #! Input: [...]
 #! Output: [OOD_FRAME_HASH, ...]
-#! Cycles: 106
+#! Cycles: 100
 export.load_evaluation_frame
-    # We have 72 main trace columns and 9 aux trace columns for a total of 162 base field elements
+    # We have 70 main trace columns and 7 aux trace columns for a total of 154 base field elements
     # per row. Since we have two rows, i.e. current and next, the total number of field elements
     # making up the OOD evaluation frame is:
-    # 324 = 40 * 8 + 4
+    # 324 = 38 * 8 + 4
     # The elements are stored from the stack as (a1_1, a1_0, a0_1, a0_0) where a0 is from the
     # current row and a1 from the next row.
 
     exec.constants::ood_trace_ptr
 
-    push.1.0.0.0
+    push.4.0.0.0
     padw padw
-    repeat.40
+    repeat.38
         adv_pipe
         hperm
     end
@@ -29,7 +29,7 @@ export.load_evaluation_frame
     adv_loadw
     dup.12 mem_storew
     swapw
-    exec.constants::zero_zero_zero_one_word mem_loadw
+    exec.constants::zero_word mem_loadw
     hperm
 
     dropw
@@ -113,40 +113,49 @@ end
 #!
 #! Input: [...]
 #! Output: [res1, res0, ...]
-#! Cycles: 118
+#! Cycles: 152
 export.compute_Hz
-    # TODO: remove this
+    # Load the pointer to the OOD constraint polynomials evaluations
     exec.constants::ood_constraint_evals_ptr
-    add.4
-    repeat.3
-        padw
-    end
+    # => [ptr, ...]
 
     # Compute `H(z)`
     ## Load `value_i`'s
 
-    dup.12
-    sub.4
-    mem_loadw
-    swapw.2
+    # Load value_0
+    padw dup.4 mem_loadw
+    # => [0, 0, v0_1, v0_0, ptr, ...]
+   
+    # Load value_1
+    push.0.0 dup.6 add.1 mem_loadw
+    # => [0, 0, v1_1, v1_0, v0_1, v0_0, ptr, ...]
 
-    dup.12
-    sub.3
-    mem_loadw
-    swapw
+    # Load value_2
+    push.0.0 dup.8 add.2 mem_loadw
+    # => [0, 0, v2_1, v2_0, v1_1, v1_0, v0_1, v0_0, ptr, ...]
 
-    dup.12
-    sub.2
-    mem_loadw
+    # Load value_3
+    push.0.0 dup.10 add.3 mem_loadw
+    # => [0, 0, v3_1, v3_0, v2_1, v2_0, v1_1, v1_0, v0_1, v0_0, ptr, ...]
 
-    movup.12
-    sub.1
-    padw
-    movup.4
-    mem_loadw
+    # Load value_4
+    push.0.0 dup.12 add.4 mem_loadw
+    # => [0, 0, v4_1, v4_0, v3_1, v3_0, v2_1, v2_0, v1_1, v1_0, v0_1, v0_0, ptr, ...]
+
+    # Load value_5
+    push.0.0 movup.14 movdn.4 dup.4 add.5 mem_loadw
+    # => [0, 0, v5_1, v5_0, ptr, v4_1, v4_0, v3_1, v3_0, v2_1, v2_0, v1_1, v1_0, v0_1, v0_0, ptr, ...]
+
+    # Load value_6
+    push.0.0 dup.6 add.6 mem_loadw
+    # => [0, 0, v6_1, v6_0, v5_1, v5_0, ptr, v4_1, v4_0, v3_1, v3_0, v2_1, v2_0, v1_1, v1_0, v0_1, v0_0, ptr, ...]
+
+    # Load value_7
+    push.0.0 movup.8 add.7 mem_loadw
+    # => [0, 0, v7_1, v7_0, v6_1, v6_0, v5_1, v5_0, ptr, v4_1, v4_0, v3_1, v3_0, v2_1, v2_0, v1_1, v1_0, v0_1, v0_0, ptr, ...]
 
     ## Load z^N where N is the length of the execution trace
-    padw
+    push.0.0
     exec.constants::z_ptr mem_loadw
     movup.2 drop
     movup.2 drop

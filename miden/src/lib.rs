@@ -19,3 +19,9 @@ pub use prover::{
     ProvingOptions, StackOutputs, Word,
 };
 pub use verifier::{verify, VerificationError};
+
+// (private) exports
+// ================================================================================================
+
+#[cfg(feature = "internal")]
+pub mod internal;

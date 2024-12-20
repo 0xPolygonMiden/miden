@@ -37,7 +37,7 @@ let exec_options = ExecutionOptions::default();
 let trace = execute(&program, stack_inputs.clone(), &mut host, exec_options).unwrap();
 
 // now, execute the same program in debug mode and iterate over VM states
-for vm_state in execute_iter(&program, stack_inputs, host, exec_options) {
+for vm_state in execute_iter(&program, stack_inputs, &mut host, exec_options) {
     match vm_state {
         Ok(vm_state) => println!("{:?}", vm_state),
         Err(_) => println!("something went terribly wrong!"),

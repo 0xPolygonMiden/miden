@@ -1,4 +1,4 @@
-use processor::{ContextId, DefaultHost, ProcessState, Program};
+use processor::{ContextId, DefaultHost, Program};
 use test_utils::{
     build_expected_hash, build_expected_perm, felt_slice_to_ints, ExecutionOptions, Process,
     StackInputs, ONE, ZERO,
@@ -31,64 +31,60 @@ fn test_memcopy() {
         assembler.assemble_program(source).expect("Failed to compile test source.");
 
     let mut host = DefaultHost::default();
-    host.load_mast_forest(stdlib.mast_forest().clone());
+    host.load_mast_forest(stdlib.mast_forest().clone()).unwrap();
 
-    let mut process = Process::new(
-        program.kernel().clone(),
-        StackInputs::default(),
-        host,
-        ExecutionOptions::default(),
-    );
-    process.execute(&program).unwrap();
+    let mut process =
+        Process::new(program.kernel().clone(), StackInputs::default(), ExecutionOptions::default());
+    process.execute(&program, &mut host).unwrap();
 
     assert_eq!(
-        process.get_mem_value(ContextId::root(), 1000),
+        process.chiplets.get_mem_value(ContextId::root(), 1000),
         Some([ZERO, ZERO, ZERO, ONE]),
         "Address 1000"
     );
     assert_eq!(
-        process.get_mem_value(ContextId::root(), 1001),
+        process.chiplets.get_mem_value(ContextId::root(), 1001),
         Some([ZERO, ZERO, ONE, ZERO]),
         "Address 1001"
     );
     assert_eq!(
-        process.get_mem_value(ContextId::root(), 1002),
+        process.chiplets.get_mem_value(ContextId::root(), 1002),
         Some([ZERO, ZERO, ONE, ONE]),
         "Address 1002"
     );
     assert_eq!(
-        process.get_mem_value(ContextId::root(), 1003),
+        process.chiplets.get_mem_value(ContextId::root(), 1003),
         Some([ZERO, ONE, ZERO, ZERO]),
         "Address 1003"
     );
     assert_eq!(
-        process.get_mem_value(ContextId::root(), 1004),
+        process.chiplets.get_mem_value(ContextId::root(), 1004),
         Some([ZERO, ONE, ZERO, ONE]),
         "Address 1004"
     );
 
     assert_eq!(
-        process.get_mem_value(ContextId::root(), 2000),
+        process.chiplets.get_mem_value(ContextId::root(), 2000),
         Some([ZERO, ZERO, ZERO, ONE]),
         "Address 2000"
     );
     assert_eq!(
-        process.get_mem_value(ContextId::root(), 2001),
+        process.chiplets.get_mem_value(ContextId::root(), 2001),
         Some([ZERO, ZERO, ONE, ZERO]),
         "Address 2001"
     );
     assert_eq!(
-        process.get_mem_value(ContextId::root(), 2002),
+        process.chiplets.get_mem_value(ContextId::root(), 2002),
         Some([ZERO, ZERO, ONE, ONE]),
         "Address 2002"
     );
     assert_eq!(
-        process.get_mem_value(ContextId::root(), 2003),
+        process.chiplets.get_mem_value(ContextId::root(), 2003),
         Some([ZERO, ONE, ZERO, ZERO]),
         "Address 2003"
     );
     assert_eq!(
-        process.get_mem_value(ContextId::root(), 2004),
+        process.chiplets.get_mem_value(ContextId::root(), 2004),
         Some([ZERO, ONE, ZERO, ONE]),
         "Address 2004"
     );

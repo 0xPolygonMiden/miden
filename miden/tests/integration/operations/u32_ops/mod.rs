@@ -1,5 +1,5 @@
 use processor::ExecutionError;
-use test_utils::{build_op_test, expect_exec_error, prop_randw, Felt, U32_BOUND, ZERO};
+use test_utils::{build_op_test, expect_exec_error_matches, prop_randw, Felt, U32_BOUND, ZERO};
 
 mod arithmetic_ops;
 mod bitwise_ops;
@@ -13,7 +13,11 @@ mod conversion_ops;
 /// ensure that it fails when the input is >= 2^32.
 pub fn test_input_out_of_bounds(asm_op: &str) {
     let test = build_op_test!(asm_op, &[U32_BOUND]);
-    expect_exec_error!(test, ExecutionError::NotU32Value(Felt::new(U32_BOUND), ZERO));
+
+    expect_exec_error_matches!(
+        test,
+        ExecutionError::NotU32Value(value, err_code) if value == Felt::new(U32_BOUND) && err_code == ZERO
+    );
 }
 
 /// This helper function tests a provided u32 assembly operation, which takes multiple inputs, to
@@ -27,6 +31,10 @@ pub fn test_inputs_out_of_bounds(asm_op: &str, input_count: usize) {
         i_inputs[i] = U32_BOUND;
 
         let test = build_op_test!(asm_op, &i_inputs);
-        expect_exec_error!(test, ExecutionError::NotU32Value(Felt::new(U32_BOUND), ZERO));
+
+        expect_exec_error_matches!(
+            test,
+            ExecutionError::NotU32Value(value, err_code) if value == Felt::new(U32_BOUND) && err_code == ZERO
+        );
     }
 }

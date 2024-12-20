@@ -1,5 +1,6 @@
+use miden_air::RowIndex;
 use processor::ExecutionError;
-use test_utils::{build_expected_hash, build_expected_perm, expect_exec_error};
+use test_utils::{build_expected_hash, build_expected_perm, expect_exec_error_matches};
 
 #[test]
 fn test_invalid_end_addr() {
@@ -15,13 +16,11 @@ fn test_invalid_end_addr() {
     end
     ";
     let test = build_test!(empty_range, &[]);
-    expect_exec_error!(
+
+    expect_exec_error_matches!(
         test,
-        ExecutionError::FailedAssertion {
-            clk: 18.into(),
-            err_code: 0,
-            err_msg: None,
-        }
+        ExecutionError::FailedAssertion{ clk, err_code, err_msg }
+        if clk == RowIndex::from(18) && err_code == 0 && err_msg.is_none()
     );
 }
 

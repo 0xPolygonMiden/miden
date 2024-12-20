@@ -28,27 +28,27 @@ fn mem_read() {
 
     // read a value from address 0; clk = 1
     let addr0 = 0;
-    let value = mem.read(ContextId::root(), addr0, 1.into());
+    let value = mem.read(ContextId::root(), addr0, 1.into()).unwrap();
     assert_eq!(EMPTY_WORD, value);
     assert_eq!(1, mem.size());
     assert_eq!(1, mem.trace_len());
 
     // read a value from address 3; clk = 2
     let addr3 = 3;
-    let value = mem.read(ContextId::root(), addr3, 2.into());
+    let value = mem.read(ContextId::root(), addr3, 2.into()).unwrap();
     assert_eq!(EMPTY_WORD, value);
     assert_eq!(2, mem.size());
     assert_eq!(2, mem.trace_len());
 
     // read a value from address 0 again; clk = 3
-    let value = mem.read(ContextId::root(), addr0, 3.into());
+    let value = mem.read(ContextId::root(), addr0, 3.into()).unwrap();
     assert_eq!(EMPTY_WORD, value);
     assert_eq!(2, mem.size());
     assert_eq!(3, mem.trace_len());
 
     // read a value from address 2; clk = 4
     let addr2 = 2;
-    let value = mem.read(ContextId::root(), addr2, 4.into());
+    let value = mem.read(ContextId::root(), addr2, 4.into()).unwrap();
     assert_eq!(EMPTY_WORD, value);
     assert_eq!(3, mem.size());
     assert_eq!(4, mem.trace_len());
@@ -81,7 +81,7 @@ fn mem_write() {
     // write a value into address 0; clk = 1
     let addr0 = 0;
     let value1 = [ONE, ZERO, ZERO, ZERO];
-    mem.write(ContextId::root(), addr0, 1.into(), value1);
+    mem.write(ContextId::root(), addr0, 1.into(), value1).unwrap();
     assert_eq!(value1, mem.get_value(ContextId::root(), addr0).unwrap());
     assert_eq!(1, mem.size());
     assert_eq!(1, mem.trace_len());
@@ -89,7 +89,7 @@ fn mem_write() {
     // write a value into address 2; clk = 2
     let addr2 = 2;
     let value5 = [Felt::new(5), ZERO, ZERO, ZERO];
-    mem.write(ContextId::root(), addr2, 2.into(), value5);
+    mem.write(ContextId::root(), addr2, 2.into(), value5).unwrap();
     assert_eq!(value5, mem.get_value(ContextId::root(), addr2).unwrap());
     assert_eq!(2, mem.size());
     assert_eq!(2, mem.trace_len());
@@ -97,14 +97,14 @@ fn mem_write() {
     // write a value into address 1; clk = 3
     let addr1 = 1;
     let value7 = [Felt::new(7), ZERO, ZERO, ZERO];
-    mem.write(ContextId::root(), addr1, 3.into(), value7);
+    mem.write(ContextId::root(), addr1, 3.into(), value7).unwrap();
     assert_eq!(value7, mem.get_value(ContextId::root(), addr1).unwrap());
     assert_eq!(3, mem.size());
     assert_eq!(3, mem.trace_len());
 
     // write a value into address 0; clk = 4
     let value9 = [Felt::new(9), ZERO, ZERO, ZERO];
-    mem.write(ContextId::root(), addr0, 4.into(), value9);
+    mem.write(ContextId::root(), addr0, 4.into(), value9).unwrap();
     assert_eq!(value7, mem.get_value(ContextId::root(), addr1).unwrap());
     assert_eq!(3, mem.size());
     assert_eq!(4, mem.trace_len());
@@ -137,35 +137,35 @@ fn mem_write_read() {
     // write 1 into address 5; clk = 1
     let addr5 = 5;
     let value1 = [ONE, ZERO, ZERO, ZERO];
-    mem.write(ContextId::root(), addr5, 1.into(), value1);
+    mem.write(ContextId::root(), addr5, 1.into(), value1).unwrap();
 
     // write 4 into address 2; clk = 2
     let addr2 = 2;
     let value4 = [Felt::new(4), ZERO, ZERO, ZERO];
-    mem.write(ContextId::root(), addr2, 2.into(), value4);
+    mem.write(ContextId::root(), addr2, 2.into(), value4).unwrap();
 
     // read a value from address 5; clk = 3
-    mem.read(ContextId::root(), addr5, 3.into());
+    mem.read(ContextId::root(), addr5, 3.into()).unwrap();
 
     // write 2 into address 5; clk = 4
     let value2 = [Felt::new(2), ZERO, ZERO, ZERO];
-    mem.write(ContextId::root(), addr5, 4.into(), value2);
+    mem.write(ContextId::root(), addr5, 4.into(), value2).unwrap();
 
     // read a value from address 2; clk = 5
-    mem.read(ContextId::root(), addr2, 5.into());
+    mem.read(ContextId::root(), addr2, 5.into()).unwrap();
 
     // write 7 into address 2; clk = 6
     let value7 = [Felt::new(7), ZERO, ZERO, ZERO];
-    mem.write(ContextId::root(), addr2, 6.into(), value7);
+    mem.write(ContextId::root(), addr2, 6.into(), value7).unwrap();
 
     // read a value from address 5; clk = 7
-    mem.read(ContextId::root(), addr5, 7.into());
+    mem.read(ContextId::root(), addr5, 7.into()).unwrap();
 
     // read a value from address 2; clk = 8
-    mem.read(ContextId::root(), addr2, 8.into());
+    mem.read(ContextId::root(), addr2, 8.into()).unwrap();
 
     // read a value from address 5; clk = 9
-    mem.read(ContextId::root(), addr5, 9.into());
+    mem.read(ContextId::root(), addr5, 9.into()).unwrap();
 
     // check generated trace and memory data provided to the ChipletsBus; rows should be sorted by
     // address and then clock cycle
@@ -208,33 +208,33 @@ fn mem_multi_context() {
 
     // write a value into ctx = ContextId::root(), addr = 0; clk = 1
     let value1 = [ONE, ZERO, ZERO, ZERO];
-    mem.write(ContextId::root(), 0, 1.into(), value1);
+    mem.write(ContextId::root(), 0, 1.into(), value1).unwrap();
     assert_eq!(value1, mem.get_value(ContextId::root(), 0).unwrap());
     assert_eq!(1, mem.size());
     assert_eq!(1, mem.trace_len());
 
     // write a value into ctx = 3, addr = 1; clk = 4
     let value2 = [ZERO, ONE, ZERO, ZERO];
-    mem.write(3.into(), 1, 4.into(), value2);
+    mem.write(3.into(), 1, 4.into(), value2).unwrap();
     assert_eq!(value2, mem.get_value(3.into(), 1).unwrap());
     assert_eq!(2, mem.size());
     assert_eq!(2, mem.trace_len());
 
     // read a value from ctx = 3, addr = 1; clk = 6
-    let value = mem.read(3.into(), 1, 6.into());
+    let value = mem.read(3.into(), 1, 6.into()).unwrap();
     assert_eq!(value2, value);
     assert_eq!(2, mem.size());
     assert_eq!(3, mem.trace_len());
 
     // write a value into ctx = 3, addr = 0; clk = 7
     let value3 = [ZERO, ZERO, ONE, ZERO];
-    mem.write(3.into(), 0, 7.into(), value3);
+    mem.write(3.into(), 0, 7.into(), value3).unwrap();
     assert_eq!(value3, mem.get_value(3.into(), 0).unwrap());
     assert_eq!(3, mem.size());
     assert_eq!(4, mem.trace_len());
 
     // read a value from ctx = 0, addr = 0; clk = 9
-    let value = mem.read(ContextId::root(), 0, 9.into());
+    let value = mem.read(ContextId::root(), 0, 9.into()).unwrap();
     assert_eq!(value1, value);
     assert_eq!(3, mem.size());
     assert_eq!(5, mem.trace_len());
@@ -270,17 +270,17 @@ fn mem_get_state_at() {
     // Write 1 into (ctx = 0, addr = 5) at clk = 1.
     // This means that mem[5] = 1 at the beginning of clk = 2
     let value1 = [ONE, ZERO, ZERO, ZERO];
-    mem.write(ContextId::root(), 5, 1.into(), value1);
+    mem.write(ContextId::root(), 5, 1.into(), value1).unwrap();
 
     // Write 4 into (ctx = 0, addr = 2) at clk = 2.
     // This means that mem[2] = 4 at the beginning of clk = 3
     let value4 = [Felt::new(4), ZERO, ZERO, ZERO];
-    mem.write(ContextId::root(), 2, 2.into(), value4);
+    mem.write(ContextId::root(), 2, 2.into(), value4).unwrap();
 
     // write 7 into (ctx = 3, addr = 3) at clk = 4
     // This means that mem[3] = 7 at the beginning of clk = 4
     let value7 = [Felt::new(7), ZERO, ZERO, ZERO];
-    mem.write(3.into(), 3, 4.into(), value7);
+    mem.write(3.into(), 3, 4.into(), value7).unwrap();
 
     // Check memory state at clk = 2
     assert_eq!(mem.get_state_at(ContextId::root(), 2.into()), vec![(5, value1)]);

@@ -9,7 +9,6 @@ mod verify;
 
 pub use bundle::BundleCmd;
 pub use compile::CompileCmd;
-pub use data::InputFile;
 pub use debug::DebugCmd;
 pub use prove::ProveCmd;
 pub use repl::ReplCmd;

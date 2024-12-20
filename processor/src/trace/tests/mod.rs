@@ -21,10 +21,9 @@ mod stack;
 /// Builds a sample trace by executing the provided code block against the provided stack inputs.
 pub fn build_trace_from_program(program: &Program, stack_inputs: &[u64]) -> ExecutionTrace {
     let stack_inputs = StackInputs::try_from_ints(stack_inputs.iter().copied()).unwrap();
-    let host = DefaultHost::default();
-    let mut process =
-        Process::new(Kernel::default(), stack_inputs, host, ExecutionOptions::default());
-    process.execute(program).unwrap();
+    let mut host = DefaultHost::default();
+    let mut process = Process::new(Kernel::default(), stack_inputs, ExecutionOptions::default());
+    process.execute(program, &mut host).unwrap();
     ExecutionTrace::new(process, StackOutputs::default())
 }
 
@@ -50,9 +49,8 @@ pub fn build_trace_from_ops_with_inputs(
     advice_inputs: AdviceInputs,
 ) -> ExecutionTrace {
     let advice_provider = MemAdviceProvider::from(advice_inputs);
-    let host = DefaultHost::new(advice_provider);
-    let mut process =
-        Process::new(Kernel::default(), stack_inputs, host, ExecutionOptions::default());
+    let mut host = DefaultHost::new(advice_provider);
+    let mut process = Process::new(Kernel::default(), stack_inputs, ExecutionOptions::default());
 
     let mut mast_forest = MastForest::new();
     let basic_block_id = mast_forest.add_block(operations, None).unwrap();
@@ -60,6 +58,6 @@ pub fn build_trace_from_ops_with_inputs(
 
     let program = Program::new(mast_forest.into(), basic_block_id);
 
-    process.execute(&program).unwrap();
+    process.execute(&program, &mut host).unwrap();
     ExecutionTrace::new(process, StackOutputs::default())
 }

@@ -1,5 +1,5 @@
-use processor::ExecutionError;
-use test_utils::{build_op_test, expect_exec_error};
+use processor::{ExecutionError, RowIndex};
+use test_utils::{build_op_test, expect_exec_error_matches};
 
 // SYSTEM OPS ASSERTIONS - MANUAL TESTS
 // ================================================================================================
@@ -21,13 +21,11 @@ fn assert_with_code() {
 
     // triggered assertion captures both the VM cycle and error code
     let test = build_op_test!(asm_op, &[0]);
-    expect_exec_error!(
+
+    expect_exec_error_matches!(
         test,
-        ExecutionError::FailedAssertion {
-            clk: 2.into(),
-            err_code: 123,
-            err_msg: None,
-        }
+        ExecutionError::FailedAssertion{ clk, err_code, err_msg }
+        if clk == RowIndex::from(2) && err_code == 123_u32 && err_msg.is_none()
     );
 }
 
@@ -36,13 +34,11 @@ fn assert_fail() {
     let asm_op = "assert";
 
     let test = build_op_test!(asm_op, &[2]);
-    expect_exec_error!(
+
+    expect_exec_error_matches!(
         test,
-        ExecutionError::FailedAssertion {
-            clk: 2.into(),
-            err_code: 0,
-            err_msg: None,
-        }
+        ExecutionError::FailedAssertion{ clk, err_code, err_msg }
+        if clk == RowIndex::from(2) && err_code == 0 && err_msg.is_none()
     );
 }
 
@@ -62,23 +58,19 @@ fn assert_eq_fail() {
     let asm_op = "assert_eq";
 
     let test = build_op_test!(asm_op, &[2, 1]);
-    expect_exec_error!(
+
+    expect_exec_error_matches!(
         test,
-        ExecutionError::FailedAssertion {
-            clk: 3.into(),
-            err_code: 0,
-            err_msg: None,
-        }
+        ExecutionError::FailedAssertion{ clk, err_code, err_msg }
+        if clk == RowIndex::from(3) && err_code == 0_u32 && err_msg.is_none()
     );
 
     let test = build_op_test!(asm_op, &[1, 4]);
-    expect_exec_error!(
+
+    expect_exec_error_matches!(
         test,
-        ExecutionError::FailedAssertion {
-            clk: 3.into(),
-            err_code: 0,
-            err_msg: None,
-        }
+        ExecutionError::FailedAssertion{ clk, err_code, err_msg }
+        if clk == RowIndex::from(3) && err_code == 0_u32 && err_msg.is_none()
     );
 }
 

@@ -11,7 +11,7 @@ use crate::system::ContextId;
 // ================================================================================================
 
 /// Prints the info about the VM state specified by the provided options to stdout.
-pub fn print_debug_info<S: ProcessState>(process: &S, options: &DebugOptions) {
+pub fn print_debug_info(process: ProcessState, options: &DebugOptions) {
     let printer = Printer::new(process.clk(), process.ctx(), process.fmp());
     match options {
         DebugOptions::StackAll => {
@@ -48,7 +48,7 @@ impl Printer {
 
     /// Prints the number of stack items specified by `n` if it is provided, otherwise prints
     /// the whole stack.
-    fn print_vm_stack<S: ProcessState>(&self, process: &S, n: Option<usize>) {
+    fn print_vm_stack(&self, process: ProcessState, n: Option<usize>) {
         let stack = process.get_stack_state();
 
         // determine how many items to print out
@@ -72,7 +72,7 @@ impl Printer {
     }
 
     /// Prints the whole memory state at the cycle `clk` in context `ctx`.
-    fn print_mem_all<S: ProcessState>(&self, process: &S) {
+    fn print_mem_all(&self, process: ProcessState) {
         let mem = process.get_mem_state(self.ctx);
         let padding =
             mem.iter().fold(0, |max, value| word_elem_max_len(Some(value.1)).max(max)) as usize;
@@ -91,7 +91,7 @@ impl Printer {
     }
 
     /// Prints memory values in the provided addresses interval.
-    fn print_mem_interval<S: ProcessState>(&self, process: &S, n: u32, m: u32) {
+    fn print_mem_interval(&self, process: ProcessState, n: u32, m: u32) {
         let mut mem_interval = Vec::new();
         for addr in n..m + 1 {
             mem_interval.push((addr, process.get_mem_value(self.ctx, addr)));
@@ -113,12 +113,7 @@ impl Printer {
     }
 
     /// Prints locals in provided indexes interval.
-    fn print_local_interval<S: ProcessState>(
-        &self,
-        process: &S,
-        interval: (u32, u32),
-        num_locals: u32,
-    ) {
+    fn print_local_interval(&self, process: ProcessState, interval: (u32, u32), num_locals: u32) {
         let mut local_mem_interval = Vec::new();
         let local_memory_offset = self.fmp - num_locals + 1;
 

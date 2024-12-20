@@ -1,4 +1,7 @@
-use alloc::{collections::BTreeMap, vec::Vec};
+use alloc::{
+    collections::{btree_map::Entry, BTreeMap},
+    vec::Vec,
+};
 
 use miden_air::{
     trace::chiplets::memory::{Selectors, MEMORY_COPY_READ, MEMORY_INIT_READ, MEMORY_WRITE},
@@ -6,6 +9,7 @@ use miden_air::{
 };
 
 use super::{Felt, Word, INIT_MEM_VALUE};
+use crate::{ContextId, ExecutionError};
 
 // MEMORY SEGMENT TRACE
 // ================================================================================================
@@ -15,7 +19,7 @@ use super::{Felt, Word, INIT_MEM_VALUE};
 /// A memory segment is an isolated address space accessible from a specific execution context.
 /// Within each segment, the memory is word-addressable. That is, four field elements are located
 /// at each memory address, and we can read and write elements to/from memory in batches of four.
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct MemorySegmentTrace(BTreeMap<u32, Vec<MemorySegmentAccess>>);
 
 impl MemorySegmentTrace {
@@ -72,37 +76,66 @@ impl MemorySegmentTrace {
     ///
     /// If the specified address hasn't been previously written to, four ZERO elements are
     /// returned. This effectively implies that memory is initialized to ZERO.
-    pub fn read(&mut self, addr: u32, clk: Felt) -> Word {
+    ///
+    /// # Errors
+    /// - Returns an error if the same address is accessed more than once in the same clock cycle.
+    pub fn read(&mut self, ctx: ContextId, addr: u32, clk: Felt) -> Result<Word, ExecutionError> {
         // look up the previous value in the appropriate address trace and add (clk, prev_value)
         // to it; if this is the first time we access this address, create address trace for it
         // with entry (clk, [ZERO, 4]). in both cases, return the last value in the address trace.
-        self.0
-            .entry(addr)
-            .and_modify(|addr_trace| {
-                let last_value = addr_trace.last().expect("empty address trace").value();
-                let access = MemorySegmentAccess::new(clk, MemoryOperation::CopyRead, last_value);
-                addr_trace.push(access);
-            })
-            .or_insert_with(|| {
+        match self.0.entry(addr) {
+            Entry::Vacant(vacant_entry) => {
                 let access =
                     MemorySegmentAccess::new(clk, MemoryOperation::InitRead, INIT_MEM_VALUE);
-                vec![access]
-            })
-            .last()
-            .expect("empty address trace")
-            .value()
+                vacant_entry.insert(vec![access]);
+                Ok(INIT_MEM_VALUE)
+            },
+            Entry::Occupied(mut occupied_entry) => {
+                let addr_trace = occupied_entry.get_mut();
+                if addr_trace.last().expect("empty address trace").clk() == clk {
+                    Err(ExecutionError::DuplicateMemoryAccess { ctx, addr, clk })
+                } else {
+                    let last_value = addr_trace.last().expect("empty address trace").value();
+                    let access =
+                        MemorySegmentAccess::new(clk, MemoryOperation::CopyRead, last_value);
+                    addr_trace.push(access);
+
+                    Ok(last_value)
+                }
+            },
+        }
     }
 
     /// Writes the provided word at the specified address. The memory access is assumed to happen
     /// at the provided clock cycle.
-    pub fn write(&mut self, addr: u32, clk: Felt, value: Word) {
+    ///
+    /// # Errors
+    /// - Returns an error if the same address is accessed more than once in the same clock cycle.
+    pub fn write(
+        &mut self,
+        ctx: ContextId,
+        addr: u32,
+        clk: Felt,
+        value: Word,
+    ) -> Result<(), ExecutionError> {
         // add a memory access to the appropriate address trace; if this is the first time
         // we access this address, initialize address trace.
         let access = MemorySegmentAccess::new(clk, MemoryOperation::Write, value);
-        self.0
-            .entry(addr)
-            .and_modify(|addr_trace| addr_trace.push(access))
-            .or_insert_with(|| vec![access]);
+        match self.0.entry(addr) {
+            Entry::Vacant(vacant_entry) => {
+                vacant_entry.insert(vec![access]);
+                Ok(())
+            },
+            Entry::Occupied(mut occupied_entry) => {
+                let addr_trace = occupied_entry.get_mut();
+                if addr_trace.last().expect("empty address trace").clk() == clk {
+                    Err(ExecutionError::DuplicateMemoryAccess { ctx, addr, clk })
+                } else {
+                    addr_trace.push(access);
+                    Ok(())
+                }
+            },
+        }
     }
 
     // INNER VALUE ACCESSORS

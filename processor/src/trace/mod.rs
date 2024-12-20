@@ -13,8 +13,7 @@ use super::{
     chiplets::AuxTraceBuilder as ChipletsAuxTraceBuilder, crypto::RpoRandomCoin,
     decoder::AuxTraceBuilder as DecoderAuxTraceBuilder,
     range::AuxTraceBuilder as RangeCheckerAuxTraceBuilder,
-    stack::AuxTraceBuilder as StackAuxTraceBuilder, ColMatrix, Digest, Felt, FieldElement, Host,
-    Process,
+    stack::AuxTraceBuilder as StackAuxTraceBuilder, ColMatrix, Digest, Felt, FieldElement, Process,
 };
 
 mod utils;
@@ -68,10 +67,7 @@ impl ExecutionTrace {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Builds an execution trace for the provided process.
-    pub fn new<H>(process: Process<H>, stack_outputs: StackOutputs) -> Self
-    where
-        H: Host,
-    {
+    pub fn new(process: Process, stack_outputs: StackOutputs) -> Self {
         // use program hash to initialize random element generator; this generator will be used
         // to inject random values at the end of the trace; using program hash here is OK because
         // we are using random values only to stabilize constraint degrees, and not to achieve
@@ -185,12 +181,7 @@ impl ExecutionTrace {
     }
 
     #[cfg(test)]
-    pub fn test_finalize_trace<H>(
-        process: Process<H>,
-    ) -> (MainTrace, AuxTraceBuilders, TraceLenSummary)
-    where
-        H: Host,
-    {
+    pub fn test_finalize_trace(process: Process) -> (MainTrace, AuxTraceBuilders, TraceLenSummary) {
         let rng = RpoRandomCoin::new(EMPTY_WORD);
         finalize_trace(process, rng)
     }
@@ -275,14 +266,11 @@ impl Trace for ExecutionTrace {
 /// - Inserting random values in the last row of all columns. This helps ensure that there are no
 ///   repeating patterns in each column and each column contains a least two distinct values. This,
 ///   in turn, ensures that polynomial degrees of all columns are stable.
-fn finalize_trace<H>(
-    process: Process<H>,
+fn finalize_trace(
+    process: Process,
     mut rng: RpoRandomCoin,
-) -> (MainTrace, AuxTraceBuilders, TraceLenSummary)
-where
-    H: Host,
-{
-    let (system, decoder, stack, mut range, chiplets, _) = process.into_parts();
+) -> (MainTrace, AuxTraceBuilders, TraceLenSummary) {
+    let (system, decoder, stack, mut range, chiplets) = process.into_parts();
 
     let clk = system.clk();
 

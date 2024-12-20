@@ -10,7 +10,6 @@ use verifier_recursive::{generate_advice_inputs, VerifierData};
 // Note: Changes to MidenVM may cause this test to fail when some of the assumptions documented
 // in `stdlib/asm/crypto/stark/verifier.masm` are violated.
 #[test]
-#[ignore]
 fn stark_verifier_e2f4() {
     // An example MASM program to be verified inside Miden VM.
     // Note that output stack-overflow is not yet supported because of the way we handle public
@@ -25,8 +24,12 @@ fn stark_verifier_e2f4() {
     stack_inputs[15] = 0;
     stack_inputs[14] = 1;
 
-    let VerifierData { initial_stack, tape, store, advice_map } =
-        generate_recursive_verifier_data(example_source, stack_inputs).unwrap();
+    let VerifierData {
+        initial_stack,
+        advice_stack: tape,
+        store,
+        advice_map,
+    } = generate_recursive_verifier_data(example_source, stack_inputs).unwrap();
 
     // Verify inside Miden VM
     let source = "
@@ -50,12 +53,12 @@ pub fn generate_recursive_verifier_data(
     let stack_inputs = StackInputs::try_from_ints(stack_inputs).unwrap();
     let advice_inputs = AdviceInputs::default();
     let advice_provider = MemAdviceProvider::from(advice_inputs);
-    let host = DefaultHost::new(advice_provider);
+    let mut host = DefaultHost::new(advice_provider);
 
     let options =
-        ProvingOptions::new(43, 8, 12, FieldExtension::Quadratic, 4, 7, HashFunction::Rpo256);
+        ProvingOptions::new(27, 8, 12, FieldExtension::Quadratic, 4, 7, HashFunction::Rpo256);
 
-    let (stack_outputs, proof) = prove(&program, stack_inputs.clone(), host, options).unwrap();
+    let (stack_outputs, proof) = prove(&program, stack_inputs.clone(), &mut host, options).unwrap();
 
     let program_info = ProgramInfo::from(program);
 

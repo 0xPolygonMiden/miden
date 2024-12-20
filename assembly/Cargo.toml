@@ -19,19 +19,19 @@ doctest = false
 
 [features]
 default = ["std"]
-std = ["aho-corasick/std", "miette/fancy", "miette/std", "thiserror/std", "vm-core/std"]
+std = ["aho-corasick/std", "miette/fancy", "miette/std", "vm-core/std", "thiserror/std"]
 testing = ["dep:regex"]
 
 [dependencies]
 aho-corasick = { version = "1.1", default-features = false }
 lalrpop-util = { version = "0.20", default-features = false }
-miette = { package = "miden-miette", version = "7.1", default-features = false, features = [
+miette = { package = "miden-miette", version = "8.0", default-features = false, features = [
     "fancy-no-syscall",
     "derive"
 ] }
 regex = { version = "1.10", optional = true, default-features = false, features = ["unicode", "perf"] }
 smallvec = { version = "1.13", features = ["union", "const_generics", "const_new"] }
-thiserror = { package = "miden-thiserror", version = "1.0", default-features = false }
+thiserror = { workspace = true }
 tracing = { version = "0.1", default-features = false, features = ["attributes"] }
 unicode-width = { version = "0.2", features = ["no_std"] }
 vm-core = { package = "miden-core", path = "../core", version = "0.11", default-features = false, features = [

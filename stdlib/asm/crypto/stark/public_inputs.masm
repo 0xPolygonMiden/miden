@@ -28,7 +28,7 @@ export.load
     end
     adv_loadw
     swapw
-    exec.constants::zero_zero_zero_one_word mem_loadw
+    exec.constants::zero_word mem_loadw
     hperm
 
     dropw

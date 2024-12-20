@@ -2,7 +2,8 @@ use alloc::{borrow::Borrow, string::ToString, vec::Vec};
 
 use vm_core::{
     mast::{DecoratorId, MastNodeId},
-    AdviceInjector, AssemblyOp, Decorator, Operation,
+    sys_events::SystemEvent,
+    AssemblyOp, Decorator, Operation,
 };
 
 use super::{mast_forest_builder::MastForestBuilder, BodyWrapper, DecoratorList, ProcedureContext};
@@ -93,6 +94,12 @@ impl BasicBlockBuilder<'_> {
         let new_len = self.ops.len() + n;
         self.ops.resize(new_len, op);
     }
+
+    /// Converts the system event into its corresponding event ID, and adds an `Emit` operation
+    /// to the list of basic block operations.
+    pub fn push_system_event(&mut self, sys_event: SystemEvent) {
+        self.push_op(Operation::Emit(sys_event.into_event_id()))
+    }
 }
 
 /// Decorators
@@ -103,11 +110,6 @@ impl BasicBlockBuilder<'_> {
         self.decorators.push((self.ops.len(), decorator_id));
 
         Ok(())
-    }
-
-    /// Adds the specified advice injector to the list of basic block decorators.
-    pub fn push_advice_injector(&mut self, injector: AdviceInjector) -> Result<(), AssemblyError> {
-        self.push_decorator(Decorator::Advice(injector))
     }
 
     /// Adds an AsmOp decorator to the list of basic block decorators.

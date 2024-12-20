@@ -347,7 +347,9 @@ impl MastForestBuilder {
             // decorator already exists in the forest; return previously assigned id
             Ok(*decorator_id)
         } else {
-            let new_decorator_id = self.mast_forest.add_decorator(decorator)?;
+            let new_decorator_id = self.mast_forest.add_decorator(decorator).map_err(|source| {
+                AssemblyError::forest_error("assembler failed to add new decorator", source)
+            })?;
             self.decorator_id_by_fingerprint.insert(decorator_hash, new_decorator_id);
 
             Ok(new_decorator_id)
@@ -366,7 +368,9 @@ impl MastForestBuilder {
             // node already exists in the forest; return previously assigned id
             Ok(*node_id)
         } else {
-            let new_node_id = self.mast_forest.add_node(node)?;
+            let new_node_id = self.mast_forest.add_node(node).map_err(|source| {
+                AssemblyError::forest_error("assembler failed to add new node", source)
+            })?;
             self.node_id_by_fingerprint.insert(node_fingerprint, new_node_id);
             self.hash_by_node_id.insert(new_node_id, node_fingerprint);
 
@@ -380,7 +384,9 @@ impl MastForestBuilder {
         operations: Vec<Operation>,
         decorators: Option<DecoratorList>,
     ) -> Result<MastNodeId, AssemblyError> {
-        let block = MastNode::new_basic_block(operations, decorators)?;
+        let block = MastNode::new_basic_block(operations, decorators).map_err(|source| {
+            AssemblyError::forest_error("assembler failed to add new basic block node", source)
+        })?;
         self.ensure_node(block)
     }
 
@@ -390,7 +396,10 @@ impl MastForestBuilder {
         left_child: MastNodeId,
         right_child: MastNodeId,
     ) -> Result<MastNodeId, AssemblyError> {
-        let join = MastNode::new_join(left_child, right_child, &self.mast_forest)?;
+        let join =
+            MastNode::new_join(left_child, right_child, &self.mast_forest).map_err(|source| {
+                AssemblyError::forest_error("assembler failed to add new join node", source)
+            })?;
         self.ensure_node(join)
     }
 
@@ -400,25 +409,34 @@ impl MastForestBuilder {
         if_branch: MastNodeId,
         else_branch: MastNodeId,
     ) -> Result<MastNodeId, AssemblyError> {
-        let split = MastNode::new_split(if_branch, else_branch, &self.mast_forest)?;
+        let split =
+            MastNode::new_split(if_branch, else_branch, &self.mast_forest).map_err(|source| {
+                AssemblyError::forest_error("assembler failed to add new split node", source)
+            })?;
         self.ensure_node(split)
     }
 
     /// Adds a loop node to the forest, and returns the [`MastNodeId`] associated with it.
     pub fn ensure_loop(&mut self, body: MastNodeId) -> Result<MastNodeId, AssemblyError> {
-        let loop_node = MastNode::new_loop(body, &self.mast_forest)?;
+        let loop_node = MastNode::new_loop(body, &self.mast_forest).map_err(|source| {
+            AssemblyError::forest_error("assembler failed to add new loop node", source)
+        })?;
         self.ensure_node(loop_node)
     }
 
     /// Adds a call node to the forest, and returns the [`MastNodeId`] associated with it.
     pub fn ensure_call(&mut self, callee: MastNodeId) -> Result<MastNodeId, AssemblyError> {
-        let call = MastNode::new_call(callee, &self.mast_forest)?;
+        let call = MastNode::new_call(callee, &self.mast_forest).map_err(|source| {
+            AssemblyError::forest_error("assembler failed to add new call node", source)
+        })?;
         self.ensure_node(call)
     }
 
     /// Adds a syscall node to the forest, and returns the [`MastNodeId`] associated with it.
     pub fn ensure_syscall(&mut self, callee: MastNodeId) -> Result<MastNodeId, AssemblyError> {
-        let syscall = MastNode::new_syscall(callee, &self.mast_forest)?;
+        let syscall = MastNode::new_syscall(callee, &self.mast_forest).map_err(|source| {
+            AssemblyError::forest_error("assembler failed to add new syscall node", source)
+        })?;
         self.ensure_node(syscall)
     }
 

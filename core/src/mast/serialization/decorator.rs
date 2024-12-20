@@ -1,6 +1,5 @@
 use alloc::vec::Vec;
 
-use miden_crypto::Felt;
 use num_derive::{FromPrimitive, ToPrimitive};
 use num_traits::{FromPrimitive, ToPrimitive};
 use winter_utils::{
@@ -11,7 +10,7 @@ use super::{
     string_table::{StringTable, StringTableBuilder},
     DecoratorDataOffset,
 };
-use crate::{AdviceInjector, AssemblyOp, DebugOptions, Decorator, SignatureKind};
+use crate::{AssemblyOp, DebugOptions, Decorator};
 
 /// Represents a serialized [`Decorator`].
 ///
@@ -27,13 +26,9 @@ pub struct DecoratorInfo {
 impl DecoratorInfo {
     pub fn from_decorator(
         decorator: &Decorator,
-        data_builder: &mut DecoratorDataBuilder,
-        string_table_builder: &mut StringTableBuilder,
+        decorator_data_offset: DecoratorDataOffset,
     ) -> Self {
         let variant = EncodedDecoratorVariant::from(decorator);
-        let decorator_data_offset =
-            data_builder.encode_decorator_data(decorator, string_table_builder).unwrap_or(0);
-
         Self { variant, decorator_data_offset }
     }
 
@@ -48,75 +43,6 @@ impl DecoratorInfo {
         let mut data_reader =
             SliceReader::new(&decorator_data[self.decorator_data_offset as usize..]);
         match self.variant {
-            EncodedDecoratorVariant::AdviceInjectorMerkleNodeMerge => {
-                Ok(Decorator::Advice(AdviceInjector::MerkleNodeMerge))
-            },
-            EncodedDecoratorVariant::AdviceInjectorMerkleNodeToStack => {
-                Ok(Decorator::Advice(AdviceInjector::MerkleNodeToStack))
-            },
-            EncodedDecoratorVariant::AdviceInjectorUpdateMerkleNode => {
-                Ok(Decorator::Advice(AdviceInjector::UpdateMerkleNode))
-            },
-            EncodedDecoratorVariant::AdviceInjectorMapValueToStack => {
-                let include_len = data_reader.read_bool()?;
-                let key_offset = data_reader.read_usize()?;
-
-                Ok(Decorator::Advice(AdviceInjector::MapValueToStack { include_len, key_offset }))
-            },
-            EncodedDecoratorVariant::AdviceInjectorU64Div => {
-                Ok(Decorator::Advice(AdviceInjector::U64Div))
-            },
-            EncodedDecoratorVariant::AdviceInjectorExt2Inv => {
-                Ok(Decorator::Advice(AdviceInjector::Ext2Inv))
-            },
-            EncodedDecoratorVariant::AdviceInjectorExt2Intt => {
-                Ok(Decorator::Advice(AdviceInjector::Ext2Intt))
-            },
-            EncodedDecoratorVariant::AdviceInjectorSmtGet => {
-                Ok(Decorator::Advice(AdviceInjector::SmtGet))
-            },
-            EncodedDecoratorVariant::AdviceInjectorSmtSet => {
-                Ok(Decorator::Advice(AdviceInjector::SmtSet))
-            },
-            EncodedDecoratorVariant::AdviceInjectorSmtPeek => {
-                Ok(Decorator::Advice(AdviceInjector::SmtPeek))
-            },
-            EncodedDecoratorVariant::AdviceInjectorU32Clz => {
-                Ok(Decorator::Advice(AdviceInjector::U32Clz))
-            },
-            EncodedDecoratorVariant::AdviceInjectorU32Ctz => {
-                Ok(Decorator::Advice(AdviceInjector::U32Ctz))
-            },
-            EncodedDecoratorVariant::AdviceInjectorU32Clo => {
-                Ok(Decorator::Advice(AdviceInjector::U32Clo))
-            },
-            EncodedDecoratorVariant::AdviceInjectorU32Cto => {
-                Ok(Decorator::Advice(AdviceInjector::U32Cto))
-            },
-            EncodedDecoratorVariant::AdviceInjectorILog2 => {
-                Ok(Decorator::Advice(AdviceInjector::ILog2))
-            },
-            EncodedDecoratorVariant::AdviceInjectorMemToMap => {
-                Ok(Decorator::Advice(AdviceInjector::MemToMap))
-            },
-            EncodedDecoratorVariant::AdviceInjectorHdwordToMap => {
-                let domain = data_reader.read_u64()?;
-                let domain = Felt::try_from(domain).map_err(|err| {
-                    DeserializationError::InvalidValue(format!(
-                        "Error when deserializing HdwordToMap decorator domain: {err}"
-                    ))
-                })?;
-
-                Ok(Decorator::Advice(AdviceInjector::HdwordToMap { domain }))
-            },
-            EncodedDecoratorVariant::AdviceInjectorHpermToMap => {
-                Ok(Decorator::Advice(AdviceInjector::HpermToMap))
-            },
-            EncodedDecoratorVariant::AdviceInjectorSigToStack => {
-                Ok(Decorator::Advice(AdviceInjector::SigToStack {
-                    kind: SignatureKind::RpoFalcon512,
-                }))
-            },
             EncodedDecoratorVariant::AssemblyOp => {
                 let num_cycles = data_reader.read_u8()?;
                 let should_break = data_reader.read_bool()?;
@@ -215,25 +141,6 @@ impl Deserializable for DecoratorInfo {
 #[derive(Debug, FromPrimitive, ToPrimitive)]
 #[repr(u8)]
 pub enum EncodedDecoratorVariant {
-    AdviceInjectorMerkleNodeMerge,
-    AdviceInjectorMerkleNodeToStack,
-    AdviceInjectorUpdateMerkleNode,
-    AdviceInjectorMapValueToStack,
-    AdviceInjectorU64Div,
-    AdviceInjectorExt2Inv,
-    AdviceInjectorExt2Intt,
-    AdviceInjectorSmtGet,
-    AdviceInjectorSmtSet,
-    AdviceInjectorSmtPeek,
-    AdviceInjectorU32Clz,
-    AdviceInjectorU32Ctz,
-    AdviceInjectorU32Clo,
-    AdviceInjectorU32Cto,
-    AdviceInjectorILog2,
-    AdviceInjectorMemToMap,
-    AdviceInjectorHdwordToMap,
-    AdviceInjectorHpermToMap,
-    AdviceInjectorSigToStack,
     AssemblyOp,
     DebugOptionsStackAll,
     DebugOptionsStackTop,
@@ -261,29 +168,6 @@ impl EncodedDecoratorVariant {
 impl From<&Decorator> for EncodedDecoratorVariant {
     fn from(decorator: &Decorator) -> Self {
         match decorator {
-            Decorator::Advice(advice_injector) => match advice_injector {
-                AdviceInjector::MerkleNodeMerge => Self::AdviceInjectorMerkleNodeMerge,
-                AdviceInjector::MerkleNodeToStack => Self::AdviceInjectorMerkleNodeToStack,
-                AdviceInjector::UpdateMerkleNode => Self::AdviceInjectorUpdateMerkleNode,
-                AdviceInjector::MapValueToStack { include_len: _, key_offset: _ } => {
-                    Self::AdviceInjectorMapValueToStack
-                },
-                AdviceInjector::U64Div => Self::AdviceInjectorU64Div,
-                AdviceInjector::Ext2Inv => Self::AdviceInjectorExt2Inv,
-                AdviceInjector::Ext2Intt => Self::AdviceInjectorExt2Intt,
-                AdviceInjector::SmtGet => Self::AdviceInjectorSmtGet,
-                AdviceInjector::SmtSet => Self::AdviceInjectorSmtSet,
-                AdviceInjector::SmtPeek => Self::AdviceInjectorSmtPeek,
-                AdviceInjector::U32Clz => Self::AdviceInjectorU32Clz,
-                AdviceInjector::U32Ctz => Self::AdviceInjectorU32Ctz,
-                AdviceInjector::U32Clo => Self::AdviceInjectorU32Clo,
-                AdviceInjector::U32Cto => Self::AdviceInjectorU32Cto,
-                AdviceInjector::ILog2 => Self::AdviceInjectorILog2,
-                AdviceInjector::MemToMap => Self::AdviceInjectorMemToMap,
-                AdviceInjector::HdwordToMap { domain: _ } => Self::AdviceInjectorHdwordToMap,
-                AdviceInjector::HpermToMap => Self::AdviceInjectorHpermToMap,
-                AdviceInjector::SigToStack { kind: _ } => Self::AdviceInjectorSigToStack,
-            },
             Decorator::AsmOp(_) => Self::AssemblyOp,
             Decorator::Debug(debug_options) => match debug_options {
                 DebugOptions::StackAll => Self::DebugOptionsStackAll,
@@ -322,6 +206,8 @@ impl Deserializable for EncodedDecoratorVariant {
 #[derive(Debug, Default)]
 pub struct DecoratorDataBuilder {
     decorator_data: Vec<u8>,
+    decorator_infos: Vec<DecoratorInfo>,
+    string_table_builder: StringTableBuilder,
 }
 
 /// Constructors
@@ -333,50 +219,18 @@ impl DecoratorDataBuilder {
 
 /// Mutators
 impl DecoratorDataBuilder {
+    pub fn add_decorator(&mut self, decorator: &Decorator) {
+        let decorator_data_offset = self.encode_decorator_data(decorator).unwrap_or(0);
+        self.decorator_infos
+            .push(DecoratorInfo::from_decorator(decorator, decorator_data_offset));
+    }
+
     /// If a decorator has extra data to store, encode it in internal data buffer, and return the
     /// offset of the newly added data. If not, return `None`.
-    pub fn encode_decorator_data(
-        &mut self,
-        decorator: &Decorator,
-        string_table_builder: &mut StringTableBuilder,
-    ) -> Option<DecoratorDataOffset> {
+    pub fn encode_decorator_data(&mut self, decorator: &Decorator) -> Option<DecoratorDataOffset> {
         let data_offset = self.decorator_data.len() as DecoratorDataOffset;
 
         match decorator {
-            Decorator::Advice(advice_injector) => match advice_injector {
-                AdviceInjector::MapValueToStack { include_len, key_offset } => {
-                    self.decorator_data.write_bool(*include_len);
-                    self.decorator_data.write_usize(*key_offset);
-
-                    Some(data_offset)
-                },
-                AdviceInjector::HdwordToMap { domain } => {
-                    self.decorator_data.extend(domain.as_int().to_le_bytes());
-
-                    Some(data_offset)
-                },
-
-                // Note: Since there is only 1 variant, we don't need to write any extra bytes.
-                AdviceInjector::SigToStack { kind } => match kind {
-                    SignatureKind::RpoFalcon512 => None,
-                },
-                AdviceInjector::MerkleNodeMerge
-                | AdviceInjector::MerkleNodeToStack
-                | AdviceInjector::UpdateMerkleNode
-                | AdviceInjector::U64Div
-                | AdviceInjector::Ext2Inv
-                | AdviceInjector::Ext2Intt
-                | AdviceInjector::SmtGet
-                | AdviceInjector::SmtSet
-                | AdviceInjector::SmtPeek
-                | AdviceInjector::U32Clz
-                | AdviceInjector::U32Ctz
-                | AdviceInjector::U32Clo
-                | AdviceInjector::U32Cto
-                | AdviceInjector::ILog2
-                | AdviceInjector::MemToMap
-                | AdviceInjector::HpermToMap => None,
-            },
             Decorator::AsmOp(assembly_op) => {
                 self.decorator_data.push(assembly_op.num_cycles());
                 self.decorator_data.write_bool(assembly_op.should_break());
@@ -385,7 +239,7 @@ impl DecoratorDataBuilder {
                 let loc = assembly_op.location();
                 self.decorator_data.write_bool(loc.is_some());
                 if let Some(loc) = loc {
-                    let str_offset = string_table_builder.add_string(loc.path.as_ref());
+                    let str_offset = self.string_table_builder.add_string(loc.path.as_ref());
                     self.decorator_data.write_usize(str_offset);
                     self.decorator_data.write_u32(loc.start.to_u32());
                     self.decorator_data.write_u32(loc.end.to_u32());
@@ -393,13 +247,14 @@ impl DecoratorDataBuilder {
 
                 // context name
                 {
-                    let str_offset = string_table_builder.add_string(assembly_op.context_name());
+                    let str_offset =
+                        self.string_table_builder.add_string(assembly_op.context_name());
                     self.decorator_data.write_usize(str_offset);
                 }
 
                 // op
                 {
-                    let str_index_in_table = string_table_builder.add_string(assembly_op.op());
+                    let str_index_in_table = self.string_table_builder.add_string(assembly_op.op());
                     self.decorator_data.write_usize(str_index_in_table);
                 }
 
@@ -434,7 +289,11 @@ impl DecoratorDataBuilder {
     }
 
     /// Returns the serialized [`crate::mast::MastForest`] decorator data field.
-    pub fn finalize(self) -> Vec<u8> {
-        self.decorator_data
+    pub fn finalize(self) -> (Vec<u8>, Vec<DecoratorInfo>, StringTable) {
+        (
+            self.decorator_data,
+            self.decorator_infos,
+            self.string_table_builder.into_table(),
+        )
     }
 }

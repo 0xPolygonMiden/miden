@@ -1,6 +1,6 @@
 use vm_core::{ExtensionOf, FieldElement, StarkField, ONE, ZERO};
 
-use super::{super::QuadFelt, ExecutionError, Felt, Host, Operation, Process};
+use super::{super::QuadFelt, ExecutionError, Felt, Operation, Process};
 
 // CONSTANTS
 // ================================================================================================
@@ -20,10 +20,7 @@ const TAU3_INV: Felt = Felt::new(281474976710656); // tau^{-3}
 // FRI OPERATIONS
 // ================================================================================================
 
-impl<H> Process<H>
-where
-    H: Host,
-{
+impl Process {
     // FRI FOLDING OPERATION
     // --------------------------------------------------------------------------------------------
     /// Performs FRI layer folding by a factor of 4 for FRI protocol executed in a degree 2
@@ -253,6 +250,7 @@ mod tests {
     use super::{
         ExtensionOf, Felt, FieldElement, Operation, Process, QuadFelt, StarkField, TWO, TWO_INV,
     };
+    use crate::DefaultHost;
 
     #[test]
     fn fold4() {
@@ -331,8 +329,9 @@ mod tests {
         let stack_inputs =
             StackInputs::new(inputs[0..16].to_vec()).expect("inputs lenght too long");
         let mut process = Process::new_dummy_with_decoder_helpers(stack_inputs);
-        process.execute_op(Operation::Push(inputs[16])).unwrap();
-        process.execute_op(Operation::FriE2F4).unwrap();
+        let mut host = DefaultHost::default();
+        process.execute_op(Operation::Push(inputs[16]), &mut host).unwrap();
+        process.execute_op(Operation::FriE2F4, &mut host).unwrap();
 
         // --- check the stack state-------------------------------------------
         let stack_state = process.stack.trace_state();

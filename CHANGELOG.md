@@ -1,5 +1,21 @@
 # Changelog
 
+#### Changes
+- [BREAKING] `Process` no longer takes ownership of the `Host` (#1571).
+- [BREAKING] `ProcessState` was converted from a trait to a struct (#1571).
+- [BREAKING] `Host` and `AdviceProvider` traits simplified (#1572).
+- [BREAKING] `MastForest` serialization/deserialization will store/read decorator data at the end of the binary (#1531).
+- [BREAKING] Updated Winterfell dependency to v0.11 (#1586).
+- [BREAKING] resolved flag collision in `--verify` command and added functionality for optional input/output files (#1513).
+- [BREAKING] Cleanup benchmarks and examples in the `miden-vm` crate (#1587)
+- [BREAKING] Use `thiserror` 2.0 to derive errors and refactor them (#1588).
+
+#### Enhancements
+- Added options `--kernel`, `--debug` and `--output` to `miden bundle` (#1447).
+- Added `miden_core::mast::MastForest::advice_map` to load it into the advice provider before the `MastForest` execution (#1574).
+- Optimized the computation of the DEEP queries in the recursive verifier (#1594).
+- Added validity checks for the inputs to the recursive verifier (#1596).
+
 ## 0.11.0 (2024-11-04)
 
 #### Enhancements
@@ -9,6 +25,7 @@
 - Debug instructions can be enabled in the cli `run` command using `--debug` flag (#1502).
 - Added support for procedure annotation (attribute) syntax to Miden Assembly (#1510).
 - Make `miden-prover::prove()` method conditionally asynchronous (#1563).
+- Update and sync the recursive verifier (#1575).
 
 #### Changes
 
@@ -27,6 +44,7 @@
 - [BREAKING] `DYNCALL` operation fixed, and now expects a memory address pointing to the procedure hash (#1535).
 - Permit child `MastNodeId`s to exceed the `MastNodeId`s of their parents (#1542).
 - Don't validate export names on `Library` deserialization (#1554)
+- Compile advice injectors down to `Emit` operations (#1581)
 
 #### Fixes
 
@@ -36,6 +54,7 @@
 - Fixed the construction of the chiplets virtual table (#1514) (#1556)
 - Fixed the construction of the chiplets bus (#1516) (#1525)
 - Decorators are now allowed in empty basic blocks (#1466)
+- Return an error if an instruction performs 2 memory accesses at the same memory address in the same cycle (#1561)
 
 ## 0.10.6 (2024-09-12) - `miden-processor` crate only
 

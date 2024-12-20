@@ -291,7 +291,7 @@ impl TestContext {
     /// other modules.
     #[track_caller]
     pub fn add_module(&mut self, module: impl Compile) -> Result<(), Report> {
-        self.assembler.add_module(module)
+        self.assembler.add_module(module).map(|_| ())
     }
 
     /// Add a module to the [Assembler] constructed by this context, with the fully-qualified
@@ -305,13 +305,15 @@ impl TestContext {
         path: LibraryPath,
         source: impl Compile,
     ) -> Result<(), Report> {
-        self.assembler.add_module_with_options(
-            source,
-            CompileOptions {
-                path: Some(path),
-                ..CompileOptions::for_library()
-            },
-        )
+        self.assembler
+            .add_module_with_options(
+                source,
+                CompileOptions {
+                    path: Some(path),
+                    ..CompileOptions::for_library()
+                },
+            )
+            .map(|_| ())
     }
 
     /// Add the modules of `library` to the [Assembler] constructed by this context.

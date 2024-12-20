@@ -318,10 +318,11 @@ fn execute(
     let stack_inputs = StackInputs::default();
     let mut host = DefaultHost::default();
     for library in provided_libraries {
-        host.load_mast_forest(library.mast_forest().clone());
+        host.load_mast_forest(library.mast_forest().clone())
+            .map_err(|err| format!("{err}"))?;
     }
 
-    let state_iter = processor::execute_iter(&program, stack_inputs, host);
+    let state_iter = processor::execute_iter(&program, stack_inputs, &mut host);
     let (system, _, stack, chiplets, err) = state_iter.into_parts();
     if let Some(err) = err {
         return Err(format!("{err}"));

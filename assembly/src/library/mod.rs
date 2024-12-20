@@ -72,12 +72,16 @@ impl Library {
     /// Constructs a new [`Library`] from the provided MAST forest and a set of exports.
     ///
     /// # Errors
+    /// Returns an error if the set of exports is empty.
     /// Returns an error if any of the specified exports do not have a corresponding procedure root
     /// in the provided MAST forest.
     pub fn new(
         mast_forest: Arc<MastForest>,
         exports: BTreeMap<QualifiedProcedureName, MastNodeId>,
     ) -> Result<Self, LibraryError> {
+        if exports.is_empty() {
+            return Err(LibraryError::NoExport);
+        }
         for (fqn, &proc_body_id) in exports.iter() {
             if !mast_forest.is_procedure_root(proc_body_id) {
                 return Err(LibraryError::NoProcedureRootForExport { procedure_path: fqn.clone() });
@@ -177,6 +181,9 @@ impl Deserializable for Library {
         let mast_forest = Arc::new(MastForest::read_from(source)?);
 
         let num_exports = source.read_usize()?;
+        if num_exports == 0 {
+            return Err(DeserializationError::InvalidValue(String::from("No exported procedures")));
+        };
         let mut exports = BTreeMap::new();
         for _ in 0..num_exports {
             let proc_module = source.read()?;
@@ -353,10 +360,6 @@ impl TryFrom<Library> for KernelLibrary {
     type Error = LibraryError;
 
     fn try_from(library: Library) -> Result<Self, Self::Error> {
-        if library.exports.is_empty() {
-            return Err(LibraryError::EmptyKernel);
-        }
-
         let kernel_path = LibraryPath::from(LibraryNamespace::Kernel);
         let mut proc_digests = Vec::with_capacity(library.exports.len());
 
@@ -375,7 +378,7 @@ impl TryFrom<Library> for KernelLibrary {
             kernel_module.add_procedure(proc_path.name.clone(), proc_digest);
         }
 
-        let kernel = Kernel::new(&proc_digests)?;
+        let kernel = Kernel::new(&proc_digests).map_err(LibraryError::KernelConversion)?;
 
         Ok(Self {
             kernel,

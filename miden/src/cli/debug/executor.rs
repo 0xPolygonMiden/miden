@@ -29,7 +29,7 @@ impl DebugExecutor {
         source_manager: Arc<dyn assembly::SourceManager>,
     ) -> Result<Self, String> {
         let mut vm_state_iter =
-            processor::execute_iter(&program, stack_inputs, DefaultHost::new(advice_provider));
+            processor::execute_iter(&program, stack_inputs, &mut DefaultHost::new(advice_provider));
         let vm_state = vm_state_iter
             .next()
             .ok_or(

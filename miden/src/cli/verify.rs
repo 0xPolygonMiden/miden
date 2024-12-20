@@ -1,10 +1,13 @@
-use std::{path::PathBuf, time::Instant};
+use std::{
+    path::{Path, PathBuf},
+    time::Instant,
+};
 
-use assembly::diagnostics::{IntoDiagnostic, Report, WrapErr};
+use assembly::diagnostics::{IntoDiagnostic, Report, Result, WrapErr};
 use clap::Parser;
-use miden_vm::{Kernel, ProgramInfo};
+use miden_vm::{internal::InputFile, Kernel, ProgramInfo};
 
-use super::data::{InputFile, OutputFile, ProgramHash, ProofFile};
+use super::data::{OutputFile, ProgramHash, ProofFile};
 
 #[derive(Debug, Clone, Parser)]
 #[clap(about = "Verify a miden program")]
@@ -19,12 +22,14 @@ pub struct VerifyCmd {
     #[clap(short = 'p', long = "proof", value_parser)]
     proof_file: PathBuf,
     /// Program hash (hex)
-    #[clap(short = 'h', long = "program-hash")]
+    #[clap(short = 'x', long = "program-hash")]
     program_hash: String,
 }
 
 impl VerifyCmd {
     pub fn execute(&self) -> Result<(), Report> {
+        let (input_file, output_file) = self.infer_defaults().unwrap();
+
         println!("===============================================================================");
         println!("Verifying proof: {}", self.proof_file.display());
         println!("-------------------------------------------------------------------------------");
@@ -33,17 +38,17 @@ impl VerifyCmd {
         let program_hash = ProgramHash::read(&self.program_hash).map_err(Report::msg)?;
 
         // load input data from file
-        let input_data = InputFile::read(&self.input_file, &self.proof_file)?;
+        let input_data = InputFile::read(&Some(input_file), self.proof_file.as_ref())?;
 
         // fetch the stack inputs from the arguments
         let stack_inputs = input_data.parse_stack_inputs().map_err(Report::msg)?;
 
         // load outputs data from file
         let outputs_data =
-            OutputFile::read(&self.output_file, &self.proof_file).map_err(Report::msg)?;
+            OutputFile::read(&Some(output_file), self.proof_file.as_ref()).map_err(Report::msg)?;
 
         // load proof from file
-        let proof = ProofFile::read(&Some(self.proof_file.clone()), &self.proof_file)
+        let proof = ProofFile::read(&Some(self.proof_file.clone()), self.proof_file.as_ref())
             .map_err(Report::msg)?;
 
         let now = Instant::now();
@@ -61,5 +66,26 @@ impl VerifyCmd {
         println!("Verification complete in {} ms", now.elapsed().as_millis());
 
         Ok(())
+    }
+
+    fn infer_defaults(&self) -> Result<(PathBuf, PathBuf), Report> {
+        let proof_file = if Path::new(&self.proof_file.as_os_str()).try_exists().is_err() {
+            return Err(Report::msg("Proof file does not exist"));
+        } else {
+            self.proof_file.clone()
+        };
+
+        let input_file = self.input_file.clone().unwrap_or_else(|| {
+            let mut input_path = proof_file.clone();
+            input_path.set_extension("inputs");
+            input_path
+        });
+        let output_file = self.output_file.clone().unwrap_or_else(|| {
+            let mut output_path = proof_file.clone();
+            output_path.set_extension("outputs");
+            output_path
+        });
+
+        Ok((input_file.to_path_buf(), output_file.to_path_buf()))
     }
 }

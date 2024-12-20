@@ -30,13 +30,13 @@ let program = assembler.compile("begin push.3 push.5 add end").unwrap();
 let (outputs, proof) = prove(
     &program,
     StackInputs::default(),       // we won't provide any stack inputs
-    DefaultHost::default(),       // we'll be using a default host
+    &mut DefaultHost::default(),  // we'll be using a default host
     &ProvingOptions::default(),   // we'll be using default options
 )
 .unwrap();
 
 // the output should be 8
-assert_eq!(8, outputs.stack().first().unwrap().as_int());
+assert_eq!(8, outputs.first().unwrap().as_int());
 ```
 
 ## Crate features

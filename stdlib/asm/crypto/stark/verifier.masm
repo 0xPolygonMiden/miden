@@ -6,36 +6,43 @@ use.std::crypto::stark::random_coin
 use.std::crypto::stark::ood_frames
 use.std::crypto::stark::public_inputs
 use.std::crypto::stark::constants
-
+use.std::crypto::stark::utils
 
 #!   Verify a STARK proof attesting to the correct execution of a program in the Miden VM.
 #!   The following simplifying assumptions are currently made:
 #!   - The blowup is set to 8.
 #!   - The maximal allowed degree of the remainder polynomial is 7.
-#!   - Only the input and output stacks, assumed of fixed size equal to 16, are handled in regards
-#!   to public inputs.
+#!   - The public inputs are composed of the input and output stacks, of fixed size equal to 16.
 #!   - There are two trace segments, main and auxiliary. It is assumed that the main trace segment
-#!   is 73 columns wide while the auxiliary trace segment is 9 columns wide.
+#!   is 70 columns wide while the auxiliary trace segment is 7 columns wide.
 #!   - The OOD evaluation frame is composed of two interleaved rows, current and next, each composed
-#!    of 73 elements representing the main trace portion and 9 elements for the auxiliary trace one.
+#!    of 70 elements representing the main trace portion and 7 elements for the auxiliary trace one.
 #!   - To boost soundness, the protocol is run on a quadratic extension field and this means that
 #!    the OOD evaluation frame is composed of elements in a quadratic extension field i.e. tuples.
-#!    Similarly, elements of the auxiliary trace are quadratic extension field elements.
+#!    Similarly, elements of the auxiliary trace are quadratic extension field elements. The random
+#!    values for computing random linear combinations are also in this extension field.
 #!   - The following procedure makes use of global memory address beyond 3 * 2^30 and these are
 #!    defined in `constants.masm`.
 #!
-#! Input: [log(trace_length), num_queries, log(blowup), grinding]
-#! Output: []
+#! Input: [log(trace_length), num_queries, log(blowup), grinding, ...]
+#! Output: [...]
+#!
 #! Cycles:
 #!  1- Remainder codeword size 32:
-#!   5000 + num_queries * (40 + num_fri_layers * 76 + 26 + 463) + 83 * num_fri_layers + 10 * log(trace_length) + 1633
+#!   5013 + num_queries * (40 + num_fri_layers * 76 + 26 + 445) + 83 * num_fri_layers + 10 * log(trace_length) + 1633
 #!  2- Remainder codeword size 64:
-#!   5000 + num_queries * (40 + num_fri_layers * 76 + 26 + 463) + 83 * num_fri_layers + 10 * log(trace_length) + 3109
+#!   5013 + num_queries * (40 + num_fri_layers * 76 + 26 + 445) + 83 * num_fri_layers + 10 * log(trace_length) + 3109
 export.verify
 
     #==============================================================================================
     #       I)  Hash proof context and hash-&-load public inputs
     #==============================================================================================
+
+    # Validate inputs
+    #
+    # Cycles: 28
+    exec.utils::validate_inputs
+    # => [log(trace_length), num_queries, log(blowup), grinding, ...]
 
     # Initialize the seed using proof context
     #
@@ -67,7 +74,7 @@ export.verify
 
     # Draw random ExtFelt for the auxiliary trace
     #
-    # Cycles: 150
+    # Cycles: 160
     exec.constants::aux_rand_elem_ptr
     exec.random_coin::generate_aux_randomness
     #=> [...]
@@ -85,7 +92,7 @@ export.verify
     #       III) Draw constraint composition coefficients
     #==============================================================================================
 
-    # Cycles: 1309
+    # Cycles: 1306
     exec.constants::composition_coef_ptr
     exec.random_coin::generate_constraint_composition_coefficients
     #=> [...]
@@ -110,7 +117,7 @@ export.verify
     #           of H over the LDE domain.
     #==============================================================================================
 
-    # Cycles: 106
+    # Cycles: 104
     exec.ood_frames::load_evaluation_frame
     #=> [OOD_FRAME_HASH, ...]
 
@@ -126,7 +133,7 @@ export.verify
 
     # Compute `H(z)`
     #
-    # Cycles: 118
+    # Cycles: 152
     exec.ood_frames::compute_Hz
     #=> [res1, res0, ...]
 
@@ -147,7 +154,7 @@ export.verify
     #       DEEP composition polynomial.
     #============================================
 
-    # Cycles: 1693
+    # Cycles: 1625
     exec.constants::deep_rand_coef_ptr
     exec.random_coin::generate_deep_composition_random_coefficients
 
@@ -221,7 +228,7 @@ export.verify
 
     # Compute deep compostion polynomial queries
     #
-    # Cycles: 14 + num_queries * 463
+    # Cycles: 24 + num_queries * 445
     #=> [query_ptr, ...]
     exec.deep_queries::compute_deep_composition_polynomial_queries
     #=> [query_ptr, ...]

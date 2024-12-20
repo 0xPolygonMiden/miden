@@ -224,6 +224,12 @@ impl BasicBlockNode {
             decorator_ids.into_iter().map(|decorator_id| (after_last_op_idx, decorator_id)),
         );
     }
+
+    /// Used to initialize decorators for the [`BasicBlockNode`]. Replaces the existing decorators
+    /// with the given ['DecoratorList'].
+    pub fn set_decorators(&mut self, decorator_list: DecoratorList) {
+        self.decorators = decorator_list;
+    }
 }
 
 // PRETTY PRINTING

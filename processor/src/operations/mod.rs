@@ -19,12 +19,13 @@ use super::Kernel;
 // OPERATION DISPATCHER
 // ================================================================================================
 
-impl<H> Process<H>
-where
-    H: Host,
-{
+impl Process {
     /// Executes the specified operation.
-    pub(super) fn execute_op(&mut self, op: Operation) -> Result<(), ExecutionError> {
+    pub(super) fn execute_op(
+        &mut self,
+        op: Operation,
+        host: &mut impl Host,
+    ) -> Result<(), ExecutionError> {
         // make sure there is enough memory allocated to hold the execution trace
         self.ensure_trace_capacity();
 
@@ -32,7 +33,7 @@ where
         match op {
             // ----- system operations ------------------------------------------------------------
             Operation::Noop => self.stack.copy_state(0),
-            Operation::Assert(err_code) => self.op_assert(err_code)?,
+            Operation::Assert(err_code) => self.op_assert(err_code, host)?,
 
             Operation::FmpAdd => self.op_fmpadd()?,
             Operation::FmpUpdate => self.op_fmpupdate()?,
@@ -41,7 +42,7 @@ where
             Operation::Caller => self.op_caller()?,
 
             Operation::Clk => self.op_clk()?,
-            Operation::Emit(event_id) => self.op_emit(event_id)?,
+            Operation::Emit(event_id) => self.op_emit(event_id, host)?,
 
             // ----- flow control operations ------------------------------------------------------
             // control flow operations are never executed directly
@@ -135,8 +136,8 @@ where
             // ----- input / output ---------------------------------------------------------------
             Operation::Push(value) => self.op_push(value)?,
 
-            Operation::AdvPop => self.op_advpop()?,
-            Operation::AdvPopW => self.op_advpopw()?,
+            Operation::AdvPop => self.op_advpop(host)?,
+            Operation::AdvPopW => self.op_advpopw(host)?,
 
             Operation::MLoadW => self.op_mloadw()?,
             Operation::MStoreW => self.op_mstorew()?,
@@ -145,12 +146,12 @@ where
             Operation::MStore => self.op_mstore()?,
 
             Operation::MStream => self.op_mstream()?,
-            Operation::Pipe => self.op_pipe()?,
+            Operation::Pipe => self.op_pipe(host)?,
 
             // ----- cryptographic operations -----------------------------------------------------
             Operation::HPerm => self.op_hperm()?,
-            Operation::MpVerify(err_code) => self.op_mpverify(err_code)?,
-            Operation::MrUpdate => self.op_mrupdate()?,
+            Operation::MpVerify(err_code) => self.op_mpverify(err_code, host)?,
+            Operation::MrUpdate => self.op_mrupdate(host)?,
             Operation::FriE2F4 => self.op_fri_ext2fold4()?,
             Operation::RCombBase => self.op_rcomb_base()?,
         }
@@ -183,14 +184,14 @@ pub mod testing {
     use super::*;
     use crate::{AdviceInputs, DefaultHost, MemAdviceProvider};
 
-    impl Process<DefaultHost<MemAdviceProvider>> {
+    impl Process {
         /// Instantiates a new blank process for testing purposes. The stack in the process is
         /// initialized with the provided values.
         pub fn new_dummy(stack_inputs: StackInputs) -> Self {
-            let host = DefaultHost::default();
+            let mut host = DefaultHost::default();
             let mut process =
-                Self::new(Kernel::default(), stack_inputs, host, ExecutionOptions::default());
-            process.execute_op(Operation::Noop).unwrap();
+                Self::new(Kernel::default(), stack_inputs, ExecutionOptions::default());
+            process.execute_op(Operation::Noop, &mut host).unwrap();
             process
         }
 
@@ -201,16 +202,19 @@ pub mod testing {
         }
 
         /// Instantiates a new process with an advice stack for testing purposes.
-        pub fn new_dummy_with_advice_stack(advice_stack: &[u64]) -> Self {
+        pub fn new_dummy_with_advice_stack(
+            advice_stack: &[u64],
+        ) -> (Self, DefaultHost<MemAdviceProvider>) {
             let stack_inputs = StackInputs::default();
             let advice_inputs =
                 AdviceInputs::default().with_stack_values(advice_stack.iter().copied()).unwrap();
             let advice_provider = MemAdviceProvider::from(advice_inputs);
-            let host = DefaultHost::new(advice_provider);
+            let mut host = DefaultHost::new(advice_provider);
             let mut process =
-                Self::new(Kernel::default(), stack_inputs, host, ExecutionOptions::default());
-            process.execute_op(Operation::Noop).unwrap();
-            process
+                Self::new(Kernel::default(), stack_inputs, ExecutionOptions::default());
+            process.execute_op(Operation::Noop, &mut host).unwrap();
+
+            (process, host)
         }
 
         /// Instantiates a new blank process with one decoder trace row for testing purposes. This
@@ -226,7 +230,9 @@ pub mod testing {
         /// The stack in the process is initialized with the provided values.
         pub fn new_dummy_with_decoder_helpers(stack_inputs: StackInputs) -> Self {
             let advice_inputs = AdviceInputs::default();
-            Self::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs)
+            let (process, _) =
+                Self::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
+            process
         }
 
         /// Instantiates a new process having Program inputs along with one decoder trace row
@@ -234,14 +240,15 @@ pub mod testing {
         pub fn new_dummy_with_inputs_and_decoder_helpers(
             stack_inputs: StackInputs,
             advice_inputs: AdviceInputs,
-        ) -> Self {
+        ) -> (Self, DefaultHost<MemAdviceProvider>) {
             let advice_provider = MemAdviceProvider::from(advice_inputs);
-            let host = DefaultHost::new(advice_provider);
+            let mut host = DefaultHost::new(advice_provider);
             let mut process =
-                Self::new(Kernel::default(), stack_inputs, host, ExecutionOptions::default());
+                Self::new(Kernel::default(), stack_inputs, ExecutionOptions::default());
             process.decoder.add_dummy_trace_row();
-            process.execute_op(Operation::Noop).unwrap();
-            process
+            process.execute_op(Operation::Noop, &mut host).unwrap();
+
+            (process, host)
         }
     }
 }

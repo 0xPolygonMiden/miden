@@ -1,9 +1,11 @@
 use alloc::{
+    boxed::Box,
     collections::BTreeMap,
     string::{String, ToString},
     sync::Arc,
     vec::Vec,
 };
+use core::error::Error;
 
 use super::*;
 
@@ -69,7 +71,6 @@ impl TryFrom<usize> for SourceId {
 
 /// The set of errors which may be raised by a [SourceManager]
 #[derive(Debug, thiserror::Error)]
-#[non_exhaustive]
 pub enum SourceManagerError {
     /// A [SourceId] was provided to a [SourceManager] which was allocated by a different
     /// [SourceManager]
@@ -78,10 +79,26 @@ pub enum SourceManagerError {
     /// An attempt was made to read content using invalid byte indices
     #[error("attempted to read content out of bounds")]
     InvalidBounds,
-    /// An attempt to load a source file failed due to an I/O error
-    #[cfg(feature = "std")]
-    #[error(transparent)]
-    LoadFailed(#[from] std::io::Error),
+    /// Custom error variant for implementors of the trait.
+    #[error("{error_msg}")]
+    Custom {
+        error_msg: Box<str>,
+        // thiserror will return this when calling Error::source on SourceManagerError.
+        source: Option<Box<dyn Error + Send + Sync + 'static>>,
+    },
+}
+
+impl SourceManagerError {
+    pub fn custom(message: String) -> Self {
+        Self::Custom { error_msg: message.into(), source: None }
+    }
+
+    pub fn custom_with_source(message: String, source: impl Error + Send + Sync + 'static) -> Self {
+        Self::Custom {
+            error_msg: message.into(),
+            source: Some(Box::new(source)),
+        }
+    }
 }
 
 pub trait SourceManager {
@@ -201,7 +218,12 @@ pub trait SourceManagerExt: SourceManager {
         let name = Arc::from(name.into_owned().into_boxed_str());
         let content = std::fs::read_to_string(path)
             .map(|s| SourceContent::new(Arc::clone(&name), s.into_boxed_str()))
-            .map_err(SourceManagerError::LoadFailed)?;
+            .map_err(|source| {
+                SourceManagerError::custom_with_source(
+                    format!("failed to load filed at `{}`", path.display()),
+                    source,
+                )
+            })?;
 
         Ok(self.load_from_raw_parts(name, content))
     }
@@ -365,5 +387,17 @@ impl SourceManager for DefaultSourceManager {
         self.source(span.source_id())?
             .get(span.into_slice_index())
             .ok_or(SourceManagerError::InvalidBounds)
+    }
+}
+
+#[cfg(test)]
+mod error_assertions {
+    use super::*;
+
+    /// Asserts at compile time that the passed error has Send + Sync + 'static bounds.
+    fn _assert_error_is_send_sync_static<E: core::error::Error + Send + Sync + 'static>(_: E) {}
+
+    fn _assert_source_manager_error_bounds(err: SourceManagerError) {
+        _assert_error_is_send_sync_static(err);
     }
 }

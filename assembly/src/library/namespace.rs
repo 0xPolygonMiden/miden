@@ -13,9 +13,9 @@ use crate::{
 // ================================================================================================
 
 /// Represents an error when parsing or validating a library namespace
-#[derive(Debug, thiserror::Error, Diagnostic, PartialEq, Eq)]
+#[derive(Debug, thiserror::Error, Diagnostic)]
 pub enum LibraryNamespaceError {
-    #[error("invalid library namespace name: cannot be a empty")]
+    #[error("invalid library namespace name: cannot be empty")]
     #[diagnostic()]
     Empty,
     #[error("invalid library namespace name: too many characters")]

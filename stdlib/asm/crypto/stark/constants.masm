@@ -5,6 +5,8 @@
 const.ROOT_UNITY=7277203076849721926
 const.DOMAIN_OFFSET=7
 const.DOMAIN_OFFSET_INV=2635249152773512046
+const.NUM_CONSTRAINT_COMPOSITION_COEF_MULTIPLIED_BY_TWO_ROUNDED_UP_TO_FOUR=224
+const.NUM_DEEP_COMPOSITION_COEF_MULTIPLIED_BY_TWO_ROUNDED_UP_TO_FOUR=88
 
 
 # MEMORY POINTERS
@@ -17,15 +19,15 @@ const.TRACE_DOMAIN_GENERATOR_PTR=4294799999
 const.PUBLIC_INPUTS_PTR=4294800000
 
 # OOD Frames
-# (72 + 9 + 8) * 2 * 2 Felt for current and next trace rows and 8 * 2 Felt for constraint composition
-# polynomials. Total memory slots required: ((72 + 9 + 8) * 2 * 2 + 8 * 2) / 4 = 93
+# (70 + 7) * 2 * 2 Felt for current and next trace rows and 8 * 2 Felt for constraint composition
+# polynomials. Total memory slots required: ((70 + 7) * 2 * 2 + 8 * 2) / 4 = 81
 const.OOD_TRACE_PTR=4294900000
-const.OOD_CONSTRAINT_EVALS_PTR=4294900081
+const.OOD_CONSTRAINT_EVALS_PTR=4294900077
 
 # Current trace row
-# 72 Felt for main portion of trace, 9 * 2 Felt for auxiliary portion of trace and 8 * 2 Felt for
+# 70 Felt for main portion of trace, 7 * 2 Felt for auxiliary portion of trace and 8 * 2 Felt for
 # constraint composition polynomials. Since we store these with the padding to make each of the
-# three portions a multiple of 8, the number of slots required is (80 + 24 + 16) / 4 = 30
+# three portions a multiple of 8, the number of slots required is (72 + 16 + 16) / 4 = 26
 const.CURRENT_TRACE_ROW_PTR=4294900100
 
 # Random elements
@@ -36,12 +38,16 @@ const.AUX_RAND_ELEM_PTR=4294900150
 const.COMPOSITION_COEF_PTR=4294900200
 
 # We need 2 Felt for each trace column and each of the 8 constraint composition columns. We thus need
-# (72 + 9 + 8) * 2 Felt i.e. 44 memory slots.
+# (70 + 7 + 8) * 2 Felt i.e. 43 memory slots.
+# Note that there is a cap on the number of such coefficients so that the memory region allocated for
+# these coefficients does not overlap with the memory region storing the FRI queries.
+# This cap is of a 100 coefficients which is equivalent to 50 memory slots. This gives 150 memory
+# slots for all of the FRI queries i.e., 150 FRI queries.
 const.DEEP_RAND_CC_PTR=4294903000
 
 # FRI
 #
-#       (FRI_COM_PTR - 100)    ---|
+#       (FRI_COM_PTR - 150)    ---|
 #              .
 #              .                  | <- FRI queries
 #              .
@@ -80,7 +86,6 @@ const.GRINDING_FACTOR_PTR=4294903308
 
 # RPO capacity initialization words
 const.ZERO_WORD_PTR=4294903309
-const.ZERO_ZERO_ZERO_ONE_PTR=4294903310
 
 # State of RPO-based random coin
 const.C_PTR=4294903311
@@ -96,6 +101,7 @@ const.TMP5=4294903319
 const.TMP6=4294903320
 const.TMP7=4294903321
 const.TMP8=4294903322
+const.TMP9=4294903323
 
 
 
@@ -106,7 +112,7 @@ const.TMP8=4294903322
 #   | TRACE_DOMAIN_GENERATOR_PTR               |       4294799999        |
 #   | PUBLIC_INPUTS_PTR                        |       4294800000        |
 #   | OOD_TRACE_PTR                            |       4294900000        |
-#   | OOD_CONSTRAINT_EVALS_PTR                 |       4294900081        |
+#   | OOD_CONSTRAINT_EVALS_PTR                 |       4294900077        |
 #   | CURRENT_TRACE_ROW_PTR                    |       4294900100        |
 #   | AUX_RAND_ELEM_PTR                        |       4294900150        |
 #   | COMPOSITION_COEF_PTR                     |       4294900200        |
@@ -134,6 +140,7 @@ const.TMP8=4294903322
 #   | TMP6                                     |       4294903320        |
 #   | TMP7                                     |       4294903321        |
 #   | TMP8                                     |       4294903322        |
+#   | TMP9                                     |       4294903323        |
 #   +------------------------------------------+-------------------------+
 
 # ACCESSORS
@@ -158,6 +165,14 @@ end
 
 export.domain_offset_inv
     push.DOMAIN_OFFSET_INV
+end
+
+export.num_constraint_composition_coef_multiplied_by_two_and_rounded_up_to_4
+    push.NUM_CONSTRAINT_COMPOSITION_COEF_MULTIPLIED_BY_TWO_ROUNDED_UP_TO_FOUR
+end
+
+export.num_deep_composition_coef_multiplied_by_two_and_rounded_up_to_4
+    push.NUM_DEEP_COMPOSITION_COEF_MULTIPLIED_BY_TWO_ROUNDED_UP_TO_FOUR
 end
 
 export.public_inputs_ptr
@@ -238,10 +253,6 @@ export.zero_word
     push.ZERO_WORD_PTR
 end
 
-export.zero_zero_zero_one_word
-    push.ZERO_ZERO_ZERO_ONE_PTR
-end
-
 #! Returns the pointer to the capacity word of the random coin.
 #!
 #! Note: The random coin is implemented using a hash function, this returns the
@@ -299,4 +310,8 @@ end
 
 export.tmp8
     push.TMP8
+end
+
+export.tmp9
+    push.TMP9
 end

@@ -2,9 +2,10 @@ use std::{path::PathBuf, sync::Arc};
 
 use assembly::diagnostics::Report;
 use clap::Parser;
+use miden_vm::internal::InputFile;
 use rustyline::{error::ReadlineError, Config, DefaultEditor, EditMode};
 
-use super::data::{Debug, InputFile, Libraries, ProgramFile};
+use super::data::{Debug, Libraries, ProgramFile};
 
 mod command;
 use command::DebugCommand;

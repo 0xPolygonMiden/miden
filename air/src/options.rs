@@ -199,7 +199,10 @@ impl ExecutionOptions {
             return Err(ExecutionOptionsError::MaxCycleNumTooSmall(expected_cycles));
         }
         if max_cycles < expected_cycles {
-            return Err(ExecutionOptionsError::ExpectedCyclesTooBig(max_cycles, expected_cycles));
+            return Err(ExecutionOptionsError::ExpectedCyclesTooBig {
+                max_cycles,
+                expected_cycles,
+            });
         }
 
         // Round up the expected number of cycles to the next power of two. If it is smaller than

@@ -1,33 +1,12 @@
-use alloc::string::String;
-use core::fmt::{Display, Formatter};
-
 use crate::trace::MIN_TRACE_LEN;
 
-// EXECUTION ERROR
+// EXECUTION OPTIONS ERROR
 // ================================================================================================
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum ExecutionOptionsError {
-    ExpectedCyclesTooBig(u32, u32),
+    #[error("expected number of cycles {expected_cycles} must be smaller than the maximum number of cycles {max_cycles}")]
+    ExpectedCyclesTooBig { max_cycles: u32, expected_cycles: u32 },
+    #[error("maximum number of cycles {0} must be greater than the minimum number of cycles {MIN_TRACE_LEN}")]
     MaxCycleNumTooSmall(u32),
-    OtherErrors(String),
 }
-
-impl Display for ExecutionOptionsError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), core::fmt::Error> {
-        use ExecutionOptionsError::*;
-
-        match self {
-            ExpectedCyclesTooBig(max, expected) => {
-                write!(f, "The expected number of cycles must be smaller than the maximum number of cycles: maximum is {max}, but expectd is {expected}")
-            },
-            MaxCycleNumTooSmall(max) => {
-                write!(f, "The maximum number of cycles must be greater than the minimum number of cycles: minimum is {MIN_TRACE_LEN}, but maximum is {max}")
-            },
-            OtherErrors(error) => write!(f, "{error}"),
-        }
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for ExecutionOptionsError {}

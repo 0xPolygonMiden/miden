@@ -248,7 +248,7 @@ impl PrettyPrint for Instruction {
             Self::AdvPush(value) => inst_with_imm("adv_push", value),
             Self::AdvLoadW => const_text("adv_loadw"),
 
-            Self::AdvInject(injector) => inst_with_imm("adv", injector),
+            Self::SysEvent(sys_event) => inst_with_imm("adv", sys_event),
 
             // ----- cryptographic operations -----------------------------------------------------
             Self::Hash => const_text("hash"),

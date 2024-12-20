@@ -4,7 +4,7 @@ mod print;
 
 use alloc::vec::Vec;
 
-pub use self::{advice::AdviceInjectorNode, debug::DebugOptions};
+pub use self::{advice::SystemEventNode, debug::DebugOptions};
 use crate::{
     ast::{immediate::*, InvocationTarget},
     Felt, Word,
@@ -239,7 +239,7 @@ pub enum Instruction {
     AdvPush(ImmU8),
     AdvLoadW,
 
-    AdvInject(AdviceInjectorNode),
+    SysEvent(SystemEventNode),
 
     // ----- cryptographic operations ------------------------------------------------------------
     Hash,

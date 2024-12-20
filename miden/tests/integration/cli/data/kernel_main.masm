@@ -1,0 +1,9 @@
+proc.internal_proc
+    caller
+    drop
+    exec.::kernel::lib::lib_proc
+end
+
+export.kernel_proc
+    exec.internal_proc
+end

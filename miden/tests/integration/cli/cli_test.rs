@@ -1,27 +1,31 @@
+use std::{fs, path::Path};
+
 use assert_cmd::prelude::*;
 use predicates::prelude::*;
 extern crate escargot;
 
-#[test]
-// Tt test might be an overkill to test only that the 'run' cli command
-// outputs steps and ms.
-fn cli_run() -> Result<(), Box<dyn std::error::Error>> {
-    let bin_under_test = escargot::CargoBuild::new()
+fn bin_under_test() -> escargot::CargoRun {
+    escargot::CargoBuild::new()
         .bin("miden")
-        .features("executable")
+        .features("executable internal")
         .current_release()
         .current_target()
         .run()
         .unwrap_or_else(|err| {
             eprintln!("{err}");
             panic!("failed to build `miden`");
-        });
+        })
+}
 
-    let mut cmd = bin_under_test.command();
+#[test]
+// Tt test might be an overkill to test only that the 'run' cli command
+// outputs steps and ms.
+fn cli_run() -> Result<(), Box<dyn std::error::Error>> {
+    let mut cmd = bin_under_test().command();
 
     cmd.arg("run")
         .arg("-a")
-        .arg("./examples/fib/fib.masm")
+        .arg("./masm-examples/fib/fib.masm")
         .arg("-n")
         .arg("1")
         .arg("-m")
@@ -37,4 +41,65 @@ fn cli_run() -> Result<(), Box<dyn std::error::Error>> {
     output.assert().stdout(predicate::str::contains("VM cycles"));
 
     Ok(())
+}
+
+use assembly::Library;
+use vm_core::Decorator;
+
+#[test]
+fn cli_bundle_debug() {
+    let mut cmd = bin_under_test().command();
+    cmd.arg("bundle").arg("--debug").arg("./tests/integration/cli/data/lib");
+    cmd.assert().success();
+
+    let lib = Library::deserialize_from_file("./tests/integration/cli/data/out.masl").unwrap();
+    // If there are any AsmOp decorators in the forest, the bundle is in debug mode.
+    let found_one_asm_op =
+        lib.mast_forest().decorators().iter().any(|d| matches!(d, Decorator::AsmOp(_)));
+    assert!(found_one_asm_op);
+    fs::remove_file("./tests/integration/cli/data/out.masl").unwrap();
+}
+
+#[test]
+fn cli_bundle_no_exports() {
+    let mut cmd = bin_under_test().command();
+    cmd.arg("bundle").arg("./tests/integration/cli/data/lib_noexports");
+    cmd.assert()
+        .failure()
+        .stderr(predicate::str::contains("library must contain at least one exported procedure"));
+}
+
+#[test]
+fn cli_bundle_kernel() {
+    let mut cmd = bin_under_test().command();
+    cmd.arg("bundle")
+        .arg("./tests/integration/cli/data/lib")
+        .arg("--kernel")
+        .arg("./tests/integration/cli/data/kernel_main.masm");
+    cmd.assert().success();
+    fs::remove_file("./tests/integration/cli/data/out.masl").unwrap()
+}
+
+/// A kernel can bundle with a library w/o exports.
+#[test]
+fn cli_bundle_kernel_noexports() {
+    let mut cmd = bin_under_test().command();
+    cmd.arg("bundle")
+        .arg("./tests/integration/cli/data/lib_noexports")
+        .arg("--kernel")
+        .arg("./tests/integration/cli/data/kernel_main.masm");
+    cmd.assert().success();
+    fs::remove_file("./tests/integration/cli/data/out.masl").unwrap()
+}
+
+#[test]
+fn cli_bundle_output() {
+    let mut cmd = bin_under_test().command();
+    cmd.arg("bundle")
+        .arg("./tests/integration/cli/data/lib")
+        .arg("--output")
+        .arg("test.masl");
+    cmd.assert().success();
+    assert!(Path::new("test.masl").exists());
+    fs::remove_file("test.masl").unwrap()
 }

@@ -1,10 +1,8 @@
 use core::fmt;
 
-use vm_core::AdviceInjector;
+use vm_core::sys_events::SystemEvent;
 
-use crate::{ast::ImmU8, Felt, ZERO};
-
-// ADVICE INJECTOR NODE
+// SYSTEM EVENT NODE
 // ================================================================================================
 
 /// Instructions which inject data into the advice provider.
@@ -13,80 +11,59 @@ use crate::{ast::ImmU8, Felt, ZERO};
 /// - Push new data onto the advice stack.
 /// - Insert new data into the advice map.
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub enum AdviceInjectorNode {
+pub enum SystemEventNode {
     PushU64Div,
     PushExt2intt,
-    PushSmtGet,
-    PushSmtSet,
     PushSmtPeek,
     PushMapVal,
-    PushMapValImm { offset: ImmU8 },
     PushMapValN,
-    PushMapValNImm { offset: ImmU8 },
     PushMtNode,
     InsertMem,
     InsertHdword,
-    InsertHdwordImm { domain: ImmU8 },
+    InsertHdwordWithDomain,
     InsertHperm,
     PushSignature { kind: SignatureKind },
 }
 
-impl From<&AdviceInjectorNode> for AdviceInjector {
-    fn from(value: &AdviceInjectorNode) -> Self {
-        use AdviceInjectorNode::*;
+impl From<&SystemEventNode> for SystemEvent {
+    fn from(value: &SystemEventNode) -> Self {
+        use SystemEventNode::*;
         match value {
             PushU64Div => Self::U64Div,
             PushExt2intt => Self::Ext2Intt,
-            PushSmtGet => Self::SmtGet,
-            PushSmtSet => Self::SmtSet,
             PushSmtPeek => Self::SmtPeek,
-            PushMapVal => Self::MapValueToStack { include_len: false, key_offset: 0 },
-            PushMapValImm { offset: ImmU8::Value(offset) } => Self::MapValueToStack {
-                include_len: false,
-                key_offset: offset.into_inner() as usize,
-            },
-            PushMapValImm { offset } => panic!("unresolved constant '{offset}'"),
-            PushMapValN => Self::MapValueToStack { include_len: true, key_offset: 0 },
-            PushMapValNImm { offset: ImmU8::Value(offset) } => Self::MapValueToStack {
-                include_len: true,
-                key_offset: offset.into_inner() as usize,
-            },
-            PushMapValNImm { offset } => panic!("unresolved constant '{offset}'"),
+            PushMapVal => Self::MapValueToStack,
+            PushMapValN => Self::MapValueToStackN,
             PushMtNode => Self::MerkleNodeToStack,
             InsertMem => Self::MemToMap,
-            InsertHdword => Self::HdwordToMap { domain: ZERO },
-            InsertHdwordImm { domain: ImmU8::Value(domain) } => {
-                Self::HdwordToMap { domain: Felt::from(domain.into_inner()) }
-            },
-            InsertHdwordImm { domain } => panic!("unresolved constant '{domain}'"),
+            InsertHdword => Self::HdwordToMap,
+            InsertHdwordWithDomain => Self::HdwordToMapWithDomain,
             InsertHperm => Self::HpermToMap,
-            PushSignature { kind } => Self::SigToStack { kind: (*kind).into() },
+            PushSignature { kind } => match kind {
+                SignatureKind::RpoFalcon512 => Self::FalconSigToStack,
+            },
         }
     }
 }
 
-impl crate::prettier::PrettyPrint for AdviceInjectorNode {
+impl crate::prettier::PrettyPrint for SystemEventNode {
     fn render(&self) -> crate::prettier::Document {
         crate::prettier::display(self)
     }
 }
 
-impl fmt::Display for AdviceInjectorNode {
+impl fmt::Display for SystemEventNode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::PushU64Div => write!(f, "push_u64div"),
             Self::PushExt2intt => write!(f, "push_ext2intt"),
-            Self::PushSmtGet => write!(f, "push_smtget"),
-            Self::PushSmtSet => write!(f, "push_smtset"),
             Self::PushSmtPeek => write!(f, "push_smtpeek"),
             Self::PushMapVal => write!(f, "push_mapval"),
-            Self::PushMapValImm { offset } => write!(f, "push_mapval.{offset}"),
             Self::PushMapValN => write!(f, "push_mapvaln"),
-            Self::PushMapValNImm { offset } => write!(f, "push_mapvaln.{offset}"),
             Self::PushMtNode => write!(f, "push_mtnode"),
             Self::InsertMem => write!(f, "insert_mem"),
             Self::InsertHdword => write!(f, "insert_hdword"),
-            Self::InsertHdwordImm { domain } => write!(f, "insert_hdword.{domain}"),
+            Self::InsertHdwordWithDomain => write!(f, "insert_hdword_d"),
             Self::InsertHperm => writeln!(f, "insert_hperm"),
             Self::PushSignature { kind } => write!(f, "push_sig.{kind}"),
         }

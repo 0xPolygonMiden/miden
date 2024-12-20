@@ -20,7 +20,7 @@ The Miden debugger supports the following commands:
 In order to start debugging, the user should provide a `MASM` program:
 
 ```shell
-cargo run --features executable -- debug --assembly miden/examples/nprime/nprime.masm
+cargo run --features executable -- debug --assembly miden/masm-examples/nprime/nprime.masm
 ```
 
 The expected output is:
@@ -29,11 +29,11 @@ The expected output is:
 ============================================================
 Debug program
 ============================================================
-Reading program file `miden/examples/nprime/nprime.masm`
+Reading program file `miden/masm-examples/nprime/nprime.masm`
 Compiling program... done (16 ms)
 Debugging program with hash 11dbbddff27e26e48be3198133df8cbed6c5875d0fb
 606c9f037c7893fde4118...
-Reading input file `miden/examples/nprime/nprime.inputs`
+Reading input file `miden/masm-examples/nprime/nprime.inputs`
 Welcome! Enter `h` for help.
 >>
 ```

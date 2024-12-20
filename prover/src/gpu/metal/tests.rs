@@ -7,7 +7,10 @@ use processor::{
     math::fft,
     StackInputs, StackOutputs,
 };
-use winter_prover::{crypto::Digest, math::fields::CubeExtension, CompositionPolyTrace, TraceLde};
+use winter_prover::{
+    crypto::Digest, math::fields::CubeExtension, CompositionPolyTrace, ConstraintCommitment,
+    TraceLde,
+};
 
 use crate::*;
 
@@ -176,9 +179,14 @@ where
         CompositionPolyTrace::new(values.clone()),
         2,
         &domain,
+        PartitionOptions::default(),
     );
-    let (commitment_gpu, composition_poly_gpu) =
-        gpu_prover.build_constraint_commitment(CompositionPolyTrace::new(values), 2, &domain);
+    let (commitment_gpu, composition_poly_gpu) = gpu_prover.build_constraint_commitment(
+        CompositionPolyTrace::new(values),
+        2,
+        &domain,
+        PartitionOptions::default(),
+    );
 
     assert_eq!(commitment_cpu.commitment(), commitment_gpu.commitment());
     assert_ne!(0, composition_poly_cpu.data().num_base_cols() % RATE);
@@ -204,9 +212,14 @@ where
         CompositionPolyTrace::new(values.clone()),
         8,
         &domain,
+        PartitionOptions::default(),
     );
-    let (commitment_gpu, composition_poly_gpu) =
-        gpu_prover.build_constraint_commitment(CompositionPolyTrace::new(values), 8, &domain);
+    let (commitment_gpu, composition_poly_gpu) = gpu_prover.build_constraint_commitment(
+        CompositionPolyTrace::new(values),
+        8,
+        &domain,
+        PartitionOptions::default(),
+    );
 
     assert_eq!(commitment_cpu.commitment(), commitment_gpu.commitment());
     assert_eq!(0, composition_poly_cpu.data().num_base_cols() % RATE);

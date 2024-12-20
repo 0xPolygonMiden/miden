@@ -1,7 +1,5 @@
-use alloc::string::String;
-use core::fmt::{Display, Formatter};
-#[cfg(feature = "std")]
-use std::error::Error;
+use alloc::{boxed::Box, string::String};
+use core::error::Error;
 
 use miden_air::RowIndex;
 use vm_core::{
@@ -16,216 +14,122 @@ use super::{
     system::{FMP_MAX, FMP_MIN},
     Digest, Felt, QuadFelt, Word,
 };
+use crate::ContextId;
 
 // EXECUTION ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, thiserror::Error)]
 pub enum ExecutionError {
+    #[error("value for key {} not present in the advice map", to_hex(Felt::elements_as_bytes(.0)))]
     AdviceMapKeyNotFound(Word),
+    #[error("value for key {} already present in the advice map", to_hex(Felt::elements_as_bytes(.0)))]
+    AdviceMapKeyAlreadyPresent(Word),
+    #[error("advice stack read failed at step {0}")]
     AdviceStackReadFailed(RowIndex),
+    #[error("instruction `caller` used outside of kernel context")]
     CallerNotInSyscall,
+    #[error("external node with mast root {0} resolved to an external node")]
     CircularExternalNode(Digest),
+    #[error("exceeded the allowed number of max cycles {0}")]
     CycleLimitExceeded(u32),
-    DecoratorNotFoundInForest {
-        decorator_id: DecoratorId,
-    },
+    #[error("decorator id {decorator_id} does not exist in MAST forest")]
+    DecoratorNotFoundInForest { decorator_id: DecoratorId },
+    #[error("division by zero at clock cycle {0}")]
     DivideByZero(RowIndex),
+    #[error("memory address {addr} in context {ctx} accessed twice in clock cycle {clk}")]
+    DuplicateMemoryAccess { ctx: ContextId, addr: u32, clk: Felt },
+    #[error("failed to execute the dynamic code block provided by the stack with root {hex}; the block could not be found",
+      hex = to_hex(.0.as_bytes())
+    )]
     DynamicNodeNotFound(Digest),
-    EventError(String),
+    #[error("error during processing of event in on_event handler")]
+    EventError(#[source] Box<dyn Error + Send + Sync + 'static>),
+    #[error("failed to execute Ext2Intt operation: {0}")]
     Ext2InttError(Ext2InttError),
+    #[error("assertion failed at clock cycle {clk} with error code {err_code}{}",
+      match err_msg {
+        Some(msg) => format!(": {msg}"),
+        None => "".into()
+      }
+    )]
     FailedAssertion {
         clk: RowIndex,
         err_code: u32,
         err_msg: Option<String>,
     },
+    #[error("failed to generate signature: {0}")]
     FailedSignatureGeneration(&'static str),
+    #[error("Updating FMP register from {0} to {1} failed because {1} is outside of {FMP_MIN}..{FMP_MAX}")]
     InvalidFmpValue(Felt, Felt),
+    #[error("FRI domain segment value cannot exceed 3, but was {0}")]
     InvalidFriDomainSegment(u64),
+    #[error("degree-respecting projection is inconsistent: expected {0} but was {1}")]
     InvalidFriLayerFolding(QuadFelt, QuadFelt),
-    InvalidMemoryRange {
-        start_addr: u64,
-        end_addr: u64,
-    },
+    #[error(
+        "memory range start address cannot exceed end address, but was ({start_addr}, {end_addr})"
+    )]
+    InvalidMemoryRange { start_addr: u64, end_addr: u64 },
+    #[error("when returning from a call, stack depth must be {MIN_STACK_DEPTH}, but was {0}")]
     InvalidStackDepthOnReturn(usize),
-    InvalidStackWordOffset(usize),
-    InvalidTreeDepth {
-        depth: Felt,
-    },
-    InvalidTreeNodeIndex {
-        depth: Felt,
-        value: Felt,
-    },
+    #[error("provided merkle tree {depth} is out of bounds and cannot be represented as an unsigned 8-bit integer")]
+    InvalidMerkleTreeDepth { depth: Felt },
+    #[error(
+        "provided node index {value} is out of bounds for a merkle tree node at depth {depth}"
+    )]
+    InvalidMerkleTreeNodeIndex { depth: Felt, value: Felt },
+    #[error("attempted to calculate integer logarithm with zero argument at clock cycle {0}")]
     LogArgumentZero(RowIndex),
+    #[error("malformed signature key: {0}")]
     MalformedSignatureKey(&'static str),
-    MalformedMastForestInHost {
-        root_digest: Digest,
-    },
-    MastNodeNotFoundInForest {
-        node_id: MastNodeId,
-    },
-    MastForestNotFound {
-        root_digest: Digest,
-    },
+    #[error(
+        "MAST forest in host indexed by procedure root {root_digest} doesn't contain that root"
+    )]
+    MalformedMastForestInHost { root_digest: Digest },
+    #[error("node id {node_id} does not exist in MAST forest")]
+    MastNodeNotFoundInForest { node_id: MastNodeId },
+    #[error("no MAST forest contains the procedure with root digest {root_digest}")]
+    NoMastForestWithProcedure { root_digest: Digest },
+    #[error("memory address cannot exceed 2^32 but was {0}")]
     MemoryAddressOutOfBounds(u64),
+    #[error("merkle path verification failed for value {value} at index {index} in the Merkle tree with root {root} (error code: {err_code})", 
+      value = to_hex(Felt::elements_as_bytes(value)),
+      root = to_hex(root.as_bytes()),
+    )]
     MerklePathVerificationFailed {
         value: Word,
         index: Felt,
         root: Digest,
         err_code: u32,
     },
-    MerkleStoreLookupFailed(MerkleError),
-    MerkleStoreMergeFailed(MerkleError),
-    MerkleStoreUpdateFailed(MerkleError),
+    #[error("advice provider Merkle store backend lookup failed")]
+    MerkleStoreLookupFailed(#[source] MerkleError),
+    #[error("advice provider Merkle store backend merge failed")]
+    MerkleStoreMergeFailed(#[source] MerkleError),
+    #[error("advice provider Merkle store backend update failed")]
+    MerkleStoreUpdateFailed(#[source] MerkleError),
+    #[error("an operation expected a binary value, but received {0}")]
     NotBinaryValue(Felt),
+    #[error("an operation expected a u32 value, but received {0} (error code: {1})")]
     NotU32Value(Felt, Felt),
+    #[error("stack should have at most {MIN_STACK_DEPTH} elements at the end of program execution, but had {} elements", MIN_STACK_DEPTH + .0)]
     OutputStackOverflow(usize),
+    #[error("a program has already been executed in this process")]
     ProgramAlreadyExecuted,
-    ProverError(ProverError),
+    #[error("proof generation failed")]
+    ProverError(#[source] ProverError),
+    #[error("smt node {node_hex} not found", node_hex = to_hex(Felt::elements_as_bytes(.0)))]
     SmtNodeNotFound(Word),
+    #[error("expected pre-image length of node {node_hex} to be a multiple of 8 but was {preimage_len}",
+      node_hex = to_hex(Felt::elements_as_bytes(.0)),
+      preimage_len = .1
+    )]
     SmtNodePreImageNotValid(Word, usize),
+    #[error("syscall failed: procedure with root {hex} was not found in the kernel",
+      hex = to_hex(.0.as_bytes())
+    )]
     SyscallTargetNotInKernel(Digest),
 }
-
-impl Display for ExecutionError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), core::fmt::Error> {
-        use ExecutionError::*;
-
-        match self {
-            AdviceMapKeyNotFound(key) => {
-                let hex = to_hex(Felt::elements_as_bytes(key));
-                write!(f, "Value for key {hex} not present in the advice map")
-            },
-            AdviceStackReadFailed(step) => write!(f, "Advice stack read failed at step {step}"),
-            CallerNotInSyscall => {
-                write!(f, "Instruction `caller` used outside of kernel context")
-            },
-            CircularExternalNode(mast_root) => {
-                write!(f, "External node with root {mast_root} resolved to an external node")
-            },
-            CycleLimitExceeded(max_cycles) => {
-                write!(f, "Exceeded the allowed number of cycles (max cycles = {max_cycles})")
-            },
-            DecoratorNotFoundInForest { decorator_id } => {
-                write!(f, "Malformed MAST forest, decorator id {decorator_id} doesn't exist")
-            },
-            DivideByZero(clk) => write!(f, "Division by zero at clock cycle {clk}"),
-            DynamicNodeNotFound(digest) => {
-                let hex = to_hex(digest.as_bytes());
-                write!(
-                    f,
-                    "Failed to execute the dynamic code block provided by the stack with root {hex}; the block could not be found"
-                )
-            },
-            EventError(error) => write!(f, "Failed to process event - {error}"),
-            Ext2InttError(err) => write!(f, "Failed to execute Ext2Intt operation: {err}"),
-            FailedAssertion { clk, err_code, err_msg } => {
-                if let Some(err_msg) = err_msg {
-                    write!(
-                        f,
-                        "Assertion failed at clock cycle {clk} with error code {err_code}: {err_msg}"
-                    )
-                } else {
-                    write!(f, "Assertion failed at clock cycle {clk} with error code {err_code}")
-                }
-            },
-            FailedSignatureGeneration(signature) => {
-                write!(f, "Failed to generate signature: {signature}")
-            },
-            InvalidFmpValue(old, new) => {
-                write!(f, "Updating FMP register from {old} to {new} failed because {new} is outside of {FMP_MIN}..{FMP_MAX}")
-            },
-            InvalidFriDomainSegment(value) => {
-                write!(f, "FRI domain segment value cannot exceed 3, but was {value}")
-            },
-            InvalidFriLayerFolding(expected, actual) => {
-                write!(f, "Degree-respecting projection is inconsistent: expected {expected} but was {actual}")
-            },
-            InvalidMemoryRange { start_addr, end_addr } => {
-                write!(f, "Memory range start address cannot exceed end address, but was ({start_addr}, {end_addr})")
-            },
-            InvalidStackDepthOnReturn(depth) => {
-                write!(f, "When returning from a call, stack depth must be {MIN_STACK_DEPTH}, but was {depth}")
-            },
-            InvalidStackWordOffset(offset) => {
-                write!(f, "Stack word offset cannot exceed 12, but was {offset}")
-            },
-            InvalidTreeDepth { depth } => {
-                write!(f, "The provided {depth} is out of bounds and cannot be represented as an unsigned 8-bits integer")
-            },
-            InvalidTreeNodeIndex { depth, value } => {
-                write!(f, "The provided index {value} is out of bounds for a node at depth {depth}")
-            },
-            LogArgumentZero(clk) => {
-                write!(
-                    f,
-                    "Calculating of the integer logarithm with zero argument at clock cycle {clk}"
-                )
-            },
-            MalformedSignatureKey(signature) => write!(f, "Malformed signature key: {signature}"),
-            MalformedMastForestInHost { root_digest } => {
-                write!(f, "Malformed host: MAST forest indexed by procedure root {} doesn't contain that root", root_digest)
-            },
-            MastNodeNotFoundInForest { node_id } => {
-                write!(f, "Malformed MAST forest, node id {node_id} doesn't exist")
-            },
-            MastForestNotFound { root_digest } => {
-                write!(
-                    f,
-                    "No MAST forest contains the following procedure root digest: {root_digest}"
-                )
-            },
-            MemoryAddressOutOfBounds(addr) => {
-                write!(f, "Memory address cannot exceed 2^32 but was {addr}")
-            },
-            MerklePathVerificationFailed { value, index, root, err_code } => {
-                let value = to_hex(Felt::elements_as_bytes(value));
-                let root = to_hex(root.as_bytes());
-                write!(f, "Merkle path verification failed for value {value} at index {index}, in the Merkle tree with root {root} (error code: {err_code})")
-            },
-            MerkleStoreLookupFailed(reason) => {
-                write!(f, "Advice provider Merkle store backend lookup failed: {reason}")
-            },
-            MerkleStoreMergeFailed(reason) => {
-                write!(f, "Advice provider Merkle store backend merge failed: {reason}")
-            },
-            MerkleStoreUpdateFailed(reason) => {
-                write!(f, "Advice provider Merkle store backend update failed: {reason}")
-            },
-            NotBinaryValue(v) => {
-                write!(f, "An operation expected a binary value, but received {v}")
-            },
-            NotU32Value(v, err_code) => {
-                write!(
-                    f,
-                    "An operation expected a u32 value, but received {v} (error code: {err_code})"
-                )
-            },
-            OutputStackOverflow(n) => {
-                write!(f, "The stack should have at most {MIN_STACK_DEPTH} elements at the end of program execution, but had {} elements", MIN_STACK_DEPTH + n)
-            },
-            SmtNodeNotFound(node) => {
-                let node_hex = to_hex(Felt::elements_as_bytes(node));
-                write!(f, "Smt node {node_hex} not found")
-            },
-            SmtNodePreImageNotValid(node, preimage_len) => {
-                let node_hex = to_hex(Felt::elements_as_bytes(node));
-                write!(f, "Invalid pre-image for node {node_hex}. Expected pre-image length to be a multiple of 8, but was {preimage_len}")
-            },
-            ProgramAlreadyExecuted => {
-                write!(f, "a program has already been executed in this process")
-            },
-            ProverError(error) => write!(f, "Proof generation failed: {error}"),
-            SyscallTargetNotInKernel(proc) => {
-                let hex = to_hex(proc.as_bytes());
-                write!(f, "Syscall failed: procedure with root {hex} was not found in the kernel")
-            },
-        }
-    }
-}
-
-#[cfg(feature = "std")]
-impl Error for ExecutionError {}
 
 impl From<Ext2InttError> for ExecutionError {
     fn from(value: Ext2InttError) -> Self {
@@ -236,54 +140,34 @@ impl From<Ext2InttError> for ExecutionError {
 // EXT2INTT ERROR
 // ================================================================================================
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, thiserror::Error)]
 pub enum Ext2InttError {
+    #[error("input domain size must be a power of two, but was {0}")]
     DomainSizeNotPowerOf2(u64),
+    #[error("input domain size ({0} elements) is too small")]
     DomainSizeTooSmall(u64),
+    #[error("address of the last input must be smaller than 2^32, but was {0}")]
     InputEndAddressTooBig(u64),
+    #[error("input size must be smaller than 2^32, but was {0}")]
     InputSizeTooBig(u64),
+    #[error("address of the first input must be smaller than 2^32, but was {0}")]
     InputStartAddressTooBig(u64),
+    #[error("output size ({0}) cannot be greater than the input size ({1})")]
     OutputSizeTooBig(usize, usize),
+    #[error("output size must be greater than 0")]
     OutputSizeIsZero,
+    #[error("uninitialized memory at address {0}")]
     UninitializedMemoryAddress(u32),
 }
 
-impl Display for Ext2InttError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), core::fmt::Error> {
-        use Ext2InttError::*;
+#[cfg(test)]
+mod error_assertions {
+    use super::*;
 
-        match self {
-            DomainSizeNotPowerOf2(v) => {
-                write!(f, "input domain size must be a power of two, but was {v}")
-            },
-            DomainSizeTooSmall(v) => {
-                write!(f, "input domain size ({v} elements) is too small")
-            },
-            InputEndAddressTooBig(addr) => {
-                write!(f, "address of the last input must be smaller than 2^32, but was {addr}")
-            },
-            InputSizeTooBig(size) => {
-                write!(f, "input size must be smaller than 2^32, but was {size}")
-            },
-            InputStartAddressTooBig(addr) => {
-                write!(f, "address of the first input must be smaller than 2^32, but was {addr}")
-            },
-            OutputSizeIsZero => {
-                write!(f, "output size must be greater than 0")
-            },
-            OutputSizeTooBig(output_size, input_size) => {
-                write!(
-                    f,
-                    "output size ({output_size}) cannot be greater than the input size ({input_size})"
-                )
-            },
+    /// Asserts at compile time that the passed error has Send + Sync + 'static bounds.
+    fn _assert_error_is_send_sync_static<E: core::error::Error + Send + Sync + 'static>(_: E) {}
 
-            UninitializedMemoryAddress(address) => {
-                write!(f, "uninitialized memory at address {address}")
-            },
-        }
+    fn _assert_execution_error_bounds(err: ExecutionError) {
+        _assert_error_is_send_sync_static(err);
     }
 }
-
-#[cfg(feature = "std")]
-impl Error for Ext2InttError {}

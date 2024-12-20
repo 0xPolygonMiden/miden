@@ -138,6 +138,7 @@ pub enum Token<'input> {
     Add,
     Adv,
     InsertHdword,
+    InsertHdwordWithDomain,
     InsertHperm,
     InsertMem,
     AdvLoadw,
@@ -322,6 +323,7 @@ impl fmt::Display for Token<'_> {
             Token::Add => write!(f, "add"),
             Token::Adv => write!(f, "adv"),
             Token::InsertHdword => write!(f, "insert_hdword"),
+            Token::InsertHdwordWithDomain => write!(f, "insert_hdword_d"),
             Token::InsertHperm => write!(f, "insert_hperm"),
             Token::InsertMem => write!(f, "insert_mem"),
             Token::AdvLoadw => write!(f, "adv_loadw"),
@@ -514,6 +516,7 @@ impl<'input> Token<'input> {
             Token::Add
                 | Token::Adv
                 | Token::InsertHdword
+                | Token::InsertHdwordWithDomain
                 | Token::InsertHperm
                 | Token::InsertMem
                 | Token::AdvLoadw
@@ -658,6 +661,7 @@ impl<'input> Token<'input> {
         ("add", Token::Add),
         ("adv", Token::Adv),
         ("insert_hdword", Token::InsertHdword),
+        ("insert_hdword_d", Token::InsertHdwordWithDomain),
         ("insert_hperm", Token::InsertHperm),
         ("insert_mem", Token::InsertMem),
         ("adv_loadw", Token::AdvLoadw),

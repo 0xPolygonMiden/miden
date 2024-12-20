@@ -3,8 +3,7 @@ use core::fmt;
 use super::Felt;
 mod decorators;
 pub use decorators::{
-    AdviceInjector, AssemblyOp, DebugOptions, Decorator, DecoratorIterator, DecoratorList,
-    SignatureKind,
+    AssemblyOp, DebugOptions, Decorator, DecoratorIterator, DecoratorList, SignatureKind,
 };
 // OPERATIONS OP CODES
 // ================================================================================================

@@ -27,7 +27,7 @@ pub use self::{
     ident::{CaseKindError, Ident, IdentError},
     immediate::{ErrorCode, ImmFelt, ImmU16, ImmU32, ImmU8, Immediate},
     imports::Import,
-    instruction::{advice::SignatureKind, AdviceInjectorNode, DebugOptions, Instruction},
+    instruction::{advice::SignatureKind, DebugOptions, Instruction, SystemEventNode},
     invocation_target::{InvocationTarget, Invoke, InvokeKind},
     module::{Module, ModuleKind},
     op::Op,

@@ -1,6 +1,6 @@
-use processor::ExecutionError;
+use processor::{ExecutionError, RowIndex};
 use test_utils::{
-    build_op_test, expect_exec_error, proptest::prelude::*, rand::rand_value, U32_BOUND,
+    build_op_test, expect_exec_error_matches, proptest::prelude::*, rand::rand_value, U32_BOUND,
 };
 
 // U32 OPERATIONS TESTS - MANUAL - ARITHMETIC OPERATIONS
@@ -440,7 +440,11 @@ fn u32div_fail() {
 
     // should fail if b == 0.
     let test = build_op_test!(asm_op, &[1, 0]);
-    expect_exec_error!(test, ExecutionError::DivideByZero(2.into()));
+
+    expect_exec_error_matches!(
+        test,
+        ExecutionError::DivideByZero(value) if value == RowIndex::from(2)
+    );
 }
 
 #[test]
@@ -478,7 +482,11 @@ fn u32mod_fail() {
 
     // should fail if b == 0
     let test = build_op_test!(asm_op, &[1, 0]);
-    expect_exec_error!(test, ExecutionError::DivideByZero(2.into()));
+
+    expect_exec_error_matches!(
+        test,
+        ExecutionError::DivideByZero(value) if value == RowIndex::from(2)
+    );
 }
 
 #[test]
@@ -521,7 +529,11 @@ fn u32divmod_fail() {
 
     // should fail if b == 0.
     let test = build_op_test!(asm_op, &[1, 0]);
-    expect_exec_error!(test, ExecutionError::DivideByZero(2.into()));
+
+    expect_exec_error_matches!(
+        test,
+        ExecutionError::DivideByZero(value) if value == RowIndex::from(2)
+    );
 }
 
 // U32 OPERATIONS TESTS - RANDOMIZED - ARITHMETIC OPERATIONS

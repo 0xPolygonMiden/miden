@@ -1,6 +1,6 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 
-use miden_crypto::hash::blake::Blake3Digest;
+use miden_crypto::{hash::blake::Blake3Digest, utils::collections::KvMap};
 
 use crate::mast::{
     DecoratorId, MastForest, MastForestError, MastNode, MastNodeFingerprint, MastNodeId,
@@ -65,10 +65,11 @@ impl MastForestMerger {
     ///
     /// It does this in three steps:
     ///
-    /// 1. Merge all decorators, which is a case of deduplication and creating a decorator id
+    /// 1. Merge all advice maps, checking for key collisions.
+    /// 2. Merge all decorators, which is a case of deduplication and creating a decorator id
     ///    mapping which contains how existing [`DecoratorId`]s map to [`DecoratorId`]s in the
     ///    merged forest.
-    /// 2. Merge all nodes of forests.
+    /// 3. Merge all nodes of forests.
     ///    - Similar to decorators, node indices might move during merging, so the merger keeps a
     ///      node id mapping as it merges nodes.
     ///    - This is a depth-first traversal over all forests to ensure all children are processed
@@ -90,10 +91,13 @@ impl MastForestMerger {
     ///        `replacement` node. Now we can simply add a mapping from the external node to the
     ///        `replacement` node in our node id mapping which means all nodes that referenced the
     ///        external node will point to the `replacement` instead.
-    /// 3. Finally, we merge all roots of all forests. Here we map the existing root indices to
+    /// 4. Finally, we merge all roots of all forests. Here we map the existing root indices to
     ///    their potentially new indices in the merged forest and add them to the forest,
     ///    deduplicating in the process, too.
     fn merge_inner(&mut self, forests: Vec<&MastForest>) -> Result<(), MastForestError> {
+        for other_forest in forests.iter() {
+            self.merge_advice_map(other_forest)?;
+        }
         for other_forest in forests.iter() {
             self.merge_decorators(other_forest)?;
         }
@@ -160,6 +164,19 @@ impl MastForestMerger {
 
         self.decorator_id_mappings.push(decorator_id_remapping);
 
+        Ok(())
+    }
+
+    fn merge_advice_map(&mut self, other_forest: &MastForest) -> Result<(), MastForestError> {
+        for (digest, values) in other_forest.advice_map.iter() {
+            if let Some(stored_values) = self.mast_forest.advice_map().get(digest) {
+                if stored_values != values {
+                    return Err(MastForestError::AdviceMapKeyCollisionOnMerge(*digest));
+                }
+            } else {
+                self.mast_forest.advice_map_mut().insert(*digest, values.clone());
+            }
+        }
         Ok(())
     }
 

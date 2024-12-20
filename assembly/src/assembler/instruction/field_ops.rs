@@ -1,4 +1,4 @@
-use vm_core::{AdviceInjector, FieldElement, Operation::*};
+use vm_core::{sys_events::SystemEvent, FieldElement, Operation::*};
 
 use super::{validate_param, BasicBlockBuilder};
 use crate::{
@@ -259,8 +259,8 @@ fn perform_exp_for_small_power(span_builder: &mut BasicBlockBuilder, pow: u64) {
 ///
 /// # Errors
 /// Returns an error if the logarithm argument (top stack element) equals ZERO.
-pub fn ilog2(block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError> {
-    block_builder.push_advice_injector(AdviceInjector::ILog2)?;
+pub fn ilog2(block_builder: &mut BasicBlockBuilder) {
+    block_builder.push_system_event(SystemEvent::ILog2);
     block_builder.push_op(AdvPop); // [ilog2, n, ...]
 
     // compute the power-of-two for the value given in the advice tape (17 cycles)
@@ -290,8 +290,6 @@ pub fn ilog2(block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError>
     ];
 
     block_builder.push_ops(ops);
-
-    Ok(())
 }
 
 // COMPARISON OPERATIONS

@@ -1460,10 +1460,9 @@ fn set_user_op_helpers_many() {
 
 fn build_trace(stack_inputs: &[u64], program: &Program) -> (DecoderTrace, usize) {
     let stack_inputs = StackInputs::try_from_ints(stack_inputs.iter().copied()).unwrap();
-    let host = DefaultHost::default();
-    let mut process =
-        Process::new(Kernel::default(), stack_inputs, host, ExecutionOptions::default());
-    process.execute(program).unwrap();
+    let mut host = DefaultHost::default();
+    let mut process = Process::new(Kernel::default(), stack_inputs, ExecutionOptions::default());
+    process.execute(program, &mut host).unwrap();
 
     let (trace, ..) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = trace.num_rows() - ExecutionTrace::NUM_RAND_ROWS;
@@ -1479,11 +1478,10 @@ fn build_trace(stack_inputs: &[u64], program: &Program) -> (DecoderTrace, usize)
 
 fn build_dyn_trace(stack_inputs: &[u64], program: &Program) -> (DecoderTrace, usize) {
     let stack_inputs = StackInputs::try_from_ints(stack_inputs.iter().copied()).unwrap();
-    let host = DefaultHost::default();
-    let mut process =
-        Process::new(Kernel::default(), stack_inputs, host, ExecutionOptions::default());
+    let mut host = DefaultHost::default();
+    let mut process = Process::new(Kernel::default(), stack_inputs, ExecutionOptions::default());
 
-    process.execute(program).unwrap();
+    process.execute(program, &mut host).unwrap();
 
     let (trace, ..) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = trace.num_rows() - ExecutionTrace::NUM_RAND_ROWS;
@@ -1498,11 +1496,11 @@ fn build_dyn_trace(stack_inputs: &[u64], program: &Program) -> (DecoderTrace, us
 }
 
 fn build_call_trace(program: &Program, kernel: Kernel) -> (SystemTrace, DecoderTrace, usize) {
-    let host = DefaultHost::default();
+    let mut host = DefaultHost::default();
     let stack_inputs = crate::StackInputs::default();
-    let mut process = Process::new(kernel, stack_inputs, host, ExecutionOptions::default());
+    let mut process = Process::new(kernel, stack_inputs, ExecutionOptions::default());
 
-    process.execute(program).unwrap();
+    process.execute(program, &mut host).unwrap();
 
     let (trace, ..) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = trace.num_rows() - ExecutionTrace::NUM_RAND_ROWS;

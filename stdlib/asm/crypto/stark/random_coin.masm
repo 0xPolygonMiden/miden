@@ -95,11 +95,6 @@ export.init_seed
     exec.constants::c_ptr mem_storew
     exec.constants::r1_ptr mem_storew
     exec.constants::r2_ptr mem_storew
-
-    drop
-    push.1
-    swap.3
-    exec.constants::zero_zero_zero_one_word mem_storew
     dropw
     #=> [log(trace_length), num_queries, log(blowup), grinding]
 
@@ -164,36 +159,41 @@ export.init_seed
     exec.constants::trace_domain_generator_ptr mem_store
     #=> [0, trace_length, num_queries, blowup, grinding]
 
-    # clean satck
+    # clean stack
     drop
     #=> [trace_length, num_queries, blowup, grinding]
 
     # Construct the proof context
 
-    ##trace layout info
-    push.1208027408
+    ## trace layout info, which is the concatenation as u8-s of:
+    ## 1. main segment width
+    ## 2. num auxiliary segments, which always 1
+    ## 3. auxiliary segment width
+    ## 4. number of auxiliary random values
+    ## 5. trace length (this is already on the stack)
 
-    ##field modulus bytes (2 field elements)
-    push.1
-    push.4294967295
-
+    ## main segment width is 70 and there are 1 auxiliary segments
+    ## of width 7 using 16 random extension field elements
+    push.0x46010710 
+    ## field modulus bytes (2 field elements)
+    push.0x01 # lower half of the modulus
+    push.0xffffffff # upper half of the modulus
     ## field extension and FRI parameters
-    push.132103
-
+    ## field extension degree || FRI folding factor || FRI remainder polynomial max degree
+    push.0x020407
 
     # Hash proof context
     # Cycles: 15
     swapw
-    push.1.0.0.0
-    #=> [0, 0, 0, 1, B, A, ..]
-    swapw.2
-    swapw
-    #=> [B, A, 0, 0, 0, 1, ..]
+    movdn.6
+    push.4.0.0.0
+    movdnw.2
+    # => [B, A, 0, 0, 0, 4, ..]
     hperm
     dropw
     dropw
-    #=> [C]
-end
+    # => [C]
+ end
 
 #! Reseed the random coin with `DATA`
 #!
@@ -422,7 +422,7 @@ end
 #!
 #! Input: [aux_rand_elem_ptr, ...]
 #! Output: [...]
-#! Cycles: 150
+#! Cycles: 159
 export.generate_aux_randomness
 
     push.16 swap
@@ -431,14 +431,14 @@ export.generate_aux_randomness
 end
 
 #! Draw constraint composition random coefficients and save them into memory in the region from
-#! `compos_coef_ptr` `compos_coef_ptr + 118 - 1` as `(r1_1, r1_0, r0_1, r0_0)`
+#! `compos_coef_ptr` `compos_coef_ptr + 112 - 1` as `(r1_1, r1_0, r0_1, r0_0)`
 #!
 #! Input: [compos_coef_ptr, ...]
 #! Output: [...]
-#! Cycles: 1309
+#! Cycles: 1305
 export.generate_constraint_composition_coefficients
 
-    push.236
+    exec.constants::num_constraint_composition_coef_multiplied_by_two_and_rounded_up_to_4
     swap
     exec.generate_random_coefficients
     #=> [...]
@@ -447,16 +447,16 @@ end
 #! Draw deep composition polynomial random coefficients and save them into memory in the region from
 #! `deep_rand_coef_ptr` to `deep_rand_coef_ptr + 89 - 1` as `(0, 0, r0_1, r0_0)`
 #! The number of coefficients is equal to:
-#! 1. (72 + 9) * 2 Felt for the main and auxiliary traces.
+#! 1. (70 + 7) * 2 Felt for the main and auxiliary traces.
 #! 2. 8 * 2 Felt for constraint polynomial.
-#! Total: 89 tuples of type (Felt, Felt)
+#! Total: 85 tuples of type (Felt, Felt)
 #!
 #! Input: [deep_rand_coef_ptr, ...]
 #! Output: [...]
-#! Cycles: 1693
+#! Cycles: 1624
 export.generate_deep_composition_random_coefficients
-
-    push.92
+    # note that 88 is the next number after 85 divisible by 4
+    exec.constants::num_deep_composition_coef_multiplied_by_two_and_rounded_up_to_4
     swap
     exec.generate_random_coefficients_pad
     #=> [...]
@@ -665,7 +665,15 @@ export.generate_list_indices
     exec.get_rate_2
     hperm
 
-    exec.rpo::squeeze_digest
+    # Save the new state
+    exec.constants::r2_ptr mem_storew
+    dropw
+    # => [R1, C]
+    exec.constants::r1_ptr mem_storew
+    swapw
+    # => [C, R1]
+    exec.constants::c_ptr mem_storew
+    dropw
     #=> [R1, query_ptr, mask, depth, num_queries, ...]
 
 
@@ -698,8 +706,17 @@ export.generate_list_indices
         exec.get_rate_2
         hperm
 
-        exec.rpo::squeeze_digest
-        #=> [R1, query_ptr, mask, depth, num_queries, ...]
+        # Save the new state
+        exec.constants::r2_ptr mem_storew
+        dropw
+        # => [R1, C]
+        exec.constants::r1_ptr mem_storew
+        swapw
+        # => [C, R1]
+        exec.constants::c_ptr mem_storew
+        dropw
+        #=> [R1, query_ptr, mask, depth, num_remaining_iterations, remainder, ...]
+
         movup.7 sub.1 dup movdn.8
         push.0 neq
     end

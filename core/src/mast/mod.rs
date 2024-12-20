@@ -16,7 +16,7 @@ pub use node::{
 };
 use winter_utils::{ByteWriter, DeserializationError, Serializable};
 
-use crate::{Decorator, DecoratorList, Operation};
+use crate::{AdviceMap, Decorator, DecoratorList, Operation};
 
 mod serialization;
 
@@ -50,6 +50,9 @@ pub struct MastForest {
 
     /// All the decorators included in the MAST forest.
     decorators: Vec<Decorator>,
+
+    /// Advice map to be loaded into the VM prior to executing procedures from this MAST forest.
+    advice_map: AdviceMap,
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -66,8 +69,6 @@ impl MastForest {
 impl MastForest {
     /// The maximum number of nodes that can be stored in a single MAST forest.
     const MAX_NODES: usize = (1 << 30) - 1;
-    /// The maximum number of decorators that can be stored in a single MAST forest.
-    const MAX_DECORATORS: usize = Self::MAX_NODES;
 
     /// Adds a decorator to the forest, and returns the associated [`DecoratorId`].
     pub fn add_decorator(&mut self, decorator: Decorator) -> Result<DecoratorId, MastForestError> {
@@ -463,6 +464,18 @@ impl MastForest {
     pub fn nodes(&self) -> &[MastNode] {
         &self.nodes
     }
+
+    pub fn decorators(&self) -> &[Decorator] {
+        &self.decorators
+    }
+
+    pub fn advice_map(&self) -> &AdviceMap {
+        &self.advice_map
+    }
+
+    pub fn advice_map_mut(&mut self) -> &mut AdviceMap {
+        &mut self.advice_map
+    }
 }
 
 impl Index<MastNodeId> for MastForest {
@@ -526,6 +539,21 @@ impl MastNodeId {
         mast_forest: &MastForest,
     ) -> Result<Self, DeserializationError> {
         Self::from_u32_with_node_count(value, mast_forest.nodes.len())
+    }
+
+    /// Returns a new [`MastNodeId`] with the provided `node_id`, or an error if `node_id` is
+    /// greater than the number of nodes in the [`MastForest`] for which this ID is being
+    /// constructed.
+    pub fn from_usize_safe(
+        node_id: usize,
+        mast_forest: &MastForest,
+    ) -> Result<Self, DeserializationError> {
+        let node_id: u32 = node_id.try_into().map_err(|_| {
+            DeserializationError::InvalidValue(format!(
+                "node id '{node_id}' does not fit into a u32"
+            ))
+        })?;
+        MastNodeId::from_u32_safe(node_id, mast_forest)
     }
 
     /// Returns a new [`MastNodeId`] from the given `value` without checking its validity.
@@ -671,22 +699,18 @@ impl Serializable for DecoratorId {
 /// Represents the types of errors that can occur when dealing with MAST forest.
 #[derive(Debug, thiserror::Error, PartialEq)]
 pub enum MastForestError {
-    #[error(
-        "invalid decorator count: MAST forest exceeds the maximum of {} decorators",
-        u32::MAX
-    )]
+    #[error("MAST forest decorator count exceeds the maximum of {} decorators", u32::MAX)]
     TooManyDecorators,
-    #[error(
-        "invalid node count: MAST forest exceeds the maximum of {} nodes",
-        MastForest::MAX_NODES
-    )]
+    #[error("MAST forest node count exceeds the maximum of {} nodes", MastForest::MAX_NODES)]
     TooManyNodes,
-    #[error("node id: {0} is greater than or equal to forest length: {1}")]
+    #[error("node id {0} is greater than or equal to forest length {1}")]
     NodeIdOverflow(MastNodeId, usize),
-    #[error("decorator id: {0} is greater than or equal to decorator count: {1}")]
+    #[error("decorator id {0} is greater than or equal to decorator count {1}")]
     DecoratorIdOverflow(DecoratorId, usize),
     #[error("basic block cannot be created from an empty list of operations")]
     EmptyBasicBlock,
-    #[error("decorator root of child with node id {0} is missing but required for fingerprint computation")]
+    #[error("decorator root of child with node id {0} is missing but is required for fingerprint computation")]
     ChildFingerprintMissing(MastNodeId),
+    #[error("advice map key {0} already exists when merging forests")]
+    AdviceMapKeyCollisionOnMerge(RpoDigest),
 }

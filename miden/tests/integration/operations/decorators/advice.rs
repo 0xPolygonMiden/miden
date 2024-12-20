@@ -4,7 +4,7 @@ use rand_chacha::rand_core::SeedableRng;
 use test_utils::{
     build_test,
     crypto::{rpo_falcon512::SecretKey, MerkleStore, RpoDigest},
-    expect_exec_error,
+    expect_exec_error_matches,
     rand::{rand_array, rand_value},
     serde::Serializable,
     Felt, TRUNCATE_STACK_PROC,
@@ -251,32 +251,6 @@ fn advice_push_mapval() {
     let test = build_test!(source, &stack_inputs, [], MerkleStore::default(), adv_map);
     test.expect_stack(&[5, 6, 7, 8]);
 
-    // --- test adv.mapval with offset ----------------------------------------
-    let source: &str = "
-    begin
-        # stack: [4, 3, 2, 1, ...]
-
-        # shift the key on the stack by 2 slots
-        push.0 push.0
-
-        # load the advice stack with values from the advice map and drop the key
-        adv.push_mapval.2
-        dropw drop drop
-
-        # move the values from the advice stack to the operand stack
-        adv_push.4
-        swapw dropw
-    end";
-
-    let stack_inputs = [1, 2, 3, 4];
-    let adv_map = [(
-        RpoDigest::try_from(stack_inputs).unwrap(),
-        vec![Felt::new(8), Felt::new(7), Felt::new(6), Felt::new(5)],
-    )];
-
-    let test = build_test!(source, &stack_inputs, [], MerkleStore::default(), adv_map);
-    test.expect_stack(&[5, 6, 7, 8]);
-
     // --- test simple adv.mapvaln --------------------------------------------
     let source: &str = "
     begin
@@ -286,33 +260,6 @@ fn advice_push_mapval() {
         # of elements) and drop the key
         adv.push_mapvaln
         dropw
-
-        # move the values from the advice stack to the operand stack
-        adv_push.6
-        swapdw dropw dropw
-    end";
-
-    let stack_inputs = [1, 2, 3, 4];
-    let adv_map = [(
-        RpoDigest::try_from(stack_inputs).unwrap(),
-        vec![Felt::new(11), Felt::new(12), Felt::new(13), Felt::new(14), Felt::new(15)],
-    )];
-
-    let test = build_test!(source, &stack_inputs, [], MerkleStore::default(), adv_map);
-    test.expect_stack(&[15, 14, 13, 12, 11, 5]);
-
-    // --- test adv.mapval with offset ----------------------------------------
-    let source: &str = "
-    begin
-        # stack: [4, 3, 2, 1, ...]
-
-        # shift the key on the stack by 2 slots
-        push.0 push.0
-
-        # load the advice stack with values from the advice map (including the number
-        # of elements) and drop the key
-        adv.push_mapvaln.2
-        dropw drop drop
 
         # move the values from the advice stack to the operand stack
         adv_push.6
@@ -358,13 +305,13 @@ fn advice_insert_hdword() {
     // --- test hashing with domain -------------------------------------------
     let source: &str = "
     begin
-        # stack: [1, 2, 3, 4, 5, 6, 7, 8, ...]
+        # stack: [1, 2, 3, 4, 5, 6, 7, 8, 9, ...]
 
         # hash and insert top two words into the advice map
-        adv.insert_hdword.3
+        adv.insert_hdword_d
 
         # manually compute the hash of the two words
-        push.0.3.0.0
+        push.0.9.0.0
         swapw.2 swapw
         hperm
         dropw swapw dropw
@@ -378,7 +325,7 @@ fn advice_insert_hdword() {
         adv_push.8
         swapdw dropw dropw
     end";
-    let stack_inputs = [8, 7, 6, 5, 4, 3, 2, 1];
+    let stack_inputs = [9, 8, 7, 6, 5, 4, 3, 2, 1];
     let test = build_test!(source, &stack_inputs);
     test.expect_stack(&[1, 2, 3, 4, 5, 6, 7, 8]);
 }
@@ -459,7 +406,7 @@ fn advice_push_sig_rpo_falcon_512_bad_key_value() {
 
     let test =
         build_test!(ADVICE_PUSH_SIG, &op_stack, &advice_stack, store, advice_map.into_iter());
-    expect_exec_error!(test, ExecutionError::MalformedSignatureKey("RPO Falcon512"));
+    expect_exec_error_matches!(test, ExecutionError::MalformedSignatureKey("RPO Falcon512"));
 }
 
 #[test]
@@ -498,5 +445,5 @@ fn advice_push_sig_rpo_falcon_512_bad_key_length() {
     let test =
         build_test!(ADVICE_PUSH_SIG, &op_stack, &advice_stack, store, advice_map.into_iter());
 
-    expect_exec_error!(test, ExecutionError::MalformedSignatureKey("RPO Falcon512"));
+    expect_exec_error_matches!(test, ExecutionError::MalformedSignatureKey("RPO Falcon512"));
 }

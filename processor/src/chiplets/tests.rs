@@ -113,8 +113,8 @@ fn build_trace(
     kernel: Kernel,
 ) -> (ChipletsTrace, usize) {
     let stack_inputs = StackInputs::try_from_ints(stack_inputs.iter().copied()).unwrap();
-    let host = DefaultHost::default();
-    let mut process = Process::new(kernel, stack_inputs, host, ExecutionOptions::default());
+    let mut host = DefaultHost::default();
+    let mut process = Process::new(kernel, stack_inputs, ExecutionOptions::default());
     let program = {
         let mut mast_forest = MastForest::new();
 
@@ -123,7 +123,7 @@ fn build_trace(
 
         Program::new(mast_forest.into(), basic_block_id)
     };
-    process.execute(&program).unwrap();
+    process.execute(&program, &mut host).unwrap();
 
     let (trace, ..) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = trace.num_rows() - ExecutionTrace::NUM_RAND_ROWS;

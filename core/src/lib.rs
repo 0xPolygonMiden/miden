@@ -116,11 +116,16 @@ pub mod prettier {
 
 mod operations;
 pub use operations::{
-    opcode_constants::*, AdviceInjector, AssemblyOp, DebugOptions, Decorator, DecoratorIterator,
-    DecoratorList, Operation, SignatureKind,
+    opcode_constants::*, AssemblyOp, DebugOptions, Decorator, DecoratorIterator, DecoratorList,
+    Operation, SignatureKind,
 };
 
 pub mod stack;
 pub use stack::{StackInputs, StackOutputs};
+
+pub mod sys_events;
+
+mod advice;
+pub use advice::map::AdviceMap;
 
 pub mod utils;

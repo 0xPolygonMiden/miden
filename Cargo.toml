@@ -32,3 +32,6 @@ inherits = "release"
 debug = true
 debug-assertions = true
 overflow-checks = true
+
+[workspace.dependencies]
+thiserror = { version = "2.0", default-features = false }

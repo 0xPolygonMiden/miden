@@ -8,7 +8,7 @@ use core::{
 use crate::{SourceSpan, Span, Spanned};
 
 /// Represents the types of errors that can occur when parsing/validating an [Ident]
-#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+#[derive(Debug, thiserror::Error)]
 pub enum IdentError {
     #[error("invalid identifier: cannot be empty")]
     Empty,
@@ -24,7 +24,7 @@ pub enum IdentError {
 
 /// Represents the various types of casing errors that can occur, e.g. using an identifier
 /// with `SCREAMING_CASE` where one with `snake_case` is expected.
-#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+#[derive(Debug, thiserror::Error)]
 pub enum CaseKindError {
     #[error("only uppercase characters or underscores are allowed, and must start with an alphabetic character")]
     Screaming,

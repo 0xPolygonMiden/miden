@@ -6,7 +6,6 @@ extern crate alloc;
 extern crate std;
 
 use alloc::vec;
-use core::fmt;
 
 use air::{HashFunction, ProcessorAir, ProvingOptions, PublicInputs};
 use vm_core::crypto::{
@@ -62,6 +61,7 @@ pub fn verify(
 ) -> Result<u32, VerificationError> {
     // get security level of the proof
     let security_level = proof.security_level();
+    let program_hash = *program_info.program_hash();
 
     // build public inputs and try to verify the proof
     let pub_inputs = PublicInputs::new(program_info, stack_inputs, stack_outputs);
@@ -98,7 +98,7 @@ pub fn verify(
             )
         },
     }
-    .map_err(VerificationError::VerifierError)?;
+    .map_err(|source| VerificationError::ProgramVerificationError(program_hash, source))?;
 
     Ok(security_level)
 }
@@ -107,23 +107,12 @@ pub fn verify(
 // ================================================================================================
 
 /// TODO: add docs
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, thiserror::Error)]
 pub enum VerificationError {
-    VerifierError(VerifierError),
+    #[error("failed to verify proof for program with hash {0}")]
+    ProgramVerificationError(Digest, #[source] VerifierError),
+    #[error("the input {0} is not a valid field element")]
     InputNotFieldElement(u64),
+    #[error("the output {0} is not a valid field element")]
     OutputNotFieldElement(u64),
 }
-
-impl fmt::Display for VerificationError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use VerificationError::*;
-        match self {
-            VerifierError(e) => write!(f, "{e}"),
-            InputNotFieldElement(i) => write!(f, "the input {i} is not a valid field element!"),
-            OutputNotFieldElement(o) => write!(f, "the output {o} is not a valid field element!"),
-        }
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for VerificationError {}

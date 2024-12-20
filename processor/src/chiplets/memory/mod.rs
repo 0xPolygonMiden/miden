@@ -11,7 +11,7 @@ use super::{
     utils::{split_element_u32_into_u16, split_u32_into_u16},
     Felt, FieldElement, RangeChecker, TraceFragment, Word, EMPTY_WORD, ONE,
 };
-use crate::system::ContextId;
+use crate::{system::ContextId, ExecutionError};
 
 mod segment;
 use segment::MemorySegmentTrace;
@@ -76,7 +76,7 @@ const INIT_MEM_VALUE: Word = EMPTY_WORD;
 ///   clock cycles computed as described above.
 ///
 /// For the first row of the trace, values in `d0`, `d1`, and `d_inv` are set to zeros.
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Memory {
     /// Memory segment traces sorted by their execution context ID.
     trace: BTreeMap<ContextId, MemorySegmentTrace>,
@@ -137,15 +137,32 @@ impl Memory {
     ///
     /// If the specified address hasn't been previously written to, four ZERO elements are
     /// returned. This effectively implies that memory is initialized to ZERO.
-    pub fn read(&mut self, ctx: ContextId, addr: u32, clk: RowIndex) -> Word {
+    ///
+    /// # Errors
+    /// - Returns an error if the same address is accessed more than once in the same clock cycle.
+    pub fn read(
+        &mut self,
+        ctx: ContextId,
+        addr: u32,
+        clk: RowIndex,
+    ) -> Result<Word, ExecutionError> {
         self.num_trace_rows += 1;
-        self.trace.entry(ctx).or_default().read(addr, Felt::from(clk))
+        self.trace.entry(ctx).or_default().read(ctx, addr, Felt::from(clk))
     }
 
     /// Writes the provided word at the specified context/address.
-    pub fn write(&mut self, ctx: ContextId, addr: u32, clk: RowIndex, value: Word) {
+    ///
+    /// # Errors
+    /// - Returns an error if the same address is accessed more than once in the same clock cycle.
+    pub fn write(
+        &mut self,
+        ctx: ContextId,
+        addr: u32,
+        clk: RowIndex,
+        value: Word,
+    ) -> Result<(), ExecutionError> {
         self.num_trace_rows += 1;
-        self.trace.entry(ctx).or_default().write(addr, Felt::from(clk), value);
+        self.trace.entry(ctx).or_default().write(ctx, addr, Felt::from(clk), value)
     }
 
     // EXECUTION TRACE GENERATION

@@ -7,7 +7,6 @@ extern crate alloc;
 extern crate std;
 
 use alloc::vec::Vec;
-use core::cell::RefCell;
 
 use miden_air::trace::{
     CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_TRACE_LEN, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH,
@@ -19,9 +18,10 @@ pub use vm_core::{
     crypto::merkle::SMT_DEPTH,
     errors::InputError,
     mast::{MastForest, MastNode, MastNodeId},
-    utils::DeserializationError,
-    AdviceInjector, AssemblyOp, Felt, Kernel, Operation, Program, ProgramInfo, QuadExtension,
-    StackInputs, StackOutputs, Word, EMPTY_WORD, ONE, ZERO,
+    sys_events::SystemEvent,
+    utils::{collections::KvMap, DeserializationError},
+    AssemblyOp, Felt, Kernel, Operation, Program, ProgramInfo, QuadExtension, StackInputs,
+    StackOutputs, Word, EMPTY_WORD, ONE, ZERO,
 };
 use vm_core::{
     mast::{
@@ -48,11 +48,8 @@ use range::RangeChecker;
 
 mod host;
 pub use host::{
-    advice::{
-        AdviceExtractor, AdviceInputs, AdviceMap, AdviceProvider, AdviceSource, MemAdviceProvider,
-        RecAdviceProvider,
-    },
-    DefaultHost, Host, HostResponse, MastForestStore, MemMastForestStore,
+    advice::{AdviceInputs, AdviceProvider, AdviceSource, MemAdviceProvider, RecAdviceProvider},
+    DefaultHost, Host, MastForestStore, MemMastForestStore,
 };
 
 mod chiplets;
@@ -122,18 +119,18 @@ pub struct ChipletsTrace {
 
 /// Returns an execution trace resulting from executing the provided program against the provided
 /// inputs.
+///
+/// The `host` parameter is used to provide the external environment to the program being executed,
+/// such as access to the advice provider and libraries that the program depends on.
 #[tracing::instrument("execute_program", skip_all)]
-pub fn execute<H>(
+pub fn execute(
     program: &Program,
     stack_inputs: StackInputs,
-    host: H,
+    host: &mut impl Host,
     options: ExecutionOptions,
-) -> Result<ExecutionTrace, ExecutionError>
-where
-    H: Host,
-{
-    let mut process = Process::new(program.kernel().clone(), stack_inputs, host, options);
-    let stack_outputs = process.execute(program)?;
+) -> Result<ExecutionTrace, ExecutionError> {
+    let mut process = Process::new(program.kernel().clone(), stack_inputs, options);
+    let stack_outputs = process.execute(program, host)?;
     let trace = ExecutionTrace::new(process, stack_outputs);
     assert_eq!(&program.hash(), trace.program_hash(), "inconsistent program hash");
     Ok(trace)
@@ -141,12 +138,13 @@ where
 
 /// Returns an iterator which allows callers to step through the execution and inspect VM state at
 /// each execution step.
-pub fn execute_iter<H>(program: &Program, stack_inputs: StackInputs, host: H) -> VmStateIterator
-where
-    H: Host,
-{
-    let mut process = Process::new_debug(program.kernel().clone(), stack_inputs, host);
-    let result = process.execute(program);
+pub fn execute_iter(
+    program: &Program,
+    stack_inputs: StackInputs,
+    host: &mut impl Host,
+) -> VmStateIterator {
+    let mut process = Process::new_debug(program.kernel().clone(), stack_inputs);
+    let result = process.execute(program, host);
     if result.is_ok() {
         assert_eq!(
             program.hash(),
@@ -170,67 +168,49 @@ where
 /// to construct an instance of [Process] using [Process::new], invoke [Process::execute], and then
 /// get the execution trace using [ExecutionTrace::new] using the outputs produced by execution.
 #[cfg(not(any(test, feature = "testing")))]
-pub struct Process<H>
-where
-    H: Host,
-{
+pub struct Process {
     system: System,
     decoder: Decoder,
     stack: Stack,
     range: RangeChecker,
     chiplets: Chiplets,
-    host: RefCell<H>,
     max_cycles: u32,
     enable_tracing: bool,
 }
 
 #[cfg(any(test, feature = "testing"))]
-pub struct Process<H>
-where
-    H: Host,
-{
+pub struct Process {
     pub system: System,
     pub decoder: Decoder,
     pub stack: Stack,
     pub range: RangeChecker,
     pub chiplets: Chiplets,
-    pub host: RefCell<H>,
     pub max_cycles: u32,
     pub enable_tracing: bool,
 }
 
-impl<H> Process<H>
-where
-    H: Host,
-{
+impl Process {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
     /// Creates a new process with the provided inputs.
     pub fn new(
         kernel: Kernel,
         stack_inputs: StackInputs,
-        host: H,
         execution_options: ExecutionOptions,
     ) -> Self {
-        Self::initialize(kernel, stack_inputs, host, execution_options)
+        Self::initialize(kernel, stack_inputs, execution_options)
     }
 
     /// Creates a new process with provided inputs and debug options enabled.
-    pub fn new_debug(kernel: Kernel, stack_inputs: StackInputs, host: H) -> Self {
+    pub fn new_debug(kernel: Kernel, stack_inputs: StackInputs) -> Self {
         Self::initialize(
             kernel,
             stack_inputs,
-            host,
             ExecutionOptions::default().with_tracing().with_debugging(),
         )
     }
 
-    fn initialize(
-        kernel: Kernel,
-        stack: StackInputs,
-        host: H,
-        execution_options: ExecutionOptions,
-    ) -> Self {
+    fn initialize(kernel: Kernel, stack: StackInputs, execution_options: ExecutionOptions) -> Self {
         let in_debug_mode = execution_options.enable_debugging();
         Self {
             system: System::new(execution_options.expected_cycles() as usize),
@@ -238,7 +218,6 @@ where
             stack: Stack::new(&stack, execution_options.expected_cycles() as usize, in_debug_mode),
             range: RangeChecker::new(),
             chiplets: Chiplets::new(kernel),
-            host: RefCell::new(host),
             max_cycles: execution_options.max_cycles(),
             enable_tracing: execution_options.enable_tracing(),
         }
@@ -248,12 +227,27 @@ where
     // --------------------------------------------------------------------------------------------
 
     /// Executes the provided [`Program`] in this process.
-    pub fn execute(&mut self, program: &Program) -> Result<StackOutputs, ExecutionError> {
+    pub fn execute(
+        &mut self,
+        program: &Program,
+        host: &mut impl Host,
+    ) -> Result<StackOutputs, ExecutionError> {
         if self.system.clk() != 0 {
             return Err(ExecutionError::ProgramAlreadyExecuted);
         }
 
-        self.execute_mast_node(program.entrypoint(), &program.mast_forest().clone())?;
+        // Load the program's advice data into the advice provider
+        for (digest, values) in program.mast_forest().advice_map().iter() {
+            if let Some(stored_values) = host.advice_provider().get_mapped_values(digest) {
+                if stored_values != values {
+                    return Err(ExecutionError::AdviceMapKeyAlreadyPresent(digest.into()));
+                }
+            } else {
+                host.advice_provider_mut().insert_into_map(digest.into(), values.clone());
+            }
+        }
+
+        self.execute_mast_node(program.entrypoint(), &program.mast_forest().clone(), host)?;
 
         self.stack.build_stack_outputs()
     }
@@ -265,29 +259,28 @@ where
         &mut self,
         node_id: MastNodeId,
         program: &MastForest,
+        host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
         let node = program
             .get_node_by_id(node_id)
             .ok_or(ExecutionError::MastNodeNotFoundInForest { node_id })?;
 
         for &decorator_id in node.before_enter() {
-            self.execute_decorator(&program[decorator_id])?;
+            self.execute_decorator(&program[decorator_id], host)?;
         }
 
         match node {
-            MastNode::Block(node) => self.execute_basic_block_node(node, program)?,
-            MastNode::Join(node) => self.execute_join_node(node, program)?,
-            MastNode::Split(node) => self.execute_split_node(node, program)?,
-            MastNode::Loop(node) => self.execute_loop_node(node, program)?,
-            MastNode::Call(node) => self.execute_call_node(node, program)?,
-            MastNode::Dyn(node) => self.execute_dyn_node(node, program)?,
+            MastNode::Block(node) => self.execute_basic_block_node(node, program, host)?,
+            MastNode::Join(node) => self.execute_join_node(node, program, host)?,
+            MastNode::Split(node) => self.execute_split_node(node, program, host)?,
+            MastNode::Loop(node) => self.execute_loop_node(node, program, host)?,
+            MastNode::Call(node) => self.execute_call_node(node, program, host)?,
+            MastNode::Dyn(node) => self.execute_dyn_node(node, program, host)?,
             MastNode::External(external_node) => {
                 let node_digest = external_node.digest();
-                let mast_forest = self
-                    .host
-                    .borrow()
-                    .get_mast_forest(&node_digest)
-                    .ok_or(ExecutionError::MastForestNotFound { root_digest: node_digest })?;
+                let mast_forest = host.get_mast_forest(&node_digest).ok_or(
+                    ExecutionError::NoMastForestWithProcedure { root_digest: node_digest },
+                )?;
 
                 // We limit the parts of the program that can be called externally to procedure
                 // roots, even though MAST doesn't have that restriction.
@@ -301,12 +294,12 @@ where
                     return Err(ExecutionError::CircularExternalNode(node_digest));
                 }
 
-                self.execute_mast_node(root_id, &mast_forest)?;
+                self.execute_mast_node(root_id, &mast_forest, host)?;
             },
         }
 
         for &decorator_id in node.after_exit() {
-            self.execute_decorator(&program[decorator_id])?;
+            self.execute_decorator(&program[decorator_id], host)?;
         }
 
         Ok(())
@@ -318,14 +311,15 @@ where
         &mut self,
         node: &JoinNode,
         program: &MastForest,
+        host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
-        self.start_join_node(node, program)?;
+        self.start_join_node(node, program, host)?;
 
         // execute first and then second child of the join block
-        self.execute_mast_node(node.first(), program)?;
-        self.execute_mast_node(node.second(), program)?;
+        self.execute_mast_node(node.first(), program, host)?;
+        self.execute_mast_node(node.second(), program, host)?;
 
-        self.end_join_node(node)
+        self.end_join_node(node, host)
     }
 
     /// Executes the specified [SplitNode].
@@ -334,20 +328,21 @@ where
         &mut self,
         node: &SplitNode,
         program: &MastForest,
+        host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
         // start the SPLIT block; this also pops the stack and returns the popped element
-        let condition = self.start_split_node(node, program)?;
+        let condition = self.start_split_node(node, program, host)?;
 
         // execute either the true or the false branch of the split block based on the condition
         if condition == ONE {
-            self.execute_mast_node(node.on_true(), program)?;
+            self.execute_mast_node(node.on_true(), program, host)?;
         } else if condition == ZERO {
-            self.execute_mast_node(node.on_false(), program)?;
+            self.execute_mast_node(node.on_false(), program, host)?;
         } else {
             return Err(ExecutionError::NotBinaryValue(condition));
         }
 
-        self.end_split_node(node)
+        self.end_split_node(node, host)
     }
 
     /// Executes the specified [LoopNode].
@@ -356,30 +351,31 @@ where
         &mut self,
         node: &LoopNode,
         program: &MastForest,
+        host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
         // start the LOOP block; this also pops the stack and returns the popped element
-        let condition = self.start_loop_node(node, program)?;
+        let condition = self.start_loop_node(node, program, host)?;
 
         // if the top of the stack is ONE, execute the loop body; otherwise skip the loop body
         if condition == ONE {
             // execute the loop body at least once
-            self.execute_mast_node(node.body(), program)?;
+            self.execute_mast_node(node.body(), program, host)?;
 
             // keep executing the loop body until the condition on the top of the stack is no
             // longer ONE; each iteration of the loop is preceded by executing REPEAT operation
             // which drops the condition from the stack
             while self.stack.peek() == ONE {
                 self.decoder.repeat();
-                self.execute_op(Operation::Drop)?;
-                self.execute_mast_node(node.body(), program)?;
+                self.execute_op(Operation::Drop, host)?;
+                self.execute_mast_node(node.body(), program, host)?;
             }
 
             // end the LOOP block and drop the condition from the stack
-            self.end_loop_node(node, true)
+            self.end_loop_node(node, true, host)
         } else if condition == ZERO {
             // end the LOOP block, but don't drop the condition from the stack because it was
             // already dropped when we started the LOOP block
-            self.end_loop_node(node, false)
+            self.end_loop_node(node, false, host)
         } else {
             Err(ExecutionError::NotBinaryValue(condition))
         }
@@ -391,6 +387,7 @@ where
         &mut self,
         call_node: &CallNode,
         program: &MastForest,
+        host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
         // if this is a syscall, make sure the call target exists in the kernel
         if call_node.is_syscall() {
@@ -400,9 +397,9 @@ where
             self.chiplets.access_kernel_proc(callee.digest())?;
         }
 
-        self.start_call_node(call_node, program)?;
-        self.execute_mast_node(call_node.callee(), program)?;
-        self.end_call_node(call_node)
+        self.start_call_node(call_node, program, host)?;
+        self.execute_mast_node(call_node.callee(), program, host)?;
+        self.end_call_node(call_node, host)
     }
 
     /// Executes the specified [vm_core::mast::DynNode].
@@ -414,22 +411,21 @@ where
         &mut self,
         node: &DynNode,
         program: &MastForest,
+        host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
         let callee_hash = if node.is_dyncall() {
             self.start_dyncall_node(node)?
         } else {
-            self.start_dyn_node(node)?
+            self.start_dyn_node(node, host)?
         };
 
         // if the callee is not in the program's MAST forest, try to find a MAST forest for it in
         // the host (corresponding to an external library loaded in the host); if none are
         // found, return an error.
         match program.find_procedure_root(callee_hash.into()) {
-            Some(callee_id) => self.execute_mast_node(callee_id, program)?,
+            Some(callee_id) => self.execute_mast_node(callee_id, program, host)?,
             None => {
-                let mast_forest = self
-                    .host
-                    .borrow()
+                let mast_forest = host
                     .get_mast_forest(&callee_hash.into())
                     .ok_or_else(|| ExecutionError::DynamicNodeNotFound(callee_hash.into()))?;
 
@@ -439,14 +435,14 @@ where
                     ExecutionError::MalformedMastForestInHost { root_digest: callee_hash.into() },
                 )?;
 
-                self.execute_mast_node(root_id, &mast_forest)?
+                self.execute_mast_node(root_id, &mast_forest, host)?
             },
         }
 
         if node.is_dyncall() {
-            self.end_dyncall_node(node)
+            self.end_dyncall_node(node, host)
         } else {
-            self.end_dyn_node(node)
+            self.end_dyn_node(node, host)
         }
     }
 
@@ -456,8 +452,9 @@ where
         &mut self,
         basic_block: &BasicBlockNode,
         program: &MastForest,
+        host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
-        self.start_basic_block_node(basic_block)?;
+        self.start_basic_block_node(basic_block, host)?;
 
         let mut op_offset = 0;
         let mut decorator_ids = basic_block.decorator_iter();
@@ -468,6 +465,7 @@ where
             &mut decorator_ids,
             op_offset,
             program,
+            host,
         )?;
         op_offset += basic_block.op_batches()[0].ops().len();
 
@@ -476,12 +474,12 @@ where
         // of the stack
         for op_batch in basic_block.op_batches().iter().skip(1) {
             self.respan(op_batch);
-            self.execute_op(Operation::Noop)?;
-            self.execute_op_batch(op_batch, &mut decorator_ids, op_offset, program)?;
+            self.execute_op(Operation::Noop, host)?;
+            self.execute_op_batch(op_batch, &mut decorator_ids, op_offset, program, host)?;
             op_offset += op_batch.ops().len();
         }
 
-        self.end_basic_block_node(basic_block)?;
+        self.end_basic_block_node(basic_block, host)?;
 
         // execute any decorators which have not been executed during span ops execution; this
         // can happen for decorators appearing after all operations in a block. these decorators
@@ -491,7 +489,7 @@ where
             let decorator = program
                 .get_decorator_by_id(decorator_id)
                 .ok_or(ExecutionError::DecoratorNotFoundInForest { decorator_id })?;
-            self.execute_decorator(decorator)?;
+            self.execute_decorator(decorator, host)?;
         }
 
         Ok(())
@@ -510,6 +508,7 @@ where
         decorators: &mut DecoratorIterator,
         op_offset: usize,
         program: &MastForest,
+        host: &mut impl Host,
     ) -> Result<(), ExecutionError> {
         let op_counts = batch.op_counts();
         let mut op_idx = 0;
@@ -527,12 +526,12 @@ where
                 let decorator = program
                     .get_decorator_by_id(decorator_id)
                     .ok_or(ExecutionError::DecoratorNotFoundInForest { decorator_id })?;
-                self.execute_decorator(decorator)?;
+                self.execute_decorator(decorator, host)?;
             }
 
             // decode and execute the operation
             self.decoder.execute_user_op(op, op_idx);
-            self.execute_op(op)?;
+            self.execute_op(op, host)?;
 
             // if the operation carries an immediate value, the value is stored at the next group
             // pointer; so, we advance the pointer to the following group
@@ -552,7 +551,7 @@ where
                     // bug somewhere in the assembler)
                     debug_assert!(op_idx < OP_GROUP_SIZE - 1, "invalid op index");
                     self.decoder.execute_user_op(Operation::Noop, op_idx + 1);
-                    self.execute_op(Operation::Noop)?;
+                    self.execute_op(Operation::Noop, host)?;
                 }
 
                 // then, move to the next group and reset operation index
@@ -575,7 +574,7 @@ where
         // the actual number of operation groups was not a power of two
         for group_idx in group_idx..num_batch_groups {
             self.decoder.execute_user_op(Operation::Noop, 0);
-            self.execute_op(Operation::Noop)?;
+            self.execute_op(Operation::Noop, host)?;
 
             // if we are not at the last group yet, set up the decoder for decoding the next
             // operation groups. the groups were are processing are just NOOPs - so, the op group
@@ -589,14 +588,15 @@ where
     }
 
     /// Executes the specified decorator
-    fn execute_decorator(&mut self, decorator: &Decorator) -> Result<(), ExecutionError> {
+    fn execute_decorator(
+        &mut self,
+        decorator: &Decorator,
+        host: &mut impl Host,
+    ) -> Result<(), ExecutionError> {
         match decorator {
-            Decorator::Advice(injector) => {
-                self.host.borrow_mut().set_advice(self, *injector)?;
-            },
             Decorator::Debug(options) => {
                 if self.decoder.in_debug_mode() {
-                    self.host.borrow_mut().on_debug(self, options)?;
+                    host.on_debug(self.into(), options)?;
                 }
             },
             Decorator::AsmOp(assembly_op) => {
@@ -606,48 +606,55 @@ where
             },
             Decorator::Trace(id) => {
                 if self.enable_tracing {
-                    self.host.borrow_mut().on_trace(self, *id)?;
+                    host.on_trace(self.into(), *id)?;
                 }
             },
-        }
+        };
         Ok(())
     }
 
     // PUBLIC ACCESSORS
-    // --------------------------------------------------------------------------------------------
+    // ================================================================================================
 
     pub const fn kernel(&self) -> &Kernel {
         self.chiplets.kernel()
     }
 
-    pub fn into_parts(self) -> (System, Decoder, Stack, RangeChecker, Chiplets, H) {
-        (
-            self.system,
-            self.decoder,
-            self.stack,
-            self.range,
-            self.chiplets,
-            self.host.into_inner(),
-        )
+    pub fn into_parts(self) -> (System, Decoder, Stack, RangeChecker, Chiplets) {
+        (self.system, self.decoder, self.stack, self.range, self.chiplets)
     }
 }
 
 // PROCESS STATE
 // ================================================================================================
 
-/// A trait that defines a set of methods which allow access to the state of the process.
-pub trait ProcessState {
+#[derive(Debug, Clone, Copy)]
+pub struct ProcessState<'a> {
+    system: &'a System,
+    stack: &'a Stack,
+    chiplets: &'a Chiplets,
+}
+
+impl ProcessState<'_> {
     /// Returns the current clock cycle of a process.
-    fn clk(&self) -> RowIndex;
+    pub fn clk(&self) -> RowIndex {
+        self.system.clk()
+    }
 
     /// Returns the current execution context ID.
-    fn ctx(&self) -> ContextId;
+    pub fn ctx(&self) -> ContextId {
+        self.system.ctx()
+    }
 
     /// Returns the current value of the free memory pointer.
-    fn fmp(&self) -> u64;
+    pub fn fmp(&self) -> u64 {
+        self.system.fmp().as_int()
+    }
 
     /// Returns the value located at the specified position on the stack at the current clock cycle.
-    fn get_stack_item(&self, pos: usize) -> Felt;
+    pub fn get_stack_item(&self, pos: usize) -> Felt {
+        self.stack.get(pos)
+    }
 
     /// Returns a word located at the specified word index on the stack.
     ///
@@ -659,54 +666,48 @@ pub trait ProcessState {
     /// stack will be at the last position in the word.
     ///
     /// Creating a word does not change the state of the stack.
-    fn get_stack_word(&self, word_idx: usize) -> Word;
+    pub fn get_stack_word(&self, word_idx: usize) -> Word {
+        self.stack.get_word(word_idx)
+    }
 
     /// Returns stack state at the current clock cycle. This includes the top 16 items of the
     /// stack + overflow entries.
-    fn get_stack_state(&self) -> Vec<Felt>;
+    pub fn get_stack_state(&self) -> Vec<Felt> {
+        self.stack.get_state_at(self.system.clk())
+    }
 
     /// Returns a word located at the specified context/address, or None if the address hasn't
     /// been accessed previously.
-    fn get_mem_value(&self, ctx: ContextId, addr: u32) -> Option<Word>;
+    pub fn get_mem_value(&self, ctx: ContextId, addr: u32) -> Option<Word> {
+        self.chiplets.get_mem_value(ctx, addr)
+    }
 
     /// Returns the entire memory state for the specified execution context at the current clock
     /// cycle.
     ///
     /// The state is returned as a vector of (address, value) tuples, and includes addresses which
     /// have been accessed at least once.
-    fn get_mem_state(&self, ctx: ContextId) -> Vec<(u64, Word)>;
+    pub fn get_mem_state(&self, ctx: ContextId) -> Vec<(u64, Word)> {
+        self.chiplets.get_mem_state_at(ctx, self.system.clk())
+    }
 }
 
-impl<H: Host> ProcessState for Process<H> {
-    fn clk(&self) -> RowIndex {
-        self.system.clk()
+impl<'a> From<&'a Process> for ProcessState<'a> {
+    fn from(process: &'a Process) -> Self {
+        Self {
+            system: &process.system,
+            stack: &process.stack,
+            chiplets: &process.chiplets,
+        }
     }
+}
 
-    fn ctx(&self) -> ContextId {
-        self.system.ctx()
-    }
-
-    fn fmp(&self) -> u64 {
-        self.system.fmp().as_int()
-    }
-
-    fn get_stack_item(&self, pos: usize) -> Felt {
-        self.stack.get(pos)
-    }
-
-    fn get_stack_word(&self, word_idx: usize) -> Word {
-        self.stack.get_word(word_idx)
-    }
-
-    fn get_stack_state(&self) -> Vec<Felt> {
-        self.stack.get_state_at(self.system.clk())
-    }
-
-    fn get_mem_value(&self, ctx: ContextId, addr: u32) -> Option<Word> {
-        self.chiplets.get_mem_value(ctx, addr)
-    }
-
-    fn get_mem_state(&self, ctx: ContextId) -> Vec<(u64, Word)> {
-        self.chiplets.get_mem_state_at(ctx, self.system.clk())
+impl<'a> From<&'a mut Process> for ProcessState<'a> {
+    fn from(process: &'a mut Process) -> Self {
+        Self {
+            system: &process.system,
+            stack: &process.stack,
+            chiplets: &process.chiplets,
+        }
     }
 }

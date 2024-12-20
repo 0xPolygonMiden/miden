@@ -1,14 +1,11 @@
-use super::{ExecutionError, Felt, Host, Process};
+use super::{ExecutionError, Felt, Process};
 
 // EXTENSION FIELD OPERATIONS
 // ================================================================================================
 
 const TWO: Felt = Felt::new(2);
 
-impl<H> Process<H>
-where
-    H: Host,
-{
+impl Process {
     // ARITHMETIC OPERATIONS
     // --------------------------------------------------------------------------------------------
     /// Gets the top four values from the stack [b1, b0, a1, a0], where a = (a1, a0) and
@@ -40,7 +37,7 @@ mod tests {
         super::{Felt, Operation, MIN_STACK_DEPTH},
         Process,
     };
-    use crate::{StackInputs, ZERO};
+    use crate::{DefaultHost, StackInputs, ZERO};
 
     // ARITHMETIC OPERATIONS
     // --------------------------------------------------------------------------------------------
@@ -51,10 +48,11 @@ mod tests {
         let [a0, a1, b0, b1] = [rand_value(); 4];
 
         let stack = StackInputs::new(vec![a0, a1, b0, b1]).expect("inputs lenght too long");
+        let mut host = DefaultHost::default();
         let mut process = Process::new_dummy(stack);
 
         // multiply the top two values
-        process.execute_op(Operation::Ext2Mul).unwrap();
+        process.execute_op(Operation::Ext2Mul, &mut host).unwrap();
         let a = QuadFelt::new(a0, a1);
         let b = QuadFelt::new(b0, b1);
         let c = (b * a).to_base_elements();
@@ -67,7 +65,7 @@ mod tests {
         // calling ext2mul with a stack of minimum depth is ok
         let stack = StackInputs::new(vec![]).expect("inputs lenght too long");
         let mut process = Process::new_dummy(stack);
-        assert!(process.execute_op(Operation::Ext2Mul).is_ok());
+        assert!(process.execute_op(Operation::Ext2Mul, &mut host).is_ok());
     }
 
     // HELPER FUNCTIONS

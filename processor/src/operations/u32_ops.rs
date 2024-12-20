@@ -1,6 +1,6 @@
 use super::{
     super::utils::{split_element, split_u32_into_u16},
-    ExecutionError, Felt, FieldElement, Host, Operation, Process,
+    ExecutionError, Felt, FieldElement, Operation, Process,
 };
 use crate::ZERO;
 
@@ -20,10 +20,7 @@ macro_rules! require_u32_operand {
     }};
 }
 
-impl<H> Process<H>
-where
-    H: Host,
-{
+impl Process {
     // CASTING OPERATIONS
     // --------------------------------------------------------------------------------------------
 
@@ -249,7 +246,7 @@ mod tests {
         super::{Felt, Operation},
         split_u32_into_u16, Process,
     };
-    use crate::{StackInputs, ZERO};
+    use crate::{DefaultHost, StackInputs, ZERO};
 
     // CASTING OPERATIONS
     // --------------------------------------------------------------------------------------------
@@ -257,13 +254,14 @@ mod tests {
     #[test]
     fn op_u32split() {
         // --- test a random value ---------------------------------------------
+        let mut host = DefaultHost::default();
         let a: u64 = rand_value();
         let stack = StackInputs::try_from_ints([a]).unwrap();
         let mut process = Process::new_dummy_with_decoder_helpers(stack);
         let hi = a >> 32;
         let lo = (a as u32) as u64;
 
-        process.execute_op(Operation::U32split).unwrap();
+        process.execute_op(Operation::U32split, &mut host).unwrap();
         let mut expected = [ZERO; 16];
         expected[0] = Felt::new(hi);
         expected[1] = Felt::new(lo);
@@ -276,7 +274,7 @@ mod tests {
         let hi = b >> 32;
         let lo = (b as u32) as u64;
 
-        process.execute_op(Operation::U32split).unwrap();
+        process.execute_op(Operation::U32split, &mut host).unwrap();
         let mut expected = [ZERO; 16];
         expected[0] = Felt::new(hi);
         expected[1] = Felt::new(lo);
@@ -287,11 +285,12 @@ mod tests {
     #[test]
     fn op_u32assert2() {
         // --- test random values ensuring other elements are still values are still intact -------
+        let mut host = DefaultHost::default();
         let (a, b, c, d) = get_rand_values();
         let stack = StackInputs::try_from_ints([d as u64, c as u64, b as u64, a as u64]).unwrap();
         let mut process = Process::new_dummy_with_decoder_helpers(stack);
 
-        process.execute_op(Operation::U32assert2(0)).unwrap();
+        process.execute_op(Operation::U32assert2(0), &mut host).unwrap();
         let expected = build_expected(&[a, b, c, d]);
         assert_eq!(expected, process.stack.trace_state());
     }
@@ -302,12 +301,13 @@ mod tests {
     #[test]
     fn op_u32add() {
         // --- test random values ---------------------------------------------
+        let mut host = DefaultHost::default();
         let (a, b, c, d) = get_rand_values();
         let stack = StackInputs::try_from_ints([d as u64, c as u64, b as u64, a as u64]).unwrap();
         let mut process = Process::new_dummy_with_decoder_helpers(stack);
         let (result, over) = a.overflowing_add(b);
 
-        process.execute_op(Operation::U32add).unwrap();
+        process.execute_op(Operation::U32add, &mut host).unwrap();
         let expected = build_expected(&[over as u32, result, c, d]);
         assert_eq!(expected, process.stack.trace_state());
 
@@ -320,7 +320,7 @@ mod tests {
         let (result, over) = a.overflowing_add(b);
         let (b1, b0) = split_u32_into_u16(result.into());
 
-        process.execute_op(Operation::U32add).unwrap();
+        process.execute_op(Operation::U32add, &mut host).unwrap();
         let expected = build_expected(&[over as u32, result]);
         assert_eq!(expected, process.stack.trace_state());
 
@@ -331,6 +331,7 @@ mod tests {
 
     #[test]
     fn op_u32add3() {
+        let mut host = DefaultHost::default();
         let a = rand_value::<u32>() as u64;
         let b = rand_value::<u32>() as u64;
         let c = rand_value::<u32>() as u64;
@@ -344,24 +345,25 @@ mod tests {
         let lo = result as u32;
         assert!(hi <= 2);
 
-        process.execute_op(Operation::U32add3).unwrap();
+        process.execute_op(Operation::U32add3, &mut host).unwrap();
         let expected = build_expected(&[hi, lo, d as u32]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- test with minimum stack depth ----------------------------------
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
-        assert!(process.execute_op(Operation::U32add3).is_ok());
+        assert!(process.execute_op(Operation::U32add3, &mut host).is_ok());
     }
 
     #[test]
     fn op_u32sub() {
         // --- test random values ---------------------------------------------
+        let mut host = DefaultHost::default();
         let (a, b, c, d) = get_rand_values();
         let stack = StackInputs::try_from_ints([d as u64, c as u64, b as u64, a as u64]).unwrap();
         let mut process = Process::new_dummy_with_decoder_helpers(stack);
         let (result, under) = b.overflowing_sub(a);
 
-        process.execute_op(Operation::U32sub).unwrap();
+        process.execute_op(Operation::U32sub, &mut host).unwrap();
         let expected = build_expected(&[under as u32, result, c, d]);
         assert_eq!(expected, process.stack.trace_state());
 
@@ -373,13 +375,14 @@ mod tests {
         let mut process = Process::new_dummy_with_decoder_helpers(stack);
         let (result, under) = a.overflowing_sub(b);
 
-        process.execute_op(Operation::U32sub).unwrap();
+        process.execute_op(Operation::U32sub, &mut host).unwrap();
         let expected = build_expected(&[under as u32, result]);
         assert_eq!(expected, process.stack.trace_state());
     }
 
     #[test]
     fn op_u32mul() {
+        let mut host = DefaultHost::default();
         let (a, b, c, d) = get_rand_values();
         let stack = StackInputs::try_from_ints([d as u64, c as u64, b as u64, a as u64]).unwrap();
         let mut process = Process::new_dummy_with_decoder_helpers(stack);
@@ -387,13 +390,14 @@ mod tests {
         let hi = (result >> 32) as u32;
         let lo = result as u32;
 
-        process.execute_op(Operation::U32mul).unwrap();
+        process.execute_op(Operation::U32mul, &mut host).unwrap();
         let expected = build_expected(&[hi, lo, c, d]);
         assert_eq!(expected, process.stack.trace_state());
     }
 
     #[test]
     fn op_u32madd() {
+        let mut host = DefaultHost::default();
         let (a, b, c, d) = get_rand_values();
         let stack = StackInputs::try_from_ints([d as u64, c as u64, b as u64, a as u64]).unwrap();
         let mut process = Process::new_dummy_with_decoder_helpers(stack);
@@ -401,24 +405,25 @@ mod tests {
         let hi = (result >> 32) as u32;
         let lo = result as u32;
 
-        process.execute_op(Operation::U32madd).unwrap();
+        process.execute_op(Operation::U32madd, &mut host).unwrap();
         let expected = build_expected(&[hi, lo, d]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- test with minimum stack depth ----------------------------------
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
-        assert!(process.execute_op(Operation::U32madd).is_ok());
+        assert!(process.execute_op(Operation::U32madd, &mut host).is_ok());
     }
 
     #[test]
     fn op_u32div() {
+        let mut host = DefaultHost::default();
         let (a, b, c, d) = get_rand_values();
         let stack = StackInputs::try_from_ints([d as u64, c as u64, b as u64, a as u64]).unwrap();
         let mut process = Process::new_dummy_with_decoder_helpers(stack);
         let q = b / a;
         let r = b % a;
 
-        process.execute_op(Operation::U32div).unwrap();
+        process.execute_op(Operation::U32div, &mut host).unwrap();
         let expected = build_expected(&[r, q, c, d]);
         assert_eq!(expected, process.stack.trace_state());
     }
@@ -428,32 +433,34 @@ mod tests {
 
     #[test]
     fn op_u32and() {
+        let mut host = DefaultHost::default();
         let (a, b, c, d) = get_rand_values();
         let stack = StackInputs::try_from_ints([d as u64, c as u64, b as u64, a as u64]).unwrap();
         let mut process = Process::new_dummy_with_decoder_helpers(stack);
 
-        process.execute_op(Operation::U32and).unwrap();
+        process.execute_op(Operation::U32and, &mut host).unwrap();
         let expected = build_expected(&[a & b, c, d]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- test with minimum stack depth ----------------------------------
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
-        assert!(process.execute_op(Operation::U32and).is_ok());
+        assert!(process.execute_op(Operation::U32and, &mut host).is_ok());
     }
 
     #[test]
     fn op_u32xor() {
+        let mut host = DefaultHost::default();
         let (a, b, c, d) = get_rand_values();
         let stack = StackInputs::try_from_ints([d as u64, c as u64, b as u64, a as u64]).unwrap();
         let mut process = Process::new_dummy_with_decoder_helpers(stack);
 
-        process.execute_op(Operation::U32xor).unwrap();
+        process.execute_op(Operation::U32xor, &mut host).unwrap();
         let expected = build_expected(&[a ^ b, c, d]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- test with minimum stack depth ----------------------------------
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
-        assert!(process.execute_op(Operation::U32xor).is_ok());
+        assert!(process.execute_op(Operation::U32xor, &mut host).is_ok());
     }
 
     // HELPER FUNCTIONS

@@ -522,9 +522,8 @@ fn test_mmr_pack() {
     expect_data.extend_from_slice(&[Felt::new(3), ZERO, ZERO, ZERO]); // num_leaves
     expect_data.extend_from_slice(&hash_data);
 
-    let process = build_test!(source).execute_process().unwrap();
+    let (_, host) = build_test!(source).execute_process().unwrap();
 
-    let host = process.host.borrow_mut();
     let advice_data = host.advice_provider().map().get(&hash_u8).unwrap();
     assert_eq!(advice_data, &expect_data);
 }

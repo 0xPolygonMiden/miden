@@ -11,6 +11,7 @@ use super::{Felt, FieldElement, ZERO};
 ///
 /// When `trace_enabled` is set to true, we also record all changes to the table so that we can
 /// reconstruct the overflow table at any clock cycle. This can be used for debugging purposes.
+#[derive(Debug)]
 pub struct OverflowTable {
     /// A list of all rows that were added to and then removed from the overflow table.
     all_rows: Vec<OverflowTableRow>,

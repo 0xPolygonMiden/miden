@@ -48,6 +48,7 @@ const INIT_TRACE_CAPACITY: usize = 128;
 ///   significant 4-bit limbs of the input values. With every subsequent row, the next most
 ///   significant 4-bit limb of the result is appended to it. Thus, by the 8th row, column `z`
 ///   contains the full result of the bitwise operation.
+#[derive(Debug)]
 pub struct Bitwise {
     trace: [Vec<Felt>; TRACE_WIDTH],
 }

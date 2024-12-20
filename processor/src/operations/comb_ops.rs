@@ -1,14 +1,11 @@
 use vm_core::{Felt, Operation, ONE, ZERO};
 
-use crate::{ExecutionError, Host, Process, QuadFelt};
+use crate::{ExecutionError, Process, QuadFelt};
 
 // RANDOM LINEAR COMBINATION OPERATIONS
 // ================================================================================================
 
-impl<H> Process<H>
-where
-    H: Host,
-{
+impl Process {
     // COMBINE VALUES USING RANDOMNESS
     // --------------------------------------------------------------------------------------------
     /// Performs a single step in the computation of the random linear combination:
@@ -17,8 +14,8 @@ where
     ///            \frac{T_i(x) - T_i(g \cdot z)}{x - g \cdot z} \right)}
     ///
     /// The instruction computes the numerators $\alpha_i \cdot (T_i(x) - T_i(z))$ and
-    /// $\alpha_i \cdot (T_i(x) - T_i(g \cdot z))$ and stores the values in two accumulators $p$
-    /// and $r$, respectively. This instruction is specialized to main trace columns i.e.
+    /// $\alpha_i \cdot (T_i(x) - T_i(g \cdot z))$ and stores the values in two accumulators $r$
+    /// and $p$, respectively. This instruction is specialized to main trace columns i.e.
     /// the values $T_i(x)$ are base field elements.
     ///
     /// The instruction is used in the context of STARK proof verification in order to compute
@@ -47,9 +44,9 @@ where
     /// 1. Ti for i in 0..=7 stands for the the value of the i-th trace polynomial for the current
     ///    query i.e. T_i(x).
     /// 2. (p0, p1) stands for an extension field element accumulating the values for the quotients
-    ///    with common denominator (x - z).
-    /// 3. (r0, r1) stands for an extension field element accumulating the values for the quotients
     ///    with common denominator (x - gz).
+    /// 3. (r0, r1) stands for an extension field element accumulating the values for the quotients
+    ///    with common denominator (x - z).
     /// 4. x_addr is the memory address from which we are loading the Ti's using the MSTREAM
     ///    instruction.
     /// 5. z_addr is the memory address to the i-th OOD evaluations at z and gz i.e. T_i(z):=
@@ -64,10 +61,10 @@ where
         let [t7, t6, t5, t4, t3, t2, t1, t0] = self.get_trace_values();
 
         // --- read the randomness from memory ----------------------------------------------------
-        let alpha = self.get_randomness();
+        let alpha = self.get_randomness()?;
 
         // --- read the OOD values from memory ----------------------------------------------------
-        let [tz, tgz] = self.get_ood_values();
+        let [tz, tgz] = self.get_ood_values()?;
 
         // --- read the accumulator values from stack ---------------------------------------------
         let [p, r] = self.read_accumulators();
@@ -75,7 +72,7 @@ where
         // --- compute the updated accumulator values ---------------------------------------------
         let v0 = self.stack.get(7);
         let tx = QuadFelt::new(v0, ZERO);
-        let [p_new, r_new] = [p + alpha * (tx - tz), r + alpha * (tx - tgz)];
+        let [p_new, r_new] = [p + alpha * (tx - tgz), r + alpha * (tx - tz)];
 
         // --- rotate the top 8 elements of the stack ---------------------------------------------
         self.stack.set(0, t0);
@@ -125,22 +122,23 @@ where
     }
 
     /// Returns randomness.
-    fn get_randomness(&mut self) -> QuadFelt {
+    fn get_randomness(&mut self) -> Result<QuadFelt, ExecutionError> {
         let ctx = self.system.ctx();
         let addr = self.stack.get(14);
-        let word = self.chiplets.read_mem(ctx, addr.as_int() as u32);
+        let word = self.chiplets.read_mem(ctx, addr.as_int() as u32)?;
         let a0 = word[0];
         let a1 = word[1];
-        QuadFelt::new(a0, a1)
+
+        Ok(QuadFelt::new(a0, a1))
     }
 
     /// Returns the OOD values.
-    fn get_ood_values(&mut self) -> [QuadFelt; 2] {
+    fn get_ood_values(&mut self) -> Result<[QuadFelt; 2], ExecutionError> {
         let ctx = self.system.ctx();
         let addr = self.stack.get(13);
-        let word = self.chiplets.read_mem(ctx, addr.as_int() as u32);
+        let word = self.chiplets.read_mem(ctx, addr.as_int() as u32)?;
 
-        [QuadFelt::new(word[0], word[1]), QuadFelt::new(word[2], word[3])]
+        Ok([QuadFelt::new(word[0], word[1]), QuadFelt::new(word[2], word[3])])
     }
 
     /// Reads the accumulator values.
@@ -176,7 +174,7 @@ mod tests {
     use test_utils::{build_test, rand::rand_array, TRUNCATE_STACK_PROC};
     use vm_core::{Felt, FieldElement, Operation, StackInputs, ONE, ZERO};
 
-    use crate::{ContextId, Process, QuadFelt};
+    use crate::{ContextId, DefaultHost, Process, QuadFelt};
 
     #[test]
     fn rcombine_main() {
@@ -196,27 +194,35 @@ mod tests {
         inputs.reverse();
 
         // --- setup the operand stack ------------------------------------------------------------
+        let mut host = DefaultHost::default();
         let stack_inputs = StackInputs::new(inputs.to_vec()).expect("inputs lenght too long");
         let mut process = Process::new_dummy_with_decoder_helpers(stack_inputs);
 
         // --- setup memory -----------------------------------------------------------------------
         let ctx = ContextId::root();
         let tztgz = rand_array::<Felt, 4>();
-        process.chiplets.write_mem(
-            ctx,
-            inputs[2].as_int().try_into().expect("Shouldn't fail by construction"),
-            tztgz,
-        );
+        process
+            .chiplets
+            .write_mem(
+                ctx,
+                inputs[2].as_int().try_into().expect("Shouldn't fail by construction"),
+                tztgz,
+            )
+            .unwrap();
 
         let a = rand_array::<Felt, 4>();
-        process.chiplets.write_mem(
-            ctx,
-            inputs[1].as_int().try_into().expect("Shouldn't fail by construction"),
-            a,
-        );
+        process
+            .chiplets
+            .write_mem(
+                ctx,
+                inputs[1].as_int().try_into().expect("Shouldn't fail by construction"),
+                a,
+            )
+            .unwrap();
+        process.execute_op(Operation::Noop, &mut host).unwrap();
 
         // --- execute RCOMB1 operation -----------------------------------------------------------
-        process.execute_op(Operation::RCombBase).unwrap();
+        process.execute_op(Operation::RCombBase, &mut host).unwrap();
 
         // --- check that the top 8 stack elements are correctly rotated --------------------------
         let stack_state = process.stack.trace_state();
@@ -252,8 +258,8 @@ mod tests {
         let a1 = a[1];
         let alpha = QuadFelt::new(a0, a1);
 
-        let p_new = p + alpha * (tx - tz);
-        let r_new = r + alpha * (tx - tgz);
+        let p_new = p + alpha * (tx - tgz);
+        let r_new = r + alpha * (tx - tz);
 
         assert_eq!(p_new.to_base_elements()[1], stack_state[8]);
         assert_eq!(p_new.to_base_elements()[0], stack_state[9]);
@@ -331,8 +337,8 @@ mod tests {
         let tz: Vec<QuadFelt> = tz_tgz.iter().step_by(2).map(|e| e.to_owned()).collect();
         let tgz: Vec<QuadFelt> = tz_tgz.iter().skip(1).step_by(2).map(|e| e.to_owned()).collect();
         for i in 0..8 {
-            p += a[i] * (QuadFelt::from(tx[i]) - tz[i]);
-            r += a[i] * (QuadFelt::from(tx[i]) - tgz[i]);
+            p += a[i] * (QuadFelt::from(tx[i]) - tgz[i]);
+            r += a[i] * (QuadFelt::from(tx[i]) - tz[i]);
         }
 
         // prepare the advice stack with the generated data

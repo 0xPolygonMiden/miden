@@ -1,127 +1,5 @@
 use.std::crypto::stark::constants
 
-
-#! Computes a single step of the random linear combination defining the DEEP composition polynomial
-#! that is the input to the FRI protocol. More precisely, the sum in question is:
-#! $$
-#! \sum_{i=0}^k{\alpha_i \cdot \left(\frac{T_i(x) - T_i(z)}{x - z} +
-#!            \frac{T_i(x) - T_i(z \cdot g)}{x - z \cdot g} \right)}
-#! $$
-#!
-#! and the following instruction computes the denominators $\alpha_i \cdot (T_i(x) - T_i(z))$ and
-#! $\alpha_i \cdot (T_i(x) - T_i(z \cdot g))$ and stores the values in two accumulators $r$ and $p$,
-#! respectively. This instruction is specialized to main trace columns i.e. the values $T_i(x)$ are
-#! base field elements.
-#!
-#! The stack transition of the instruction can be visualized as follows:
-#!
-#! +------+------+------+------+------+------+------+------+------+------+------+------+------+------+------+---+
-#! |  T7  |  T6  |  T5  |  T4  |  T3  |  T2  |  T1  |  T0  |  p1  |  p0  |  r1  |  r0  |x_addr|z_addr|a_addr| - |
-#! +------+------+------+------+------+------+------+------+------+------+------+------+------+------+------+---+
-#!
-#!                                                       ||
-#!                                                       \/
-#!
-#! +------+------+------+------+------+------+------+------+------+------+------+------+------+--------+--------+---+
-#! |  T0  |  T7  |  T6  |  T5  |  T4  |  T3  |  T2  |  T1  |  p1' |  p0' |  r1' |  r0' |x_addr|z_addr+1|a_addr+1| - |
-#! +------+------+------+------+------+------+------+------+------+------+------+------+------+--------+--------+---+
-#!
-#!
-#! Here:
-#! 1- Ti for i in 0..=7 stands for the the value of the i-th trace polynomial for the current query i.e. T_i(x).
-#! 2- (p0, p1) stands for an extension field element accumulating the values for the quotients with common denominator (x - gz).
-#! 3- (r0, r1) stands for an extension field element accumulating the values for the quotients with common denominator (x - z).
-#! 4- x_addr is the memory address from which we are loading the Ti's using the MSTREAM instruction.
-#! 5- z_addr is the memory address to the i-th OOD evaluation frame at z and gz i.e. T_i(z):= (T_i(z)0, T_i(z)1)
-#!  and T_i(gz):= (T_i(gz)0, T_i(gz)1)
-#! 6- a_addr is the memory address of the i-th random element used in batching the trace polynomial quotients.
-#!  The random elements a := (a0, a1) are stored in memory as [0, 0, a0, a1].
-#!
-#! Input: [T7, T6, T5, T4, T3, T2, T1, T0, p1, p0, r1, r0, x_addr, z_addr, a_addr, 0]
-#! Output: [T0, T7, T6, T5, T4, T3, T2, T1, p1', p0', r1', r0', x_addr, z_addr+1, a_addr+1, 0]
-export.combine_main
-
-    # 1) Shift trace columns values left
-    movup.7
-    #=> [T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr, a_addr, 0]
-
-    # 2) Get a_addr and update it. This is done here before the element becomes inaccessible.
-
-    # Update a_addr
-    dup.14 add.1 swap.15
-    #=> [a_addr, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr, a_addr', 0]
-
-    # 3) Load i-th OOD frame portion. This assumes that the OOD frame has been serialized with `current` and `next` rows interleaved.
-    # This also updates the z_addr pointer.
-    dup.14 add.1 swap.15
-    padw movup.4 mem_loadw
-    #=> [Tgz1, Tgz0, Tz1, Tz0, a_addr, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
-
-    # 4) Compute the numerators
-
-    # a) Compute T_i - T_i(z). This equals, in the case of T0, (-Tz1, T0 - Tz0)
-    dup.5
-    movup.4
-    #=> [Tz0, T0, Tgz1, Tgz0, Tz1, a_addr, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
-
-    sub
-    #=> [T0 - Tz0, Tgz1, Tgz0, Tz1, a_addr, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
-
-    swap.3 neg swap.2
-    #=> [Tgz0, Tgz1, -Tz1, T0 - Tz0, a_addr, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
-
-    # b) Compute T_i - T_i(gz). This equals, in the case of T0, (-Tgz1, T0 - Tgz0)
-    dup.5 swap sub
-    #=> [T0 - Tgz0, Tgz1, -Tz1, T0 - Tz0, a_addr, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
-
-    swap
-    neg
-    #=> [-Tgz1, T0 - Tgz0, -Tz1, T0 - Tz0, a_addr, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
-    #=> [Δg1, Δg0, Δ1, Δ0, a_addr, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
-    # where Δg1 := -Tgz1, Δg0 := T0 - Tgz0, Δ1 := -Tz1 and Δ0 := T0 - Tz0
-
-    # 5) Multiply by randomness
-
-    # a) Load randomness from memory
-    padw
-    movup.8 mem_loadw drop drop
-    #=> [a1, a0, Δg1, Δg0, Δ1, Δ0, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
-
-    # b) Multiply (Δ0, Δ1)
-    dup.1 dup.1
-    movup.7 movup.7
-    #=> [Δ1, Δ0, a1, a0, a1, a0, Δg1, Δg0, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
-
-    ext2mul
-    #=> [prod1, prod0, a1, a0, Δg1, Δg0, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
-    #   where (prod0, prod1) := (Δ0, Δ1) * (a0, a1)
-
-    movdn.5 movdn.5
-    #=> [a1, a0, Δg1, Δg0, prod1, prod0, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
-
-    # c) Multiply (Δg0, Δg1)
-    ext2mul
-    #=> [prodg1, prodg0, prod1, prod0, T0, T7, T6, T5, T4, T3, T2, T1, p1, p0, r1, r0, x_addr, z_addr', a_addr', 0]
-    #   where (prodg0, prodg1) := (Δg0, Δg1) * (a0, a1)
-
-    # 6) Accumulate into (p0, p1) and (r0, r1)
-    movupw.3
-
-    # a) Accumulate into (r0, r1)
-    movup.7 movup.7
-    #=> [prod1, prod0, p1, p0, r1, r0, prodg1, prodg0, T0, T7, T6, T5, T4, T3, T2, T1, x_addr, z_addr', a_addr', 0]
-    movup.5 movup.5 ext2add
-    #=> [r1', r0', p1, p0, prodg1, prodg0, T0, T7, T6, T5, T4, T3, T2, T1, x_addr, z_addr', a_addr', 0]
-
-    # b) Accumulate into (p0, p1)
-    movdn.5 movdn.5 ext2add
-    #=> [p1', p0', r1', r0', T0, T7, T6, T5, T4, T3, T2, T1, x_addr, z_addr', a_addr', 0]
-
-    # c) Prepare for next iteration.
-    movdnw.2
-    #=> [T0, T7, T6, T5, T4, T3, T2, T1, p1', p0', r1', r0', x_addr, z_addr', a_addr', 0]
-end
-
 #! Computes a single step of the random linear combination defining the DEEP composition polynomial
 #! that is the input to the FRI protocol. More precisely, the sum in question is:
 #! $$
@@ -249,22 +127,23 @@ end
 #! Loads the next query rows in the main, auxiliary and constraint composition polynomials traces.
 #! It takes a pointer to the current random query index and returns that index.
 #!
-#! Input: [query_ptr, ...]
-#! Output: [index, query_ptr, ...]
+#! Input: [Y, query_ptr, ...]
+#! Output: [Y, Y, index, query_ptr, ...]
 #!
-#! Cycles: 198
+#! where:
+#! - Y is a "garbage" word.
+#!
+#! Cycles: 206
 proc.load_query_row
     # Main trace portion of the query
 
     ## Get the next query index
-    padw
     dup.4
     mem_loadw
-    swap
-    #=> [depth, index, y, y, query_ptr, ...]
+    #=> [index, depth, y, y, query_ptr, ...] where y are "garbage" values
 
     ## Get main trace commitment and use it to get the leaf
-    movup.3 movup.3
+    movdn.3 movdn.2
     push.0.0
     exec.constants::main_trace_com_ptr mem_loadw
     #=>[R, depth, index, query_ptr, ...]
@@ -280,13 +159,30 @@ proc.load_query_row
     swapw
     #=>[R, ptr, y, y, y, depth, index, query_ptr, ...]
     exec.constants::zero_word mem_loadw
+    add.6
+    swap.3
     padw
     padw
     #=> [Y, Y, 0, 0, 0, 1, ptr, y, y, y]
-    repeat.9
+    repeat.8
         adv_pipe hperm
     end
     #=> [Y, L, Y, ptr, y, y, y, depth, index, query_ptr, ...]
+
+    ## Store the last full word of main segment columns
+    adv_loadw
+    dup.12 mem_storew
+    swapw
+    dropw
+    adv_push.1
+    adv_push.1
+    push.0
+    push.0
+    ## Store the last 2 main segment columns
+    dup.12 add.1 mem_storew
+
+    ## Final hperm
+    hperm
 
     ## Load the leaf value we got using mtree_get
     exec.constants::tmp3 mem_loadw
@@ -301,6 +197,9 @@ proc.load_query_row
     assert_eq
     #=> [Y, ptr, y, y, y, depth, index, query_ptr, ...]
 
+    ## increment ptr to account for the last two words we loaded from the advice tape
+    swapw add.2 swapw
+
 
     # Aux trace part
 
@@ -314,25 +213,19 @@ proc.load_query_row
     #=> [L, R, ptr, y, y, y, depth, index, query_ptr, ...]
 
     ## adv_pipe aux trace portion
-    push.1.0.0.0
+    push.6.0.0.0
     swapw.2
     adv_pipe hperm
-    adv_pipe hperm
+    adv_loadw
+    dup.12 mem_storew
+    swapw
     dropw
     adv_push.1
     adv_push.1
-    push.1
-    push.0
+    push.0.0
 
-    ## Store the 9-th auxiliary column
-    dup.12 mem_storew
-
-    ## Since combine_aux follows a mem_stream we need to store (i.e. pad with) the all zero word in
-    ## order to avoid over-stepping into the constraint polynomial columns.
-    swapw
-    exec.constants::zero_word mem_loadw
-    dup.12 add.1
-    mem_storew
+    ## Store the last aux segment column
+    dup.12 add.1 mem_storew
 
     ## Final hperm
     hperm
@@ -381,50 +274,48 @@ proc.load_query_row
     assert_eq
     #=> [Y, ptr, y, y, y, depth, index, query_ptr, ...]
 
-    dropw dropw drop
-    #=> [index, query_ptr, ...]
+    drop
+    #=> [Y, Y, index, query_ptr, ...]
 end
 
 #! Takes a query index and computes x := offset * domain_gen^index. It also computes the denominators
 #! (x - z) and (x - gz).
 #!
-#! Input: [index, ...]
-#! Output: [Z, x, index, ...]  where Z := [-gz1, x -gz0, -z1, x - z0]
+#! Input: [Y, Y, index, ...]
+#! Output: [Z, Y, x, index, ...]  
 #!
-#! Cycles: 68
+#! where:
+#! - Z := [-gz1, x -gz0, -z1, x - z0]
+#! - Y is a "garbage" word
+#!
+#! Cycles: 58
 proc.compute_denominators
     # Compute x = offset * domain_gen^index
-    padw
     exec.constants::lde_size_ptr mem_loadw
-    #=> [lde_size, depth, domain_gen, 0, index, ...]
+    #=> [lde_size, depth, domain_gen, 0, Y, index, ...]
     movup.2
-    dup.4
+    dup.8
     exp.u32
     exec.constants::domain_offset mul
-    #=> [x, lde_size, depth, 0, index, ...]
+    #=> [x, lde_size, depth, 0, Y, index, ...]
 
     # Get z and gz from memory
     movdn.3
-    #=> [lde_size, depth, 0, x, index, ...]
+    #=> [lde_size, depth, 0, x, Y, index, ...]
     push.0
     exec.constants::tmp1 mem_loadw
-    #=> [gz1, gz0, z1, z0, x, index, ...]
+    #=> [-z0, -gz0, -gz1, -z1, x, Y, index, ...]
 
-    # Compute Z := [-z1, x - z0, -gz1, x -gz0]
-    neg
-    dup.4
-    movup.2
-    sub
-    #=> [x-gz0, -gz1, z1, z0, x, index, ...]
+    dup.4 add
+    #=> [x-z0, -gz0, -gz1, -z1, x, Y, index, ...]
     movdn.3
-    movdn.2
-    #=> [z1, z0, -gz1, x-gz0, x, index, ...]
-    neg
-    movdn.3
-    dup.4 swap
-    sub
-    movdn.3
-    #=> [Z, x, index, ...] where Z := [-gz1, x -gz0, -z1, x - z0]
+    #=> [-gz0, -gz1, -z1, x-z0, x, Y, index, ...]
+
+    movup.4 dup movdn.9
+    #=> [x, -gz0, -gz1, -z1, x-z0, Y, x, index, ...]
+
+    add swap
+    #=> [-gz1, x - gz0, -z1, x-z0, Y, x, index, ...]
 end
 
 #! Computes the random linear combination involving the main trace columns and accumulates
@@ -439,7 +330,7 @@ end
 #! The procedure then outputs a stack in the same configuration but with the pointers and accumulators
 #! updated to [Y`, Y`, Acc`, P`, ...] where:
 #!
-#! 1. P` := [CURRENT_TRACE_ROW_PTR+18, OOD_TRACE_PTR+72, DEEP_RAND_CC_PTR+72, 0].
+#! 1. P` := [CURRENT_TRACE_ROW_PTR+18, OOD_TRACE_PTR+70, DEEP_RAND_CC_PTR+70, 0].
 #! 2. [Y`, Y`] is a "garbage" double-word used to later mem_stream auxiliary portion referenced now
 #! by CURRENT_TRACE_ROW_PTR`.
 #! 3. Acc` is the accumulator holding the updated numerator values i.e. with terms involving main
@@ -450,11 +341,16 @@ end
 #!
 #! Cycles: 81
 proc.combine_main_trace_columns
-    repeat.9
+    repeat.8
         mem_stream
         repeat.8
-            exec.combine_main
+            rcomb_base
         end
+    end
+
+    mem_stream
+    repeat.6
+        rcomb_base
     end
 end
 
@@ -470,7 +366,7 @@ end
 #! The procedure then outputs a stack in the same configuration but with the pointers and accumulators
 #! updated to [Y`, Y`, Acc`, P`, ...] where:
 #!
-#! 1. P` := [CURRENT_TRACE_ROW_PTR+6, OOD_TRACE_PTR+9, DEEP_RAND_CC_PTR+9, 0].
+#! 1. P` := [CURRENT_TRACE_ROW_PTR+4, OOD_TRACE_PTR+7, DEEP_RAND_CC_PTR+7, 0].
 #! 2. [Y`, Y`] is a "garbage" double-word used to later mem_stream constraint composition polynomial
 #! trace portion referenced now by CURRENT_TRACE_ROW_PTR`.
 #! 3. Acc` is the accumulator holding the updated numerator values i.e. with terms involving main
@@ -479,19 +375,19 @@ end
 #! Input: [Y, Y, Acc, P, ...]
 #! Output: [Y`, Y`, Acc`, P`, ...]
 #!
-#! Cycles: 12
+#! Cycles: 9
 proc.combine_aux_trace_columns
-    # Compute the random linear combination of the first 8 auxiliary trace columns
-    repeat.2
-        mem_stream
-        repeat.4
-            exec.combine_aux
-        end
+    # Compute the random linear combination of the first 4 auxiliary trace columns
+    mem_stream
+    repeat.4
+        exec.combine_aux
     end
 
-    # and the 9th aux column
+    # Compute the random linear combination of the last 3 auxiliary trace columns
     mem_stream
-    exec.combine_aux
+    repeat.3
+        exec.combine_aux
+    end
 end
 
 #! Computes the random linear combination involving the constraint composition polynomial trace
@@ -512,7 +408,7 @@ end
 #! Input: [Y, Y, Acc, P, ...]
 #! Output: [Acc`, ...]
 #!
-#! Cycles: 33
+#! Cycles: 25
 proc.combine_constraint_poly_columns
     # Save Acc
     swapw.2
@@ -532,7 +428,7 @@ proc.combine_constraint_poly_columns
     dropw
     swapw
     exec.constants::tmp3 mem_loadw
-    #=> [Acc3, Acc2, y, y, y, y, Acc1`, Acc0`, ...]
+    #=> [Acc3, Acc2, y, y, y, y, Acc1`, Acc0`, ...] where y are "garbage" values
     movdn.5 movdn.5
     #=> [y, y, y, y, Acc3, Acc2, Acc1`, Acc0`, ...]
     dropw
@@ -569,12 +465,43 @@ end
 #! Compute the DEEP composition polynomial FRI queries.
 #!
 #! Input: [query_ptr, ...]
-#! Output: [...]
-#! Cycles: 6 + num_queries * 463
+#! Output: [query_ptr, ...]
+#! Cycles: 24 + num_queries * 445
 export.compute_deep_composition_polynomial_queries
+
+    # Get pointer to help test for the last query to be processed
     exec.constants::fri_com_ptr
     dup.1
-    #=>[query_ptr, query_end_ptr, ...]
+    # =>[query_ptr, query_end_ptr, query_ptr...]
+    # Store the pointers to:
+    # 1. random values for computing DEEP polynomial
+    # 2. OOD evaluation frame
+    # 3. trace row values for the current query
+    push.0
+    exec.constants::deep_rand_coef_ptr
+    exec.constants::ood_trace_ptr
+    exec.constants::current_trace_row_ptr
+    exec.constants::tmp9 mem_storew
+    # =>[Y, query_ptr, query_end_ptr, query_ptr, ...]
+
+    # Compute the negations of z and gz where z is the OOD point
+    # We do it here as this computation is common to all queries.
+    exec.constants::z_ptr mem_loadw
+    # => [zN_1, zN_0, z1, z0, query_ptr, query_end_ptr, query_ptr, ...]
+    drop drop
+    neg swap neg  
+    # => [-z0, -z1, query_ptr, query_end_ptr, query_ptr, ...]
+    dup.1 exec.constants::trace_domain_generator_ptr mem_load mul
+    # => [-gz1, -z0, -z1, query_ptr, query_end_ptr, query_ptr, ...]
+    swap
+    # => [-z0, -gz1, -z1, query_ptr, query_end_ptr, query_ptr, ...]
+    dup exec.constants::trace_domain_generator_ptr mem_load mul
+    # => [-gz0, -z0, -gz1, -z1, query_ptr, query_end_ptr, query_ptr, ...]
+    swap
+    # => [-z0, -gz0, -gz1, -z1, query_ptr, query_end_ptr, query_ptr, ...]
+    # Save to temporary location `tmp1` for later use when computing the denominators
+    exec.constants::tmp1 mem_storew
+    # => [Y, query_ptr, query_end_ptr, query_ptr, ...]
 
     push.1
     while.true
@@ -583,19 +510,18 @@ export.compute_deep_composition_polynomial_queries
         # Load the (main, aux, constraint)-traces rows associated with the current query and get
         # the index of the query.
         #
-        # Cycles: 200
+        # Cycles: 206
         exec.load_query_row
-        #=>[index, query_ptr, query_end_ptr, ...]
+        #=>[Y, Y, index, query_ptr, query_end_ptr, query_ptr, ...]
 
 
         # II)
         #
         # Compute x := offset * domain_gen^index and denominators (x - z) and (x - gz)
         #
-        # Cycles: 68
+        # Cycles: 58
         exec.compute_denominators
-        #=> [Z, x, index, query_ptr, query_end_ptr, ...] where Z := [-gz1, x - gz0, -z1, x - z0]
-
+        #=> [Z, Y, x, index, query_ptr, query_end_ptr, query_ptr, ...] where Z := [-gz1, x - gz0, -z1, x - z0]
 
         # III)
         #
@@ -606,40 +532,37 @@ export.compute_deep_composition_polynomial_queries
 
         ## a) Push pointers
         ##
-        ## Cycles: 4
-        push.0
-        exec.constants::deep_rand_coef_ptr
-        exec.constants::ood_trace_ptr
-        exec.constants::current_trace_row_ptr
-        #=> [P, Z, x, index, query_ptr, query_end_ptr, ...]
+        ## Cycles: 3
+        swapw exec.constants::tmp9 mem_loadw
+        #=> [P, Z, x, index, query_ptr, query_end_ptr, query_ptr, ...]
         # where P := [CURRENT_TRACE_ROW_PTR, OOD_TRACE_PTR, DEEP_RAND_CC_PTR, 0]
 
         ## b) Push the accumulators
         ##
         ## Cycles: 4
         padw
-        #=> [Acc, P, Z, x, index, query_ptr, query_end_ptr, ...]
+        #=> [Acc, P, Z, x, index, query_ptr, query_end_ptr, query_ptr, ...]
         #=> where Acc =: [Acc3, Acc2, Acc1, Acc0]
 
         ## c) This will be used to mstream the elements T_i(x)
         ##
         ## Cycles: 8
         padw padw
-        #=> [Y, Y, Acc, P, Z, x, index, query_ptr, query_end_ptr, ...]
+        #=> [Y, Y, Acc, P, Z, x, index, query_ptr, query_end_ptr, query_ptr, ...]
 
         ## d) Compute the random linear combination
         ##
-        ## Cycles: 81 + 12 + 33 = 126
+        ## Cycles: 81 + 9 + 25 = 115
         exec.combine_main_trace_columns
-        exec.combine_aux_trace_columns
+        exec.combine_aux_trace_columns     
         exec.combine_constraint_poly_columns
-        #=> [Acc, Z, x, index, query_ptr, query_end_ptr, ...]
+        #=> [Acc, Z, x, index, query_ptr, query_end_ptr, query_ptr, ...]
 
         ## e) Divide by denominators and sum to get final result
         ##
         ## Cycles: 38
         exec.divide_by_denominators_and_sum
-        #=> [eval1, eval0, x, index, query_ptr, query_end_ptr, ...]
+        #=> [eval1, eval0, x, index, query_ptr, query_end_ptr, query_ptr, ...]
 
 
         # IV)
@@ -652,22 +575,21 @@ export.compute_deep_composition_polynomial_queries
         ## Cycles: 4
         movup.3 movup.3
         exec.constants::domain_offset_inv mul
-        #=> [poe, index, eval1, eval0, query_ptr, query_end_ptr, ...]
+        #=> [poe, index, eval1, eval0, query_ptr, query_end_ptr, query_ptr, ...]
 
         ## b) Store [eval0, eval1, index, poe]
         ##
         ## Cycles: 5
         dup.4 add.1 swap.5
         mem_storew
-        #=> [poe, index, eval1, eval0, query_ptr+1, query_end_ptr, ...]
+        #=> [poe, index, eval1, eval0, query_ptr+1, query_end_ptr, query_ptr, ...]
 
         ## c) Prepare stack for next iteration
         ##
-        ## Cycles: 8
-        dropw
-        dup.1 dup.1
+        ## Cycles: 4
+        dup.5 dup.5
         neq
         #=> [?, query_ptr+1, query_end_ptr, ...]
     end
-    drop drop
+    dropw drop drop
 end

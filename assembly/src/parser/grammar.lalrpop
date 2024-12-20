@@ -43,6 +43,7 @@ extern {
         "add" => Token::Add,
         "adv" => Token::Adv,
         "insert_hdword" => Token::InsertHdword,
+        "insert_hdword_d" => Token::InsertHdwordWithDomain,
         "insert_hperm" => Token::InsertHperm,
         "insert_mem" => Token::InsertMem,
         "adv_loadw" => Token::AdvLoadw,
@@ -54,8 +55,6 @@ extern {
         "push_mtnode" => Token::PushMtnode,
         "push_sig" => Token::PushSig,
         "push_smtpeek" => Token::PushSmtpeek,
-        "push_smtget" => Token::PushSmtget,
-        "push_smtset" => Token::PushSmtset,
         "push_u64div" => Token::PushU64Div,
         "and" => Token::And,
         "assert" => Token::Assert,
@@ -599,7 +598,7 @@ MacroInst: SmallOpsVec = {
 
 #[inline]
 Inst: Instruction = {
-    AdviceInjector,
+    SystemEvent,
     Call,
     Debug,
     InstWithBitSizeImmediate,
@@ -666,28 +665,18 @@ Inst: Instruction = {
 }
 
 #[inline]
-AdviceInjector: Instruction = {
-    "adv" "." "insert_hdword" <domain:MaybeImm<RawU8>> => {
-        domain.map(|domain| Instruction::AdvInject(AdviceInjectorNode::InsertHdwordImm { domain }))
-              .unwrap_or(Instruction::AdvInject(AdviceInjectorNode::InsertHdword))
-    },
-    "adv" "." "insert_hperm" => Instruction::AdvInject(AdviceInjectorNode::InsertHperm),
-    "adv" "." "insert_mem" => Instruction::AdvInject(AdviceInjectorNode::InsertMem),
-    "adv" "." "push_ext2intt" => Instruction::AdvInject(AdviceInjectorNode::PushExt2intt),
-    "adv" "." "push_mapval" <i:MaybeImm<StackWordOffset>> => {
-        i.map(|offset| Instruction::AdvInject(AdviceInjectorNode::PushMapValImm { offset }))
-         .unwrap_or(Instruction::AdvInject(AdviceInjectorNode::PushMapVal))
-    },
-    "adv" "." "push_mapvaln" <i:MaybeImm<StackWordOffset>> => {
-        i.map(|offset| Instruction::AdvInject(AdviceInjectorNode::PushMapValNImm { offset }))
-         .unwrap_or(Instruction::AdvInject(AdviceInjectorNode::PushMapValN))
-    },
-    "adv" "." "push_mtnode" => Instruction::AdvInject(AdviceInjectorNode::PushMtNode),
-    "adv" "." "push_sig" "." <kind:SignatureKind> => Instruction::AdvInject(AdviceInjectorNode::PushSignature { kind }),
-    "adv" "." "push_smtpeek" => Instruction::AdvInject(AdviceInjectorNode::PushSmtPeek),
-    "adv" "." "push_smtget" => Instruction::AdvInject(AdviceInjectorNode::PushSmtGet),
-    "adv" "." "push_smtset" => Instruction::AdvInject(AdviceInjectorNode::PushSmtSet),
-    "adv" "." "push_u64div" => Instruction::AdvInject(AdviceInjectorNode::PushU64Div),
+SystemEvent: Instruction = {
+    "adv" "." "insert_hdword" => Instruction::SysEvent(SystemEventNode::InsertHdword),
+    "adv" "." "insert_hdword_d" => Instruction::SysEvent(SystemEventNode::InsertHdwordWithDomain),
+    "adv" "." "insert_hperm" => Instruction::SysEvent(SystemEventNode::InsertHperm),
+    "adv" "." "insert_mem" => Instruction::SysEvent(SystemEventNode::InsertMem),
+    "adv" "." "push_ext2intt" => Instruction::SysEvent(SystemEventNode::PushExt2intt),
+    "adv" "." "push_mapval" => Instruction::SysEvent(SystemEventNode::PushMapVal),
+    "adv" "." "push_mapvaln" => Instruction::SysEvent(SystemEventNode::PushMapValN),
+    "adv" "." "push_mtnode" => Instruction::SysEvent(SystemEventNode::PushMtNode),
+    "adv" "." "push_sig" "." <kind:SignatureKind> => Instruction::SysEvent(SystemEventNode::PushSignature { kind }),
+    "adv" "." "push_smtpeek" => Instruction::SysEvent(SystemEventNode::PushSmtPeek),
+    "adv" "." "push_u64div" => Instruction::SysEvent(SystemEventNode::PushU64Div),
 }
 
 #[inline]
@@ -1681,9 +1670,7 @@ Opcode: &'static str = {
     "movdnw" => "movdnw",
     "movup" => "movup",
     "movupw" => "movupw",
-    "mtree_get" => "mtree_get",
     "mtree_merge" => "mtree_merge",
-    "mtree_set" => "mtree_set",
     "mtree_verify" => "mtree_verify",
     "mul" => "mul",
     "neg" => "neg",

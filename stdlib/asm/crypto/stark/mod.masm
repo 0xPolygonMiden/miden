@@ -4,23 +4,24 @@ use.std::crypto::stark::verifier
 #!   The following simplifying assumptions are currently made:
 #!   - The blowup is set to 8.
 #!   - The maximal allowed degree of the remainder polynomial is 7.
-#!   - Only the input and output stacks, assumed of fixed size equal to 16, are handled in regards
-#!   to public inputs.
+#!   - The public inputs are composed of the input and output stacks, of fixed size equal to 16.
 #!   - There are two trace segments, main and auxiliary. It is assumed that the main trace segment
-#!   is 73 columns wide while the auxiliary trace segment is 9 columns wide.
+#!   is 70 columns wide while the auxiliary trace segment is 7 columns wide.
 #!   - The OOD evaluation frame is composed of two interleaved rows, current and next, each composed
-#!    of 73 elements representing the main trace portion and 9 elements for the auxiliary trace one.
+#!    of 70 elements representing the main trace portion and 7 elements for the auxiliary trace one.
 #!   - To boost soundness, the protocol is run on a quadratic extension field and this means that
 #!    the OOD evaluation frame is composed of elements in a quadratic extension field i.e. tuples.
-#!    Similarly, elements of the auxiliary trace are quadratic extension field elements.
+#!    Similarly, elements of the auxiliary trace are quadratic extension field elements. The random
+#!    values for computing random linear combinations are also in this extension field.
 #!   - The following procedure makes use of global memory address beyond 3 * 2^30 and these are
 #!    defined in `constants.masm`.
 #!
-#! Input: [log(trace_length), num_queries, log(blowup), grinding]
-#! Output: []
+#! Input: [log(trace_length), num_queries, log(blowup), grinding, ...]
+#! Output: [...]
+#!
 #! Cycles:
 #!  1- Remainder codeword size 32:
-#!   5000 + num_queries * (40 + num_fri_layers * 76 + 26 + 463) + 83 * num_fri_layers + 10 * log(trace_length) + 1633
+#!   5013 + num_queries * (40 + num_fri_layers * 76 + 26 + 445) + 83 * num_fri_layers + 10 * log(trace_length) + 1633
 #!  2- Remainder codeword size 64:
-#!   5000 + num_queries * (40 + num_fri_layers * 76 + 26 + 463) + 83 * num_fri_layers + 10 * log(trace_length) + 3109
+#!   5013 + num_queries * (40 + num_fri_layers * 76 + 26 + 445) + 83 * num_fri_layers + 10 * log(trace_length) + 3109
 export.verifier::verify

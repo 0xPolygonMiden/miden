@@ -48,9 +48,9 @@ serde_json = "1.0"
 sha2 = "0.10"
 sha3 = "0.10"
 test-utils = { package = "miden-test-utils", path = "../test-utils" }
-winter-air = { package = "winter-air", version = "0.10" }
-winter-fri = { package = "winter-fri", version = "0.10" }
-
+vm-core = { package = "miden-core", path = "../core", version = "0.11", default-features = false }
+winter-air = { package = "winter-air", version = "0.11" }
+winter-fri = { package = "winter-fri", version = "0.11" }
 
 [build-dependencies]
 assembly = { package = "miden-assembly", path = "../assembly", version = "0.11" }

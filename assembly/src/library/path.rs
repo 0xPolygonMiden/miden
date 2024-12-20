@@ -18,18 +18,18 @@ use crate::{
 };
 
 /// Represents errors that can occur when creating, parsing, or manipulating [LibraryPath]s
-#[derive(Debug, PartialEq, Eq, thiserror::Error)]
+#[derive(Debug, thiserror::Error)]
 pub enum PathError {
     #[error("invalid library path: cannot be empty")]
     Empty,
     #[error("invalid library path component: cannot be empty")]
     EmptyComponent,
     #[error("invalid library path component: {0}")]
-    InvalidComponent(#[from] crate::ast::IdentError),
+    InvalidComponent(crate::ast::IdentError),
     #[error("invalid library path: contains invalid utf8 byte sequences")]
     InvalidUtf8,
     #[error(transparent)]
-    InvalidNamespace(#[from] crate::library::LibraryNamespaceError),
+    InvalidNamespace(crate::library::LibraryNamespaceError),
     #[error("cannot join a path with reserved name to other paths")]
     UnsupportedJoin,
 }
@@ -429,7 +429,9 @@ impl<'a> TryFrom<Vec<LibraryPathComponent<'a>>> for LibraryPath {
         let ns = match iter.next() {
             None => return Err(PathError::Empty),
             Some(LibraryPathComponent::Namespace(ns)) => ns.clone(),
-            Some(LibraryPathComponent::Normal(ident)) => LibraryNamespace::try_from(ident.clone())?,
+            Some(LibraryPathComponent::Normal(ident)) => {
+                LibraryNamespace::try_from(ident.clone()).map_err(PathError::InvalidNamespace)?
+            },
         };
         let mut components = Components::default();
         for component in iter {

@@ -1,14 +1,11 @@
-// VERIFIER CHANNEL
-// ================================================================================================
-
 use alloc::vec::Vec;
 
 use miden_air::ProcessorAir;
 use test_utils::{
-    crypto::{BatchMerkleProof, MerklePath, PartialMerkleTree, Rpo256, RpoDigest},
+    crypto::{BatchMerkleProof, PartialMerkleTree, Rpo256, RpoDigest},
     group_slice_elements,
     math::{FieldElement, QuadExtension, StarkField},
-    Felt, MerkleTreeVC, VerifierError, EMPTY_WORD,
+    Felt, MerkleTreeVC, VerifierError,
 };
 use winter_air::{
     proof::{Proof, Queries, Table, TraceOodFrame},
@@ -170,24 +167,26 @@ impl VerifierChannel {
         positions: &[usize],
     ) -> Result<(AdvMap, Vec<PartialMerkleTree>), VerifierError> {
         let queries = self.trace_queries.take().expect("already read");
-        let mut trees = Vec::new();
-
-        let proofs: Vec<_> = queries.query_proofs.into_iter().collect();
-        let main_queries = queries.main_states.clone();
-        let aux_queries = queries.aux_states.clone();
+        let proofs = queries.query_proofs;
+        let main_queries = queries.main_states;
+        let aux_queries = queries.aux_states;
         let main_queries_vec: Vec<Vec<Felt>> = main_queries.rows().map(|a| a.to_owned()).collect();
+
         let aux_queries_vec: Vec<Vec<Felt>> = aux_queries
             .as_ref()
             .unwrap()
             .rows()
             .map(|a| QuadExt::slice_as_base_elements(a).to_vec())
             .collect();
+
         let (main_trace_pmt, mut main_trace_adv_map) =
             unbatch_to_partial_mt(positions.to_vec(), main_queries_vec, proofs[0].clone());
         let (aux_trace_pmt, mut aux_trace_adv_map) =
             unbatch_to_partial_mt(positions.to_vec(), aux_queries_vec, proofs[1].clone());
-        trees.push(main_trace_pmt);
+
+        let mut trees = vec![main_trace_pmt];
         trees.push(aux_trace_pmt);
+
         main_trace_adv_map.append(&mut aux_trace_adv_map);
         Ok((main_trace_adv_map, trees))
     }
@@ -202,85 +201,58 @@ impl VerifierChannel {
         let queries = self.constraint_queries.take().expect("already read");
         let proof = queries.query_proofs;
 
-        let queries_: Vec<Vec<Felt>> = queries
+        let queries = queries
             .evaluations
             .rows()
-            .map(|a| a.iter().flat_map(|x| QuadExt::to_base_elements(*x).to_owned()).collect())
+            .map(|a| QuadExt::slice_as_base_elements(a).into())
             .collect();
         let (constraint_pmt, constraint_adv_map) =
-            unbatch_to_partial_mt(positions.to_vec(), queries_, proof);
+            unbatch_to_partial_mt(positions.to_vec(), queries, proof);
 
         Ok((constraint_adv_map, constraint_pmt))
     }
 
-    // Get the FRI layer challenges alpha
-    pub fn fri_layer_commitments(&self) -> Option<Vec<RpoDigest>> {
-        self.fri_roots.clone()
-    }
-
-    // Get remainder codeword
-    pub fn fri_remainder(&self) -> Vec<QuadExt> {
-        self.fri_remainder.clone().unwrap()
-    }
-    //
-    pub fn layer_proofs(&self) -> Vec<BatchMerkleProof<Rpo256>> {
+    /// Returns the FRI layers Merkle batch proofs.
+    pub fn fri_layer_proofs(&self) -> Vec<BatchMerkleProof<Rpo256>> {
         self.fri_layer_proofs.clone()
     }
 
-    pub fn unbatch<const N: usize, const W: usize>(
+    /// Returns the unbatched Merkle proofs as well as a global key-value map for all the FRI layer
+    /// proofs.
+    pub fn unbatch_fri_layer_proofs<const N: usize>(
         &mut self,
         positions_: &[usize],
         domain_size: usize,
         layer_commitments: Vec<RpoDigest>,
     ) -> (Vec<PartialMerkleTree>, Vec<(RpoDigest, Vec<Felt>)>) {
-        let queries = self.fri_layer_queries.clone();
+        let all_layers_queries = self.fri_layer_queries.clone();
         let mut current_domain_size = domain_size;
         let mut positions = positions_.to_vec();
-        let depth = layer_commitments.len() - 1;
+        let number_of_folds = layer_commitments.len() - 1;
 
-        let mut adv_key_map = Vec::new();
-        let mut partial_trees = Vec::new();
-        let mut layer_proofs = self.layer_proofs();
-        for query in queries.iter().take(depth) {
+        let mut global_adv_key_map = Vec::new();
+        let mut global_partial_merkle_trees = Vec::new();
+        let mut layer_proofs = self.fri_layer_proofs();
+        for current_layer_queries in all_layers_queries.iter().take(number_of_folds) {
             let mut folded_positions = fold_positions(&positions, current_domain_size, N);
 
             let layer_proof = layer_proofs.remove(0);
-            let x = group_slice_elements::<QuadExt, N>(query);
-            let leaves: Vec<RpoDigest> = x.iter().map(|row| Rpo256::hash_elements(row)).collect();
-            let unbatched_proof = layer_proof.into_openings(&leaves, &folded_positions).unwrap();
-            assert_eq!(x.len(), unbatched_proof.len());
+            let queries: Vec<_> = group_slice_elements::<QuadExt, N>(current_layer_queries)
+                .iter()
+                .map(|query| QuadExt::slice_as_base_elements(query).to_vec())
+                .collect();
 
-            let nodes: Vec<[Felt; 4]> =
-                leaves.iter().map(|leaf| [leaf[0], leaf[1], leaf[2], leaf[3]]).collect();
+            let (current_partial_merkle_tree, mut cur_adv_key_map) =
+                unbatch_to_partial_mt(folded_positions.clone(), queries, layer_proof);
 
-            let paths: Vec<MerklePath> =
-                unbatched_proof.into_iter().map(|list| list.1.into()).collect();
-
-            let iter_pos = folded_positions.iter_mut().map(|a| *a as u64);
-            let nodes_tmp = nodes.clone();
-            let iter_nodes = nodes_tmp.iter();
-            let iter_paths = paths.into_iter();
-            let mut tmp_vec = Vec::new();
-            for (p, (node, path)) in iter_pos.zip(iter_nodes.zip(iter_paths)) {
-                tmp_vec.push((p, RpoDigest::from(*node), path));
-            }
-
-            let new_pmt =
-                PartialMerkleTree::with_paths(tmp_vec).expect("should not fail from paths");
-            partial_trees.push(new_pmt);
-
-            nodes.into_iter().zip(x.iter()).for_each(|(a, b)| {
-                let mut value = QuadExt::slice_as_base_elements(b).to_owned();
-                value.extend(EMPTY_WORD);
-
-                adv_key_map.push((a.to_owned().into(), value));
-            });
+            global_partial_merkle_trees.push(current_partial_merkle_tree);
+            global_adv_key_map.append(&mut cur_adv_key_map);
 
             core::mem::swap(&mut positions, &mut folded_positions);
             current_domain_size /= N;
         }
 
-        (partial_trees, adv_key_map)
+        (global_partial_merkle_trees, global_adv_key_map)
     }
 }
 
@@ -425,36 +397,41 @@ impl ConstraintQueries {
 // HELPER FUNCTIONS
 // ================================================================================================
 
+/// Takes a set of positions, query values of a trace at these positions and a Merkle batch proof
+/// against a committment to this trace, and outputs a partial Merkle tree with individual Merkle
+/// paths for each position as well as a key-value map mapping the digests of the query values
+/// (i.e. Merkle tree leaves) to their corresponding query values.
 pub fn unbatch_to_partial_mt(
-    mut positions: Vec<usize>,
+    positions: Vec<usize>,
     queries: Vec<Vec<Felt>>,
     proof: BatchMerkleProof<Rpo256>,
 ) -> (PartialMerkleTree, Vec<(RpoDigest, Vec<Felt>)>) {
+    // hash the query values in order to get the leaf
     let leaves: Vec<RpoDigest> = queries.iter().map(|row| Rpo256::hash_elements(row)).collect();
 
-    let unbatched_proof = proof.into_openings(&leaves, &positions).unwrap();
-    let mut adv_key_map = Vec::new();
-    let nodes: Vec<[Felt; 4]> =
-        queries.iter().map(|node| [node[0], node[1], node[2], node[3]]).collect();
+    // use the computed leaves with the indices in order to unbatch the Merkle proof batch proof
+    let unbatched_proof = proof
+        .into_openings(&leaves, &positions)
+        .expect("failed to unbatch the batched Merkle proof");
 
-    let paths: Vec<MerklePath> = unbatched_proof.into_iter().map(|list| list.1.into()).collect();
-
-    let iter_pos = positions.iter_mut().map(|a| *a as u64);
-    let nodes_tmp = nodes.clone();
-    let iter_nodes = nodes_tmp.iter();
-    let iter_paths = paths.into_iter();
-    let mut tmp_vec = vec![];
-    for (p, (node, path)) in iter_pos.zip(iter_nodes.zip(iter_paths)) {
-        tmp_vec.push((p, RpoDigest::from(*node), path));
+    // construct the partial Merkle tree data
+    let mut paths_with_leaves = vec![];
+    for (position, merkle_proof) in positions.iter().zip(unbatched_proof.iter()) {
+        paths_with_leaves.push((
+            *position as u64,
+            merkle_proof.0.to_owned(),
+            merkle_proof.1.to_owned().into(),
+        ))
     }
 
-    nodes.into_iter().zip(queries.iter()).for_each(|(a, b)| {
-        let data = b.to_owned();
-        adv_key_map.push((a.to_owned().into(), data));
+    // construct the advice key map linking leaves to query values
+    let mut adv_key_map = Vec::new();
+    leaves.into_iter().zip(queries.iter()).for_each(|(leaf, query_data)| {
+        adv_key_map.push((leaf, query_data.to_owned()));
     });
 
     (
-        PartialMerkleTree::with_paths(tmp_vec).expect("should not fail from paths"),
+        PartialMerkleTree::with_paths(paths_with_leaves).expect("should not fail from paths"),
         adv_key_map,
     )
 }

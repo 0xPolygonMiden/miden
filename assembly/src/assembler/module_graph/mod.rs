@@ -223,7 +223,9 @@ impl ModuleGraph {
     /// This function will panic if the number of modules exceeds the maximum representable
     /// [ModuleIndex] value, `u16::MAX`.
     pub fn add_ast_module(&mut self, module: Box<Module>) -> Result<ModuleIndex, AssemblyError> {
-        self.add_module(PendingWrappedModule::Ast(module))
+        let res = self.add_module(PendingWrappedModule::Ast(module))?;
+        self.recompute()?;
+        Ok(res)
     }
 
     fn add_module(&mut self, module: PendingWrappedModule) -> Result<ModuleIndex, AssemblyError> {
@@ -238,6 +240,17 @@ impl ModuleGraph {
         Ok(module_id)
     }
 
+    pub fn add_ast_modules(
+        &mut self,
+        modules: impl Iterator<Item = Box<Module>>,
+    ) -> Result<Vec<ModuleIndex>, AssemblyError> {
+        let idx = modules
+            .into_iter()
+            .map(|m| self.add_module(PendingWrappedModule::Ast(m)))
+            .collect::<Result<Vec<ModuleIndex>, _>>()?;
+        self.recompute()?;
+        Ok(idx)
+    }
     fn is_pending(&self, path: &LibraryPath) -> bool {
         self.pending.iter().any(|m| m.path() == path)
     }
@@ -329,7 +342,7 @@ impl ModuleGraph {
     /// NOTE: This will return `Err` if we detect a validation error, a cycle in the graph, or an
     /// operation not supported by the current configuration. Basically, for any reason that would
     /// cause the resulting graph to represent an invalid program.
-    pub fn recompute(&mut self) -> Result<(), AssemblyError> {
+    fn recompute(&mut self) -> Result<(), AssemblyError> {
         // It is acceptable for there to be no changes, but if the graph is empty and no changes
         // are being made, we treat that as an error
         if self.modules.is_empty() && self.pending.is_empty() {

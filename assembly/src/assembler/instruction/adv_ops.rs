@@ -1,7 +1,7 @@
 use vm_core::Operation;
 
 use super::{validate_param, BasicBlockBuilder};
-use crate::{ast::AdviceInjectorNode, AssemblyError, ADVICE_READ_LIMIT};
+use crate::{AssemblyError, ADVICE_READ_LIMIT};
 
 // NON-DETERMINISTIC (ADVICE) INPUTS
 // ================================================================================================
@@ -17,15 +17,4 @@ pub fn adv_push(block_builder: &mut BasicBlockBuilder, n: u8) -> Result<(), Asse
     validate_param(n, 1..=ADVICE_READ_LIMIT)?;
     block_builder.push_op_many(Operation::AdvPop, n as usize);
     Ok(())
-}
-
-// ADVICE INJECTORS
-// ================================================================================================
-
-/// Appends advice injector decorator to the span.
-pub fn adv_inject(
-    block_builder: &mut BasicBlockBuilder,
-    injector: &AdviceInjectorNode,
-) -> Result<(), AssemblyError> {
-    block_builder.push_advice_injector(injector.into())
 }

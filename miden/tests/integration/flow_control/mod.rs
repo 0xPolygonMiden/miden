@@ -5,7 +5,7 @@ use miden_vm::Module;
 use processor::ExecutionError;
 use prover::Digest;
 use stdlib::StdLibrary;
-use test_utils::{build_test, expect_exec_error, push_inputs, StackInputs, Test};
+use test_utils::{build_test, expect_exec_error_matches, push_inputs, StackInputs, Test};
 
 // SIMPLE FLOW CONTROL TESTS
 // ================================================================================================
@@ -141,7 +141,7 @@ fn local_fn_call() {
         end";
 
     let build_test = build_test!(source, &[1, 2]);
-    expect_exec_error!(build_test, ExecutionError::InvalidStackDepthOnReturn(17));
+    expect_exec_error_matches!(build_test, ExecutionError::InvalidStackDepthOnReturn(17));
 
     let inputs = (1_u64..18).collect::<Vec<_>>();
 

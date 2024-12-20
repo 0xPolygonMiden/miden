@@ -1,3 +1,4 @@
+use alloc::boxed::Box;
 use core::{
     fmt::{Display, Formatter},
     ops::{Add, AddAssign, Bound, Index, IndexMut, Mul, RangeBounds, Sub, SubAssign},
@@ -7,10 +8,11 @@ use vm_core::Felt;
 
 /// Represents the types of errors that can occur when converting from and into [`RowIndex`] and
 /// using its operations.
-#[derive(Debug, thiserror::Error, PartialEq, Eq)]
-pub enum RowIndexError<T> {
-    #[error("value is too large to be converted into RowIndex: {0}")]
-    InvalidSize(T),
+#[derive(Debug, thiserror::Error)]
+pub enum RowIndexError {
+    // This uses Box<str> rather than String because its stack size is 8 bytes smaller.
+    #[error("value {0} is larger than u32::MAX so it cannot be converted into a RowIndex")]
+    InvalidSize(Box<str>),
 }
 
 // ROW INDEX
@@ -71,25 +73,28 @@ impl From<RowIndex> for Felt {
 /// # Panics
 ///
 /// This function will panic if the number represented by the usize is greater than the maximum
-/// [`RowIndex`] value, `u32::MAX`.
+/// [`RowIndex`] value, [`u32::MAX`].
 impl From<usize> for RowIndex {
     fn from(value: usize) -> Self {
-        let value = u32::try_from(value).map_err(|_| RowIndexError::InvalidSize(value)).unwrap();
+        let value = u32::try_from(value)
+            .map_err(|_| RowIndexError::InvalidSize(format!("{}_usize", value).into()))
+            .unwrap();
         value.into()
     }
 }
 
 /// Converts a u64 value into a [`RowIndex`].
 ///
-/// # Panics
+/// # Errors
 ///
-/// This function will panic if the number represented by the u64 is greater than the maximum
-/// [`RowIndex`] value, `u32::MAX`.
+/// This function returns an error if the number represented by the u64 is greater than the
+/// maximum [`RowIndex`] value, [`u32::MAX`].
 impl TryFrom<u64> for RowIndex {
-    type Error = RowIndexError<u64>;
+    type Error = RowIndexError;
 
     fn try_from(value: u64) -> Result<Self, Self::Error> {
-        let value = u32::try_from(value).map_err(|_| RowIndexError::InvalidSize(value))?;
+        let value = u32::try_from(value)
+            .map_err(|_| RowIndexError::InvalidSize(format!("{}_u64", value).into()))?;
         Ok(RowIndex::from(value))
     }
 }
@@ -107,7 +112,9 @@ impl From<u32> for RowIndex {
 /// This function will panic if the number represented by the i32 is less than 0.
 impl From<i32> for RowIndex {
     fn from(value: i32) -> Self {
-        let value = u32::try_from(value).map_err(|_| RowIndexError::InvalidSize(value)).unwrap();
+        let value = u32::try_from(value)
+            .map_err(|_| RowIndexError::InvalidSize(format!("{}_i32", value).into()))
+            .unwrap();
         RowIndex(value)
     }
 }
@@ -125,7 +132,9 @@ impl Sub<usize> for RowIndex {
     type Output = RowIndex;
 
     fn sub(self, rhs: usize) -> Self::Output {
-        let rhs = u32::try_from(rhs).map_err(|_| RowIndexError::InvalidSize(rhs)).unwrap();
+        let rhs = u32::try_from(rhs)
+            .map_err(|_| RowIndexError::InvalidSize(format!("{}_usize", rhs).into()))
+            .unwrap();
         RowIndex(self.0 - rhs)
     }
 }
@@ -164,7 +173,9 @@ impl Add<usize> for RowIndex {
     type Output = RowIndex;
 
     fn add(self, rhs: usize) -> Self::Output {
-        let rhs = u32::try_from(rhs).map_err(|_| RowIndexError::InvalidSize(rhs)).unwrap();
+        let rhs = u32::try_from(rhs)
+            .map_err(|_| RowIndexError::InvalidSize(format!("{}_usize", rhs).into()))
+            .unwrap();
         RowIndex(self.0 + rhs)
     }
 }
@@ -209,7 +220,10 @@ impl PartialEq<RowIndex> for RowIndex {
 
 impl PartialEq<usize> for RowIndex {
     fn eq(&self, rhs: &usize) -> bool {
-        self.0 == u32::try_from(*rhs).map_err(|_| RowIndexError::InvalidSize(*rhs)).unwrap()
+        self.0
+            == u32::try_from(*rhs)
+                .map_err(|_| RowIndexError::InvalidSize(format!("{}_usize", *rhs).into()))
+                .unwrap()
     }
 }
 
@@ -221,7 +235,9 @@ impl PartialEq<RowIndex> for i32 {
 
 impl PartialOrd<usize> for RowIndex {
     fn partial_cmp(&self, rhs: &usize) -> Option<core::cmp::Ordering> {
-        let rhs = u32::try_from(*rhs).map_err(|_| RowIndexError::InvalidSize(*rhs)).unwrap();
+        let rhs = u32::try_from(*rhs)
+            .map_err(|_| RowIndexError::InvalidSize(format!("{}_usize", *rhs).into()))
+            .unwrap();
         self.0.partial_cmp(&rhs)
     }
 }

@@ -27,6 +27,7 @@ doctest = false
 
 [[bench]]
 name = "program_execution"
+required-features = ["internal"]
 harness = false
 
 [[bench]]
@@ -41,9 +42,10 @@ path = "tests/integration/main.rs"
 concurrent = ["prover/concurrent", "std"]
 default = ["std"]
 executable = [
+    "std",
+    "internal",
     "dep:hex",
     "hex?/std",
-    "std",
     "dep:serde",
     "serde?/std",
     "dep:serde_derive",
@@ -55,6 +57,8 @@ executable = [
 ]
 metal = ["prover/metal", "std"]
 std = ["assembly/std", "processor/std", "prover/std", "verifier/std"]
+# For internal use, not meant to be used by users
+internal = ["dep:serde", "dep:serde_derive", "dep:serde_json", "dep:hex"]
 
 [dependencies]
 assembly = { package = "miden-assembly", path = "../assembly", version = "0.11", default-features = false }
@@ -82,5 +86,6 @@ num-bigint = "0.4"
 predicates = "3.1"
 test-utils = { package = "miden-test-utils", path = "../test-utils" }
 vm-core = { package = "miden-core", path = "../core", version = "0.11" }
-winter-fri = { package = "winter-fri", version = "0.10" }
+winter-fri = { package = "winter-fri", version = "0.11" }
 rand_chacha = "0.3"
+walkdir = "2.5"

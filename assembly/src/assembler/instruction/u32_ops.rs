@@ -1,5 +1,6 @@
 use vm_core::{
-    AdviceInjector, Felt,
+    sys_events::SystemEvent,
+    Felt,
     Operation::{self, *},
 };
 
@@ -298,12 +299,11 @@ pub fn u32popcnt(span_builder: &mut BasicBlockBuilder) {
 /// provider).
 ///
 /// This operation takes 42 VM cycles.
-pub fn u32clz(block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError> {
-    block_builder.push_advice_injector(AdviceInjector::U32Clz)?;
+pub fn u32clz(block_builder: &mut BasicBlockBuilder) {
+    block_builder.push_system_event(SystemEvent::U32Clz);
     block_builder.push_op(AdvPop); // [clz, n, ...]
 
     verify_clz(block_builder);
-    Ok(())
 }
 
 /// Translates `u32ctz` assembly instruction to VM operations. `u32ctz` counts the number of
@@ -311,12 +311,11 @@ pub fn u32clz(block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError
 /// provider).
 ///
 /// This operation takes 34 VM cycles.
-pub fn u32ctz(block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError> {
-    block_builder.push_advice_injector(AdviceInjector::U32Ctz)?;
+pub fn u32ctz(block_builder: &mut BasicBlockBuilder) {
+    block_builder.push_system_event(SystemEvent::U32Ctz);
     block_builder.push_op(AdvPop); // [ctz, n, ...]
 
     verify_ctz(block_builder);
-    Ok(())
 }
 
 /// Translates `u32clo` assembly instruction to VM operations. `u32clo` counts the number of
@@ -324,12 +323,11 @@ pub fn u32ctz(block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError
 /// provider).
 ///
 /// This operation takes 41 VM cycles.
-pub fn u32clo(block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError> {
-    block_builder.push_advice_injector(AdviceInjector::U32Clo)?;
+pub fn u32clo(block_builder: &mut BasicBlockBuilder) {
+    block_builder.push_system_event(SystemEvent::U32Clo);
     block_builder.push_op(AdvPop); // [clo, n, ...]
 
     verify_clo(block_builder);
-    Ok(())
 }
 
 /// Translates `u32cto` assembly instruction to VM operations. `u32cto` counts the number of
@@ -337,12 +335,11 @@ pub fn u32clo(block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError
 /// provider).
 ///
 /// This operation takes 33 VM cycles.
-pub fn u32cto(block_builder: &mut BasicBlockBuilder) -> Result<(), AssemblyError> {
-    block_builder.push_advice_injector(AdviceInjector::U32Cto)?;
+pub fn u32cto(block_builder: &mut BasicBlockBuilder) {
+    block_builder.push_system_event(SystemEvent::U32Cto);
     block_builder.push_op(AdvPop); // [cto, n, ...]
 
     verify_cto(block_builder);
-    Ok(())
 }
 
 /// Specifically handles these specific inputs per the spec.
@@ -419,7 +416,7 @@ fn prepare_bitwise<const MAX_VALUE: u8>(
 }
 
 /// Appends relevant operations to the span block for the correctness check of the `U32Clz`
-/// injector.
+/// system event.
 /// The idea is to compare the actual value with a bitmask consisting of `clz` leading ones to
 /// check that every bit in `clz` leading bits is zero and `1` additional one to check that
 /// `clz + 1`'th leading bit is one:
@@ -500,7 +497,7 @@ fn verify_clz(block_builder: &mut BasicBlockBuilder) {
 }
 
 /// Appends relevant operations to the span block for the correctness check of the `U32Clo`
-/// injector.
+/// system event.
 /// The idea is to compare the actual value with a bitmask consisting of `clo` leading ones to
 /// check that every bit in `clo` leading bits is one and `1` additional one to check that
 /// `clo + 1`'th leading bit is zero:
@@ -575,7 +572,7 @@ fn verify_clo(block_builder: &mut BasicBlockBuilder) {
 }
 
 /// Appends relevant operations to the span block for the correctness check of the `U32Ctz`
-/// injector.
+/// system event.
 /// The idea is to compare the actual value with a bitmask consisting of `ctz` trailing ones to
 /// check that every bit in `ctz` trailing bits is zero and `1` additional one to check that
 /// `ctz + 1`'th trailing bit is one:
@@ -649,7 +646,7 @@ fn verify_ctz(block_builder: &mut BasicBlockBuilder) {
 }
 
 /// Appends relevant operations to the span block for the correctness check of the `U32Cto`
-/// injector.
+/// system event.
 /// The idea is to compare the actual value with a bitmask consisting of `cto` trailing ones to
 /// check that every bit in `cto` trailing bits is one and `1` additional one to check that
 /// `cto + 1`'th trailing bit is zero:

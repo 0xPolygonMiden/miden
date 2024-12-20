@@ -11,7 +11,7 @@ DEBUG_ASSERTIONS=RUSTFLAGS="-C debug-assertions"
 FEATURES_CONCURRENT_EXEC=--features concurrent,executable
 FEATURES_LOG_TREE=--features concurrent,executable,tracing-forest
 FEATURES_METAL_EXEC=--features concurrent,executable,metal
-ALL_FEATURES_BUT_ASYNC=--features concurrent,executable,metal,testing,with-debug-info
+ALL_FEATURES_BUT_ASYNC=--features concurrent,executable,metal,testing,with-debug-info,internal
 
 # -- linting --------------------------------------------------------------------------------------
 
@@ -116,4 +116,4 @@ exec-info: ## Builds an executable with log tree enabled
 
 .PHONY: bench
 bench: ## Runs benchmarks
-	cargo bench --profile optimized
+	cargo bench --profile optimized --features internal

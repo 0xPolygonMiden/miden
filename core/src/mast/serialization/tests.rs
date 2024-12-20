@@ -1,12 +1,9 @@
 use alloc::{string::ToString, sync::Arc};
 
-use miden_crypto::{hash::rpo::RpoDigest, Felt};
+use miden_crypto::{hash::rpo::RpoDigest, Felt, ONE};
 
 use super::*;
-use crate::{
-    mast::MastForestError, operations::Operation, AdviceInjector, AssemblyOp, DebugOptions,
-    Decorator, SignatureKind,
-};
+use crate::{mast::MastForestError, operations::Operation, AssemblyOp, DebugOptions, Decorator};
 
 /// If this test fails to compile, it means that `Operation` or `Decorator` was changed. Make sure
 /// that all tests in this file are updated accordingly. For example, if a new `Operation` variant
@@ -109,27 +106,6 @@ fn confirm_operation_and_decorator_structure() {
     };
 
     match Decorator::Trace(0) {
-        Decorator::Advice(advice) => match advice {
-            AdviceInjector::MerkleNodeMerge => (),
-            AdviceInjector::MerkleNodeToStack => (),
-            AdviceInjector::UpdateMerkleNode => (),
-            AdviceInjector::MapValueToStack { include_len: _, key_offset: _ } => (),
-            AdviceInjector::U64Div => (),
-            AdviceInjector::Ext2Inv => (),
-            AdviceInjector::Ext2Intt => (),
-            AdviceInjector::SmtGet => (),
-            AdviceInjector::SmtSet => (),
-            AdviceInjector::SmtPeek => (),
-            AdviceInjector::U32Clz => (),
-            AdviceInjector::U32Ctz => (),
-            AdviceInjector::U32Clo => (),
-            AdviceInjector::U32Cto => (),
-            AdviceInjector::ILog2 => (),
-            AdviceInjector::MemToMap => (),
-            AdviceInjector::HdwordToMap { domain: _ } => (),
-            AdviceInjector::HpermToMap => (),
-            AdviceInjector::SigToStack { kind: _ } => (),
-        },
         Decorator::AsmOp(_) => (),
         Decorator::Debug(debug_options) => match debug_options {
             DebugOptions::StackAll => (),
@@ -243,36 +219,8 @@ fn serialize_deserialize_all_nodes() {
         let num_operations = operations.len();
 
         let decorators = vec![
-            (0, Decorator::Advice(AdviceInjector::MerkleNodeMerge)),
-            (0, Decorator::Advice(AdviceInjector::MerkleNodeToStack)),
-            (0, Decorator::Advice(AdviceInjector::UpdateMerkleNode)),
             (
                 0,
-                Decorator::Advice(AdviceInjector::MapValueToStack {
-                    include_len: true,
-                    key_offset: 1023,
-                }),
-            ),
-            (1, Decorator::Advice(AdviceInjector::U64Div)),
-            (3, Decorator::Advice(AdviceInjector::Ext2Inv)),
-            (5, Decorator::Advice(AdviceInjector::Ext2Intt)),
-            (5, Decorator::Advice(AdviceInjector::SmtGet)),
-            (5, Decorator::Advice(AdviceInjector::SmtSet)),
-            (5, Decorator::Advice(AdviceInjector::SmtPeek)),
-            (5, Decorator::Advice(AdviceInjector::U32Clz)),
-            (10, Decorator::Advice(AdviceInjector::U32Ctz)),
-            (10, Decorator::Advice(AdviceInjector::U32Clo)),
-            (10, Decorator::Advice(AdviceInjector::U32Cto)),
-            (10, Decorator::Advice(AdviceInjector::ILog2)),
-            (10, Decorator::Advice(AdviceInjector::MemToMap)),
-            (10, Decorator::Advice(AdviceInjector::HdwordToMap { domain: Felt::new(423) })),
-            (15, Decorator::Advice(AdviceInjector::HpermToMap)),
-            (
-                15,
-                Decorator::Advice(AdviceInjector::SigToStack { kind: SignatureKind::RpoFalcon512 }),
-            ),
-            (
-                15,
                 Decorator::AsmOp(AssemblyOp::new(
                     Some(crate::debuginfo::Location {
                         path: Arc::from("test"),
@@ -285,7 +233,7 @@ fn serialize_deserialize_all_nodes() {
                     false,
                 )),
             ),
-            (15, Decorator::Debug(DebugOptions::StackAll)),
+            (0, Decorator::Debug(DebugOptions::StackAll)),
             (15, Decorator::Debug(DebugOptions::StackTop(255))),
             (15, Decorator::Debug(DebugOptions::MemAll)),
             (15, Decorator::Debug(DebugOptions::MemInterval(0, 16))),
@@ -434,4 +382,23 @@ fn mast_forest_invalid_node_id() {
 
     // Validate normal operations
     forest.add_join(first, second).unwrap();
+}
+
+/// Test `MastForest::advice_map` serialization and deserialization.
+#[test]
+fn mast_forest_serialize_deserialize_advice_map() {
+    let mut forest = MastForest::new();
+    let deco0 = forest.add_decorator(Decorator::Trace(0)).unwrap();
+    let deco1 = forest.add_decorator(Decorator::Trace(1)).unwrap();
+    let first = forest.add_block(vec![Operation::U32add], Some(vec![(0, deco0)])).unwrap();
+    let second = forest.add_block(vec![Operation::U32and], Some(vec![(1, deco1)])).unwrap();
+    forest.add_join(first, second).unwrap();
+
+    let key = RpoDigest::new([ONE, ONE, ONE, ONE]);
+    let value = vec![ONE, ONE];
+
+    forest.advice_map_mut().insert(key, value);
+
+    let parsed = MastForest::read_from_bytes(&forest.to_bytes()).unwrap();
+    assert_eq!(forest.advice_map, parsed.advice_map);
 }

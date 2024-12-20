@@ -16,3 +16,35 @@ export.compute_lde_generator
     exp.u32
     # => [domain_gen, ..]
 end
+
+#! Validates the inputs to the recursive verifier.
+#!
+#! Input: [log(trace_length), num_queries, log(blowup), grinding, ...]
+#! Output: [log(trace_length), num_queries, log(blowup), grinding, ...]
+#!
+#! Cycles: 28
+export.validate_inputs
+    # 1) Assert that all inputs are u32 so that we can use u32 operations in what follows
+    dupw
+    u32assertw
+    # => [log(trace_length), num_queries, log(blowup), grinding, ...]
+
+    # 2) Assert that the trace length is at most 29. The 2-adicity of our field is 32 and since
+    #    the blowup factor is 8, we need to make sure that the LDE size is at most 2^32.
+    #    We also check that the trace length is greater than the minimal length supported i.e., 2^6.
+    dup u32lt.30 assert
+    u32gt.5 assert
+
+    # 3) Assert that the number of FRI queries is at most 150. This restriction is a soft one
+    #    and is due to the memory layout in the `constants.masm` files but can be updated
+    #    therein.
+    #    We also make sure that there is at least one FRI query.
+    dup u32lt.151 assert
+    u32gt.0 assert
+
+    # 4) Assert that the the log(blowup) is 3
+    eq.3 assert
+
+    # 5) Assert that the grinding factor is at most 31
+    u32lt.32 assert
+end

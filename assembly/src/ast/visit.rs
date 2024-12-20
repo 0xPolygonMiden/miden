@@ -98,8 +98,8 @@ pub trait Visit<T = ()> {
     fn visit_inst(&mut self, inst: &Span<Instruction>) -> ControlFlow<T> {
         visit_inst(self, inst)
     }
-    fn visit_advice_injector(&mut self, injector: Span<&AdviceInjectorNode>) -> ControlFlow<T> {
-        visit_advice_injector(self, injector)
+    fn visit_system_event(&mut self, sys_event: Span<&SystemEventNode>) -> ControlFlow<T> {
+        visit_system_event(self, sys_event)
     }
     fn visit_debug_options(&mut self, options: Span<&DebugOptions>) -> ControlFlow<T> {
         visit_debug_options(self, options)
@@ -167,8 +167,8 @@ where
     fn visit_inst(&mut self, inst: &Span<Instruction>) -> ControlFlow<T> {
         (**self).visit_inst(inst)
     }
-    fn visit_advice_injector(&mut self, injector: Span<&AdviceInjectorNode>) -> ControlFlow<T> {
-        (**self).visit_advice_injector(injector)
+    fn visit_system_event(&mut self, sys_event: Span<&SystemEventNode>) -> ControlFlow<T> {
+        (**self).visit_system_event(sys_event)
     }
     fn visit_debug_options(&mut self, options: Span<&DebugOptions>) -> ControlFlow<T> {
         (**self).visit_debug_options(options)
@@ -315,7 +315,7 @@ where
         | MemStoreWImm(ref imm)
         | Emit(ref imm)
         | Trace(ref imm) => visitor.visit_immediate_u32(imm),
-        AdvInject(ref injector) => visitor.visit_advice_injector(Span::new(span, injector)),
+        SysEvent(ref sys_event) => visitor.visit_system_event(Span::new(span, sys_event)),
         Exec(ref target) => visitor.visit_exec(target),
         Call(ref target) => visitor.visit_call(target),
         SysCall(ref target) => visitor.visit_syscall(target),
@@ -346,32 +346,11 @@ where
     }
 }
 
-pub fn visit_advice_injector<V, T>(
-    visitor: &mut V,
-    node: Span<&AdviceInjectorNode>,
-) -> ControlFlow<T>
+pub fn visit_system_event<V, T>(_visitor: &mut V, _node: Span<&SystemEventNode>) -> ControlFlow<T>
 where
     V: ?Sized + Visit<T>,
 {
-    match node.into_inner() {
-        AdviceInjectorNode::PushMapValImm { offset: ref imm }
-        | AdviceInjectorNode::PushMapValNImm { offset: ref imm }
-        | AdviceInjectorNode::InsertHdwordImm { domain: ref imm } => {
-            visitor.visit_immediate_u8(imm)
-        },
-        AdviceInjectorNode::PushU64Div
-        | AdviceInjectorNode::PushExt2intt
-        | AdviceInjectorNode::PushSmtGet
-        | AdviceInjectorNode::PushSmtSet
-        | AdviceInjectorNode::PushSmtPeek
-        | AdviceInjectorNode::PushMapVal
-        | AdviceInjectorNode::PushMapValN
-        | AdviceInjectorNode::PushMtNode
-        | AdviceInjectorNode::InsertMem
-        | AdviceInjectorNode::InsertHdword
-        | AdviceInjectorNode::InsertHperm
-        | AdviceInjectorNode::PushSignature { .. } => ControlFlow::Continue(()),
-    }
+    ControlFlow::Continue(())
 }
 
 pub fn visit_debug_options<V, T>(visitor: &mut V, options: Span<&DebugOptions>) -> ControlFlow<T>
@@ -531,11 +510,8 @@ pub trait VisitMut<T = ()> {
     fn visit_mut_inst(&mut self, inst: &mut Span<Instruction>) -> ControlFlow<T> {
         visit_mut_inst(self, inst)
     }
-    fn visit_mut_advice_injector(
-        &mut self,
-        injector: Span<&mut AdviceInjectorNode>,
-    ) -> ControlFlow<T> {
-        visit_mut_advice_injector(self, injector)
+    fn visit_mut_system_event(&mut self, sys_event: Span<&mut SystemEventNode>) -> ControlFlow<T> {
+        visit_mut_system_event(self, sys_event)
     }
     fn visit_mut_debug_options(&mut self, options: Span<&mut DebugOptions>) -> ControlFlow<T> {
         visit_mut_debug_options(self, options)
@@ -603,11 +579,8 @@ where
     fn visit_mut_inst(&mut self, inst: &mut Span<Instruction>) -> ControlFlow<T> {
         (**self).visit_mut_inst(inst)
     }
-    fn visit_mut_advice_injector(
-        &mut self,
-        injector: Span<&mut AdviceInjectorNode>,
-    ) -> ControlFlow<T> {
-        (**self).visit_mut_advice_injector(injector)
+    fn visit_mut_system_event(&mut self, sys_event: Span<&mut SystemEventNode>) -> ControlFlow<T> {
+        (**self).visit_mut_system_event(sys_event)
     }
     fn visit_mut_debug_options(&mut self, options: Span<&mut DebugOptions>) -> ControlFlow<T> {
         (**self).visit_mut_debug_options(options)
@@ -767,7 +740,7 @@ where
         | MemStoreWImm(ref mut imm)
         | Emit(ref mut imm)
         | Trace(ref mut imm) => visitor.visit_mut_immediate_u32(imm),
-        AdvInject(ref mut injector) => visitor.visit_mut_advice_injector(Span::new(span, injector)),
+        SysEvent(ref mut sys_event) => visitor.visit_mut_system_event(Span::new(span, sys_event)),
         Exec(ref mut target) => visitor.visit_mut_exec(target),
         Call(ref mut target) => visitor.visit_mut_call(target),
         SysCall(ref mut target) => visitor.visit_mut_syscall(target),
@@ -798,32 +771,14 @@ where
     }
 }
 
-pub fn visit_mut_advice_injector<V, T>(
-    visitor: &mut V,
-    node: Span<&mut AdviceInjectorNode>,
+pub fn visit_mut_system_event<V, T>(
+    _visitor: &mut V,
+    _node: Span<&mut SystemEventNode>,
 ) -> ControlFlow<T>
 where
     V: ?Sized + VisitMut<T>,
 {
-    match node.into_inner() {
-        AdviceInjectorNode::PushMapValImm { offset: ref mut imm }
-        | AdviceInjectorNode::PushMapValNImm { offset: ref mut imm }
-        | AdviceInjectorNode::InsertHdwordImm { domain: ref mut imm } => {
-            visitor.visit_mut_immediate_u8(imm)
-        },
-        AdviceInjectorNode::PushU64Div
-        | AdviceInjectorNode::PushExt2intt
-        | AdviceInjectorNode::PushSmtGet
-        | AdviceInjectorNode::PushSmtSet
-        | AdviceInjectorNode::PushSmtPeek
-        | AdviceInjectorNode::PushMapVal
-        | AdviceInjectorNode::PushMapValN
-        | AdviceInjectorNode::PushMtNode
-        | AdviceInjectorNode::InsertMem
-        | AdviceInjectorNode::InsertHdword
-        | AdviceInjectorNode::InsertHperm
-        | AdviceInjectorNode::PushSignature { .. } => ControlFlow::Continue(()),
-    }
+    ControlFlow::Continue(())
 }
 
 pub fn visit_mut_debug_options<V, T>(

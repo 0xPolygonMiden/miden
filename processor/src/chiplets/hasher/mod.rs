@@ -54,7 +54,7 @@ mod tests;
 ///   the trace of a control or span block that can be copied to be used later for program blocks
 ///   encountered with the same digest instead of building it from scratch everytime. The hash of
 ///   the block is used as the key here after converting it to a bytes array.
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Hasher {
     trace: HasherTrace,
     memoized_trace_map: BTreeMap<[u8; 32], (usize, usize)>,
