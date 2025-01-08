@@ -27,17 +27,20 @@ use miden_assembly::Assembler;
 // Instantiate a default, empty assembler
 let assembler = Assembler::default();
 
-// Emit a program which pushes values 3 and 5 onto the stack and adds them
-let program = assembler.assemble_program("begin push.3 push.5 add end").unwrap();
+// Example 1: Simple arithmetic
+let program = assembler
+    .assemble_program("begin push.3 push.5 add end")
+    .unwrap();
 
-// Emit a program from some source code on disk (requires the `std` feature)
-let program = assembler.assemble_program(&Path::new("./example.masm")).unwrap();
+// Example 2: Loading from file (requires the `std` feature)
+let program = assembler
+    .assemble_program(&Path::new("./example.masm"))
+    .unwrap();
 ```
 
-> [!NOTE]
-> The default assembler provides no kernel or standard libraries, you must
-> explicitly add those using the various builder methods of `Assembler`, as
-> described in the next section.
+> [!IMPORTANT]  
+> The default assembler provides no kernel or standard libraries. You must
+> explicitly add those using the various builder methods of `Assembler`.
 
 ## Assembler Options
 
@@ -148,6 +151,30 @@ use miden_assembly::Assembler;
 // Instantiate the assembler in debug mode
 let assembler = Assembler::default().with_debug_mode(true);
 ```
+
+### Testing Your Programs
+
+To test your Miden Assembly programs, you can use the following approaches:
+
+```rust
+use miden_assembly::Assembler;
+
+#[test]
+fn test_simple_program() {
+    let assembler = Assembler::default();
+    
+    // Test program compilation
+    let program = assembler
+        .assemble_program("begin push.1 push.2 add end")
+        .expect("Failed to compile program");
+        
+    // Additional test assertions...
+}
+```
+
+For more examples and testing strategies, see:
+- [Testing Guide](../docs/testing.md)
+- [Example Programs](../examples/)
 
 ## Putting it all together
 
