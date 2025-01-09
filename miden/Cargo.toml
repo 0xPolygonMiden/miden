@@ -55,6 +55,7 @@ executable = [
     "dep:rustyline",
     "dep:tracing-subscriber",
 ]
+cuda = ["prover/cuda", "std"]
 metal = ["prover/metal", "std"]
 std = ["assembly/std", "processor/std", "prover/std", "verifier/std"]
 # For internal use, not meant to be used by users

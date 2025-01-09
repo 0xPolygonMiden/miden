@@ -120,7 +120,31 @@ where
             .new_evaluator(air, aux_rand_elements, composition_coefficients)
     }
 
-    fn build_constraint_commitment<E: FieldElement<BaseField = Felt>>(
+    /// Evaluates constraint composition polynomial over the LDE domain and builds a commitment
+    /// to these evaluations.
+    ///
+    /// The evaluation is done by evaluating each composition polynomial column over the LDE
+    /// domain.
+    ///
+    /// The commitment is computed by hashing each row in the evaluation matrix, and then building
+    /// a Merkle tree from the resulting hashes.
+    ///
+    /// The composition polynomial columns are evaluated on the CPU. Afterwards the commitment
+    /// is computed on the GPU.
+    ///
+    /// ```text
+    ///        ─────────────────────────────────────────────────────
+    ///              ┌───┐ ┌───┐
+    ///  CPU:   ... ─┤fft├─┤fft├─┐                           ┌─ ...
+    ///              └───┘ └───┘ │                           │
+    ///        ╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴┼╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴╴┼╴╴╴╴╴╴
+    ///                          │ ┌──────────┐ ┌──────────┐ │
+    ///  GPU:                    └─┤   hash   ├─┤   hash   ├─┘
+    ///                            └──────────┘ └──────────┘
+    ///        ────┼────────┼────────┼────────┼────────┼────────┼───
+    ///           t=n     t=n+1    t=n+2     t=n+3   t=n+4    t=n+5
+    /// ```
+    fn build_constraint_commitment<E: FieldElement<BaseField = Self::BaseField>>(
         &self,
         composition_poly_trace: CompositionPolyTrace<E>,
         num_constraint_composition_columns: usize,

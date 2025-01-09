@@ -129,6 +129,21 @@ impl ProvingOptions {
         self
     }
 
+    /// Sets partitions for this [ProvingOptions].
+    ///
+    /// Partitions can be provided to split traces during proving and distribute work across
+    /// multiple devices. The number of partitions should be equal to the number of devices.
+    pub const fn with_partitions(mut self, num_partitions: usize) -> Self {
+        let hash_rate = match self.hash_fn {
+            HashFunction::Blake3_192 => 6,
+            HashFunction::Blake3_256 => 8,
+            HashFunction::Rpo256 => 8,
+            HashFunction::Rpx256 => 8,
+        };
+        self.proof_options = self.proof_options.with_partitions(num_partitions, hash_rate);
+        self
+    }
+
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
