@@ -1,14 +1,13 @@
-use alloc::vec::Vec;
 use core::fmt;
 
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
 use miden_formatting::prettier::{const_text, nl, Document, PrettyPrint};
 
 use crate::{
-    mast::{DecoratorId, MastForest},
+    mast::{MastForest},
     OPCODE_DYN, OPCODE_DYNCALL,
 };
-
+use crate::mast::DecoratorSpan;
 // DYN NODE
 // ================================================================================================
 
@@ -16,8 +15,8 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DynNode {
     is_dyncall: bool,
-    before_enter: Vec<DecoratorId>,
-    after_exit: Vec<DecoratorId>,
+    before_enter: DecoratorSpan,
+    after_exit: DecoratorSpan,
 }
 
 /// Constants
@@ -35,8 +34,8 @@ impl DynNode {
     pub fn new_dyn() -> Self {
         Self {
             is_dyncall: false,
-            before_enter: Vec::new(),
-            after_exit: Vec::new(),
+            before_enter: DecoratorSpan::default(),
+            after_exit: DecoratorSpan::default(),
         }
     }
 
@@ -44,8 +43,8 @@ impl DynNode {
     pub fn new_dyncall() -> Self {
         Self {
             is_dyncall: true,
-            before_enter: Vec::new(),
-            after_exit: Vec::new(),
+            before_enter: DecoratorSpan::default(),
+            after_exit: DecoratorSpan::default(),
         }
     }
 
@@ -93,12 +92,12 @@ impl DynNode {
     }
 
     /// Returns the decorators to be executed before this node is executed.
-    pub fn before_enter(&self) -> &[DecoratorId] {
+    pub fn before_enter(&self) -> &DecoratorSpan {
         &self.before_enter
     }
 
     /// Returns the decorators to be executed after this node is executed.
-    pub fn after_exit(&self) -> &[DecoratorId] {
+    pub fn after_exit(&self) -> &DecoratorSpan {
         &self.after_exit
     }
 }
@@ -106,12 +105,12 @@ impl DynNode {
 /// Mutators
 impl DynNode {
     /// Sets the list of decorators to be executed before this node.
-    pub fn set_before_enter(&mut self, decorator_ids: Vec<DecoratorId>) {
+    pub fn set_before_enter(&mut self, decorator_ids: DecoratorSpan) {
         self.before_enter = decorator_ids;
     }
 
     /// Sets the list of decorators to be executed after this node.
-    pub fn set_after_exit(&mut self, decorator_ids: Vec<DecoratorId>) {
+    pub fn set_after_exit(&mut self, decorator_ids: DecoratorSpan) {
         self.after_exit = decorator_ids;
     }
 }
@@ -142,13 +141,13 @@ impl DynNodePrettyPrint<'_> {
     /// empty, prepends `prepend` and appends `append` to the decorator document.
     fn concatenate_decorators(
         &self,
-        decorator_ids: &[DecoratorId],
+        decorator_ids: &DecoratorSpan,
         prepend: Document,
         append: Document,
     ) -> Document {
         let decorators = decorator_ids
             .iter()
-            .map(|&decorator_id| self.mast_forest[decorator_id].render())
+            .map(|decorator_id| self.mast_forest[decorator_id].render())
             .reduce(|acc, doc| acc + const_text(" ") + doc)
             .unwrap_or_default();
 

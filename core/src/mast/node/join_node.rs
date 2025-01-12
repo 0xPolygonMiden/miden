@@ -1,15 +1,14 @@
-use alloc::vec::Vec;
 use core::fmt;
 
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
 
 use crate::{
     chiplets::hasher,
-    mast::{DecoratorId, MastForest, MastForestError, MastNodeId},
+    mast::{MastForest, MastForestError, MastNodeId},
     prettier::PrettyPrint,
     OPCODE_JOIN,
 };
-
+use crate::mast::{DecoratorSpan};
 // JOIN NODE
 // ================================================================================================
 
@@ -19,8 +18,8 @@ use crate::{
 pub struct JoinNode {
     children: [MastNodeId; 2],
     digest: RpoDigest,
-    before_enter: Vec<DecoratorId>,
-    after_exit: Vec<DecoratorId>,
+    before_enter: DecoratorSpan,
+    after_exit: DecoratorSpan,
 }
 
 /// Constants
@@ -52,8 +51,8 @@ impl JoinNode {
         Ok(Self {
             children,
             digest,
-            before_enter: Vec::new(),
-            after_exit: Vec::new(),
+            before_enter: DecoratorSpan::default(),
+            after_exit: DecoratorSpan::default(),
         })
     }
 
@@ -63,8 +62,8 @@ impl JoinNode {
         Self {
             children,
             digest,
-            before_enter: Vec::new(),
-            after_exit: Vec::new(),
+            before_enter: DecoratorSpan::default(),
+            after_exit: DecoratorSpan::default(),
         }
     }
 }
@@ -98,12 +97,12 @@ impl JoinNode {
     }
 
     /// Returns the decorators to be executed before this node is executed.
-    pub fn before_enter(&self) -> &[DecoratorId] {
+    pub fn before_enter(&self) -> &DecoratorSpan {
         &self.before_enter
     }
 
     /// Returns the decorators to be executed after this node is executed.
-    pub fn after_exit(&self) -> &[DecoratorId] {
+    pub fn after_exit(&self) -> &DecoratorSpan {
         &self.after_exit
     }
 }
@@ -111,12 +110,12 @@ impl JoinNode {
 /// Mutators
 impl JoinNode {
     /// Sets the list of decorators to be executed before this node.
-    pub fn set_before_enter(&mut self, decorator_ids: Vec<DecoratorId>) {
+    pub fn set_before_enter(&mut self, decorator_ids: DecoratorSpan) {
         self.before_enter = decorator_ids;
     }
 
     /// Sets the list of decorators to be executed after this node.
-    pub fn set_after_exit(&mut self, decorator_ids: Vec<DecoratorId>) {
+    pub fn set_after_exit(&mut self, decorator_ids: DecoratorSpan) {
         self.after_exit = decorator_ids;
     }
 }
@@ -152,7 +151,7 @@ impl PrettyPrint for JoinNodePrettyPrint<'_> {
                 .join_node
                 .before_enter()
                 .iter()
-                .map(|&decorator_id| self.mast_forest[decorator_id].render())
+                .map(|decorator_id| self.mast_forest[decorator_id].render())
                 .reduce(|acc, doc| acc + const_text(" ") + doc)
                 .unwrap_or_default();
             if !pre_decorators.is_empty() {
@@ -167,7 +166,7 @@ impl PrettyPrint for JoinNodePrettyPrint<'_> {
                 .join_node
                 .after_exit()
                 .iter()
-                .map(|&decorator_id| self.mast_forest[decorator_id].render())
+                .map(|decorator_id| self.mast_forest[decorator_id].render())
                 .reduce(|acc, doc| acc + const_text(" ") + doc)
                 .unwrap_or_default();
             if !post_decorators.is_empty() {

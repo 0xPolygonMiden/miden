@@ -7,9 +7,9 @@ use vm_core::{
     crypto::hash::RpoDigest,
     debuginfo::SourceSpan,
     mast::{DecoratorId, MastNodeId},
-    DecoratorList, Felt, Kernel, Operation, Program,
+    Felt, Kernel, Operation, Program,
 };
-
+use vm_core::mast::DecoratorSpan;
 use crate::{
     ast::{self, Export, InvocationTarget, InvokeKind, ModuleKind, QualifiedProcedureName},
     diagnostics::Report,
@@ -642,10 +642,13 @@ impl Assembler {
                     )?;
 
                     if let Some(decorator_ids) = block_builder.drain_decorators() {
+                        // This just picks off the first decorator span, but should there be more than one?
+                        let span = DecoratorSpan::new_collection(decorator_ids).into_iter().next().unwrap();
+
                         // Attach the decorators before the first instance of the repeated node
                         let mut first_repeat_node =
                             block_builder.mast_forest_builder_mut()[repeat_node_id].clone();
-                        first_repeat_node.set_before_enter(decorator_ids);
+                        first_repeat_node.set_before_enter(span);
                         let first_repeat_node_id = block_builder
                             .mast_forest_builder_mut()
                             .ensure_node(first_repeat_node)?;

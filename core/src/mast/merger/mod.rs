@@ -2,10 +2,7 @@ use alloc::{collections::BTreeMap, vec::Vec};
 
 use miden_crypto::{hash::blake::Blake3Digest, utils::collections::KvMap};
 
-use crate::mast::{
-    DecoratorId, MastForest, MastForestError, MastNode, MastNodeFingerprint, MastNodeId,
-    MultiMastForestIteratorItem, MultiMastForestNodeIter,
-};
+use crate::mast::{DecoratorId, DecoratorSpan, MastForest, MastForestError, MastNode, MastNodeFingerprint, MastNodeId, MultiMastForestIteratorItem, MultiMastForestNodeIter};
 
 #[cfg(test)]
 mod tests;
@@ -151,6 +148,8 @@ impl MastForestMerger {
             let new_decorator_id = if let Some(existing_decorator) =
                 self.decorators_by_hash.get(&merging_decorator_hash)
             {
+                // This implies that in some cases it is possible to have intersecting decorator sets
+                // meaning a DecoratorSpan will potentially need to be split up
                 *existing_decorator
             } else {
                 let new_decorator_id = self.mast_forest.add_decorator(merging_decorator.clone())?;
@@ -263,8 +262,18 @@ impl MastForestMerger {
                 )
             })
         };
-        let map_decorators = |decorators: &[DecoratorId]| -> Result<Vec<_>, MastForestError> {
-            decorators.iter().map(map_decorator_id).collect()
+
+        let remap_decorator_span = |decorator_span: &DecoratorSpan| -> Result<DecoratorSpan, MastForestError>{
+            let new_decorator_ids = decorator_span
+                .iter()
+                .map(|decorator_id| map_decorator_id(&decorator_id))
+                .collect::<Result<Vec<_>, _>>()?;
+            let new_spans = DecoratorSpan::new_collection(new_decorator_ids);
+
+            new_spans
+                .into_iter()
+                .next()
+                .ok_or_else(|| MastForestError::DecoratorSpanMissing(decorator_span.offset, decorator_span.num_decorators))
         };
 
         let map_node_id = |node_id: MastNodeId| {
@@ -311,9 +320,11 @@ impl MastForestMerger {
                         basic_block_node
                             .decorators()
                             .iter()
-                            .map(|(idx, decorator_id)| match map_decorator_id(decorator_id) {
-                                Ok(mapped_decorator) => Ok((*idx, mapped_decorator)),
-                                Err(err) => Err(err),
+                            .map(|(idx, decorator_span)| {
+                                match remap_decorator_span(decorator_span) {
+                                    Ok(mapped_decorator) => Ok((*idx, mapped_decorator)),
+                                    Err(err) => Err(err),
+                                }
                             })
                             .collect::<Result<Vec<_>, _>>()?,
                     ),
@@ -327,8 +338,8 @@ impl MastForestMerger {
         // Decorators must be handled specially for basic block nodes.
         // For other node types we can handle it centrally.
         if !mapped_node.is_basic_block() {
-            mapped_node.set_before_enter(map_decorators(node.before_enter())?);
-            mapped_node.set_after_exit(map_decorators(node.after_exit())?);
+            mapped_node.set_before_enter(remap_decorator_span(node.before_enter())?);
+            mapped_node.set_after_exit(remap_decorator_span(node.after_exit())?);
         }
 
         Ok(mapped_node)

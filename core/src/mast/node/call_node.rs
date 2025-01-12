@@ -1,4 +1,3 @@
-use alloc::vec::Vec;
 use core::fmt;
 
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
@@ -9,10 +8,10 @@ use miden_formatting::{
 
 use crate::{
     chiplets::hasher,
-    mast::{DecoratorId, MastForest, MastForestError, MastNodeId},
+    mast::{MastForest, MastForestError, MastNodeId},
     OPCODE_CALL, OPCODE_SYSCALL,
 };
-
+use crate::mast::DecoratorSpan;
 // CALL NODE
 // ================================================================================================
 
@@ -27,8 +26,8 @@ pub struct CallNode {
     callee: MastNodeId,
     is_syscall: bool,
     digest: RpoDigest,
-    before_enter: Vec<DecoratorId>,
-    after_exit: Vec<DecoratorId>,
+    before_enter: DecoratorSpan,
+    after_exit: DecoratorSpan,
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -58,8 +57,8 @@ impl CallNode {
             callee,
             is_syscall: false,
             digest,
-            before_enter: Vec::new(),
-            after_exit: Vec::new(),
+            before_enter: DecoratorSpan::default(),
+            after_exit: DecoratorSpan::default(),
         })
     }
 
@@ -70,8 +69,8 @@ impl CallNode {
             callee,
             is_syscall: false,
             digest,
-            before_enter: Vec::new(),
-            after_exit: Vec::new(),
+            before_enter: DecoratorSpan::default(),
+            after_exit: DecoratorSpan::default(),
         }
     }
 
@@ -94,8 +93,8 @@ impl CallNode {
             callee,
             is_syscall: true,
             digest,
-            before_enter: Vec::new(),
-            after_exit: Vec::new(),
+            before_enter: DecoratorSpan::default(),
+            after_exit: DecoratorSpan::default(),
         })
     }
 
@@ -106,8 +105,8 @@ impl CallNode {
             callee,
             is_syscall: true,
             digest,
-            before_enter: Vec::new(),
-            after_exit: Vec::new(),
+            before_enter: DecoratorSpan::default(),
+            after_exit: DecoratorSpan::default(),
         }
     }
 }
@@ -157,12 +156,12 @@ impl CallNode {
     }
 
     /// Returns the decorators to be executed before this node is executed.
-    pub fn before_enter(&self) -> &[DecoratorId] {
+    pub fn before_enter(&self) -> &DecoratorSpan {
         &self.before_enter
     }
 
     /// Returns the decorators to be executed after this node is executed.
-    pub fn after_exit(&self) -> &[DecoratorId] {
+    pub fn after_exit(&self) -> &DecoratorSpan {
         &self.after_exit
     }
 }
@@ -170,12 +169,12 @@ impl CallNode {
 /// Mutators
 impl CallNode {
     /// Sets the list of decorators to be executed before this node.
-    pub fn set_before_enter(&mut self, decorator_ids: Vec<DecoratorId>) {
+    pub fn set_before_enter(&mut self, decorator_ids: DecoratorSpan) {
         self.before_enter = decorator_ids;
     }
 
     /// Sets the list of decorators to be executed after this node.
-    pub fn set_after_exit(&mut self, decorator_ids: Vec<DecoratorId>) {
+    pub fn set_after_exit(&mut self, decorator_ids: DecoratorSpan) {
         self.after_exit = decorator_ids;
     }
 }
@@ -206,13 +205,13 @@ impl CallNodePrettyPrint<'_> {
     /// empty, prepends `prepend` and appends `append` to the decorator document.
     fn concatenate_decorators(
         &self,
-        decorator_ids: &[DecoratorId],
+        decorator_ids: &DecoratorSpan,
         prepend: Document,
         append: Document,
     ) -> Document {
         let decorators = decorator_ids
             .iter()
-            .map(|&decorator_id| self.mast_forest[decorator_id].render())
+            .map(|decorator_id| self.mast_forest[decorator_id].render())
             .reduce(|acc, doc| acc + const_text(" ") + doc)
             .unwrap_or_default();
 

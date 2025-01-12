@@ -11,7 +11,7 @@ use vm_core::{
     },
     Decorator, DecoratorList, Operation,
 };
-
+use vm_core::mast::DecoratorSpan;
 use super::{GlobalProcedureIndex, Procedure};
 use crate::AssemblyError;
 
@@ -456,14 +456,18 @@ impl MastForestBuilder {
     }
 
     pub fn set_before_enter(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {
-        self.mast_forest[node_id].set_before_enter(decorator_ids);
+        // Does this need to have a Vec<DecoratorSpan>?
+        let span = DecoratorSpan::new_collection(decorator_ids).into_iter().next().unwrap();
+        self.mast_forest[node_id].set_before_enter(span);
 
         let new_node_fingerprint = self.fingerprint_for_node(&self[node_id]);
         self.hash_by_node_id.insert(node_id, new_node_fingerprint);
     }
 
     pub fn set_after_exit(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {
-        self.mast_forest[node_id].set_after_exit(decorator_ids);
+        // Does this need to have a Vec<DecoratorSpan>?
+        let span = DecoratorSpan::new_collection(decorator_ids).into_iter().next().unwrap();
+        self.mast_forest[node_id].set_after_exit(span);
 
         let new_node_fingerprint = self.fingerprint_for_node(&self[node_id]);
         self.hash_by_node_id.insert(node_id, new_node_fingerprint);

@@ -7,10 +7,10 @@ use miden_crypto::hash::{
 };
 
 use crate::{
-    mast::{DecoratorId, MastForest, MastForestError, MastNode, MastNodeId},
+    mast::{MastForest, MastForestError, MastNode, MastNodeId},
     Operation,
 };
-
+use crate::mast::DecoratorSpan;
 // MAST NODE EQUALITY
 // ================================================================================================
 
@@ -58,9 +58,11 @@ impl MastNodeFingerprint {
             MastNode::Block(node) => {
                 let mut bytes_to_hash = Vec::new();
 
-                for &(idx, decorator_id) in node.decorators() {
+                for &(idx, decorator_span) in node.decorators() {
                     bytes_to_hash.extend(idx.to_le_bytes());
-                    bytes_to_hash.extend(forest[decorator_id].fingerprint().as_bytes());
+                    for decorator_id in decorator_span.iter() {
+                        bytes_to_hash.extend(forest[decorator_id].fingerprint().as_bytes());
+                    }
                 }
 
                 // Add any `Assert`, `U32assert2` and `MpVerify` opcodes present, since these are
@@ -153,15 +155,15 @@ impl MastNodeFingerprint {
 fn fingerprint_from_parts(
     forest: &MastForest,
     hash_by_node_id: &BTreeMap<MastNodeId, MastNodeFingerprint>,
-    before_enter_ids: &[DecoratorId],
-    after_exit_ids: &[DecoratorId],
+    before_enter_ids: &DecoratorSpan,
+    after_exit_ids: &DecoratorSpan,
     children_ids: &[MastNodeId],
     node_digest: RpoDigest,
 ) -> Result<MastNodeFingerprint, MastForestError> {
-    let pre_decorator_hash_bytes =
-        before_enter_ids.iter().flat_map(|&id| forest[id].fingerprint().as_bytes());
-    let post_decorator_hash_bytes =
-        after_exit_ids.iter().flat_map(|&id| forest[id].fingerprint().as_bytes());
+    let mut pre_decorator_hash_bytes =
+        before_enter_ids.iter().flat_map(|id| forest[id].fingerprint().as_bytes()).peekable();
+    let mut post_decorator_hash_bytes =
+        after_exit_ids.iter().flat_map(|id| forest[id].fingerprint().as_bytes()).peekable();
 
     let children_decorator_roots = children_ids
         .iter()
@@ -177,8 +179,8 @@ fn fingerprint_from_parts(
     // Reminder: the `MastNodeFingerprint`'s decorator root will be `None` if and only if there are
     // no decorators attached to the node, and all children have no decorator roots (meaning
     // that there are no decorators in all the descendants).
-    if pre_decorator_hash_bytes.clone().next().is_none()
-        && post_decorator_hash_bytes.clone().next().is_none()
+    if pre_decorator_hash_bytes.peek().is_none()
+        && post_decorator_hash_bytes.peek().is_none()
         && children_decorator_roots.is_empty()
     {
         Ok(MastNodeFingerprint::new(node_digest))

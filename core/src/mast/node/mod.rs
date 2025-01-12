@@ -27,7 +27,7 @@ pub use split_node::SplitNode;
 mod loop_node;
 pub use loop_node::LoopNode;
 
-use super::{DecoratorId, MastForestError};
+use super::{DecoratorSpan, MastForestError};
 use crate::{
     mast::{MastForest, MastNodeId},
     DecoratorList, Operation,
@@ -206,10 +206,10 @@ impl MastNode {
     }
 
     /// Returns the decorators to be executed before this node is executed.
-    pub fn before_enter(&self) -> &[DecoratorId] {
+    pub fn before_enter(&self) -> &DecoratorSpan {
         use MastNode::*;
         match self {
-            Block(_) => &[],
+            Block(_) => &DecoratorSpan { offset: 0, num_decorators: 0 },  // cannot use default because it is temporary
             Join(node) => node.before_enter(),
             Split(node) => node.before_enter(),
             Loop(node) => node.before_enter(),
@@ -220,10 +220,10 @@ impl MastNode {
     }
 
     /// Returns the decorators to be executed after this node is executed.
-    pub fn after_exit(&self) -> &[DecoratorId] {
+    pub fn after_exit(&self) -> &DecoratorSpan {
         use MastNode::*;
         match self {
-            Block(_) => &[],
+            Block(_) => &DecoratorSpan { offset: 0, num_decorators: 0 },  // cannot use default because it is temporary
             Join(node) => node.after_exit(),
             Split(node) => node.after_exit(),
             Loop(node) => node.after_exit(),
@@ -237,7 +237,8 @@ impl MastNode {
 /// Mutators
 impl MastNode {
     /// Sets the list of decorators to be executed before this node.
-    pub fn set_before_enter(&mut self, decorator_ids: Vec<DecoratorId>) {
+    pub fn set_before_enter(&mut self, decorator_ids: DecoratorSpan) {
+        // Here the question is do we set with DecoratorSpan or list of DecoratorSpans(Will decorator ids ever be disjointed)?
         match self {
             MastNode::Block(node) => node.prepend_decorators(decorator_ids),
             MastNode::Join(node) => node.set_before_enter(decorator_ids),
@@ -250,7 +251,7 @@ impl MastNode {
     }
 
     /// Sets the list of decorators to be executed after this node.
-    pub fn set_after_exit(&mut self, decorator_ids: Vec<DecoratorId>) {
+    pub fn set_after_exit(&mut self, decorator_ids: DecoratorSpan) {
         match self {
             MastNode::Block(node) => node.append_decorators(decorator_ids),
             MastNode::Join(node) => node.set_after_exit(decorator_ids),

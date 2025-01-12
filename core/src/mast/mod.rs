@@ -14,7 +14,7 @@ pub use node::{
     BasicBlockNode, CallNode, DynNode, ExternalNode, JoinNode, LoopNode, MastNode, OpBatch,
     OperationOrDecorator, SplitNode, OP_BATCH_SIZE, OP_GROUP_SIZE,
 };
-use winter_utils::{ByteWriter, DeserializationError, Serializable};
+use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
 use crate::{AdviceMap, Decorator, DecoratorList, Operation};
 
@@ -199,11 +199,11 @@ impl MastForest {
         Some(id_remappings)
     }
 
-    pub fn set_before_enter(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {
+    pub fn set_before_enter(&mut self, node_id: MastNodeId, decorator_ids: DecoratorSpan) {
         self[node_id].set_before_enter(decorator_ids)
     }
 
-    pub fn set_after_exit(&mut self, node_id: MastNodeId, decorator_ids: Vec<DecoratorId>) {
+    pub fn set_after_exit(&mut self, node_id: MastNodeId, decorator_ids: DecoratorSpan) {
         self[node_id].set_after_exit(decorator_ids)
     }
 
@@ -621,6 +621,132 @@ impl fmt::Display for MastNodeId {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Default, Copy)]
+pub struct DecoratorSpan {
+    /// Offset into the decorators vector of the mast forest.
+    offset: u32,
+
+    /// The number of decorators in this span.
+    num_decorators: u32,
+}
+
+impl DecoratorSpan {
+    pub fn new_collection(decorator_ids: Vec<DecoratorId>) -> Vec<DecoratorSpan> {
+        // Test that this returns an empty decoratorspan if the DecoratorId list is empty
+        let mut sorted_ids = decorator_ids;
+        sorted_ids.sort_unstable();
+
+        sorted_ids
+            .into_iter()
+            .fold(Vec::new(), |mut spans: Vec<DecoratorSpan>, id| {
+                if let Some(last) = spans.last_mut() {
+                    if last.offset + last.num_decorators == id.as_u32() {
+                        last.num_decorators += 1;
+                        return spans;
+                    }
+                }
+                spans.push(DecoratorSpan {
+                    offset: id.as_u32(),
+                    num_decorators: 1,
+                });
+                spans
+            })
+    }
+
+    pub fn from_raw_ops_decorators(decorators: Vec<(usize, DecoratorId)>) -> Option<DecoratorList> {
+        if !decorators.is_empty() {
+            let mut decorators_list: DecoratorList = Vec::new();
+            let mut current_index: Option<usize> = None;
+            let mut current_group: Vec<DecoratorId> = Vec::new();
+
+            for (index, decorator_id) in decorators{
+                if Some(index) != current_index {
+                    //process the previous group
+                    if !current_group.is_empty() {
+                        let spans = DecoratorSpan::new_collection(current_group);
+                        if let Some(span) = spans.into_iter().next() {
+                            decorators_list.push((index, span));
+                        }
+                    }
+                    // Start a new group
+                    current_index = Some(index);
+                    current_group = Vec::new();
+                }
+                current_group.push(decorator_id);
+            }
+
+            // Process the last group
+            if let Some(idx) = current_index {
+                if !current_group.is_empty() {
+                    let spans = DecoratorSpan::new_collection(current_group);
+                    if let Some(span) = spans.into_iter().next() {
+                        decorators_list.push((idx, span));
+                    }
+                }
+            }
+            Some(decorators_list)
+        } else {
+            None
+        }
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = DecoratorId> { //Should this return a reference?
+        (self.offset..self.offset + self.num_decorators).map(DecoratorId)
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.num_decorators == 0
+    }
+
+    pub fn read_safe<R: ByteReader>(
+        source: &mut R,
+        mast_forest: &MastForest,
+    ) -> Result<Self, DeserializationError> {
+        let value = Self::read_from(source)?;
+        let last_decorator_id = (value.offset + value.num_decorators) as usize;
+        if last_decorator_id < mast_forest.decorators.len() {
+            Ok(Self { offset: value.offset, num_decorators: value.num_decorators })
+        } else {
+            Err(DeserializationError::InvalidValue(format!(
+                "Invalid deserialized MAST decorator span with offset'{}' and num_decorators'{}', but only {} decorators in the forest",
+                value.offset, value.num_decorators,
+                mast_forest.nodes.len(),
+            )))
+        }
+    }
+}
+
+impl Deserializable for DecoratorSpan {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let offset = source.read_u32()?;
+        let num_decorators = source.read_u32()?;
+        Ok(DecoratorSpan { offset, num_decorators })
+    }
+}
+impl From<Vec<DecoratorId>> for DecoratorSpan {
+    fn from(decorator_ids: Vec<DecoratorId>) -> Self {
+        // Create a DecoratorSpan based on the size of the list and the first offset
+        let num_decorators = decorator_ids.len() as u32;
+        let offset = if num_decorators > 0 {
+            decorator_ids[0].into()
+        } else {
+            0
+        };
+
+        DecoratorSpan {
+            offset,
+            num_decorators,
+        }
+    }
+}
+
+impl Serializable for DecoratorSpan {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.offset.write_into(target);
+        self.num_decorators.write_into(target);
+    }
+}
+
 // DECORATOR ID
 // ================================================================================================
 
@@ -707,6 +833,8 @@ pub enum MastForestError {
     NodeIdOverflow(MastNodeId, usize),
     #[error("decorator id {0} is greater than or equal to decorator count {1}")]
     DecoratorIdOverflow(DecoratorId, usize),
+    #[error("decorator span with offset '{0}' and num_decorators '{1}' should remap when merging, but was not")]
+    DecoratorSpanMissing(u32, u32),
     #[error("basic block cannot be created from an empty list of operations")]
     EmptyBasicBlock,
     #[error("decorator root of child with node id {0} is missing but is required for fingerprint computation")]

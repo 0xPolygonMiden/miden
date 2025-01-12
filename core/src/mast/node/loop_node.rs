@@ -1,4 +1,3 @@
-use alloc::vec::Vec;
 use core::fmt;
 
 use miden_crypto::{hash::rpo::RpoDigest, Felt};
@@ -6,10 +5,9 @@ use miden_formatting::prettier::PrettyPrint;
 
 use crate::{
     chiplets::hasher,
-    mast::{DecoratorId, MastForest, MastForestError, MastNodeId},
+    mast::{DecoratorSpan, MastForest, MastForestError, MastNodeId},
     OPCODE_LOOP,
 };
-
 // LOOP NODE
 // ================================================================================================
 
@@ -23,8 +21,8 @@ use crate::{
 pub struct LoopNode {
     body: MastNodeId,
     digest: RpoDigest,
-    before_enter: Vec<DecoratorId>,
-    after_exit: Vec<DecoratorId>,
+    before_enter: DecoratorSpan,
+    after_exit: DecoratorSpan,
 }
 
 /// Constants
@@ -49,8 +47,8 @@ impl LoopNode {
         Ok(Self {
             body,
             digest,
-            before_enter: Vec::new(),
-            after_exit: Vec::new(),
+            before_enter: DecoratorSpan::default(),
+            after_exit: DecoratorSpan::default(),
         })
     }
 
@@ -60,8 +58,8 @@ impl LoopNode {
         Self {
             body,
             digest,
-            before_enter: Vec::new(),
-            after_exit: Vec::new(),
+            before_enter: DecoratorSpan::default(),
+            after_exit: DecoratorSpan::default(),
         }
     }
 }
@@ -87,12 +85,12 @@ impl LoopNode {
     }
 
     /// Returns the decorators to be executed before this node is executed.
-    pub fn before_enter(&self) -> &[DecoratorId] {
+    pub fn before_enter(&self) -> &DecoratorSpan {
         &self.before_enter
     }
 
     /// Returns the decorators to be executed after this node is executed.
-    pub fn after_exit(&self) -> &[DecoratorId] {
+    pub fn after_exit(&self) -> &DecoratorSpan {
         &self.after_exit
     }
 }
@@ -100,12 +98,12 @@ impl LoopNode {
 /// Mutators
 impl LoopNode {
     /// Sets the list of decorators to be executed before this node.
-    pub fn set_before_enter(&mut self, decorator_ids: Vec<DecoratorId>) {
+    pub fn set_before_enter(&mut self, decorator_ids: DecoratorSpan) {
         self.before_enter = decorator_ids;
     }
 
     /// Sets the list of decorators to be executed after this node.
-    pub fn set_after_exit(&mut self, decorator_ids: Vec<DecoratorId>) {
+    pub fn set_after_exit(&mut self, decorator_ids: DecoratorSpan) {
         self.after_exit = decorator_ids;
     }
 }
@@ -140,7 +138,7 @@ impl crate::prettier::PrettyPrint for LoopNodePrettyPrint<'_> {
                 .loop_node
                 .before_enter()
                 .iter()
-                .map(|&decorator_id| self.mast_forest[decorator_id].render())
+                .map(|decorator_id| self.mast_forest[decorator_id].render())
                 .reduce(|acc, doc| acc + const_text(" ") + doc)
                 .unwrap_or_default();
             if !pre_decorators.is_empty() {
@@ -155,7 +153,7 @@ impl crate::prettier::PrettyPrint for LoopNodePrettyPrint<'_> {
                 .loop_node
                 .after_exit()
                 .iter()
-                .map(|&decorator_id| self.mast_forest[decorator_id].render())
+                .map(|decorator_id| self.mast_forest[decorator_id].render())
                 .reduce(|acc, doc| acc + const_text(" ") + doc)
                 .unwrap_or_default();
             if !post_decorators.is_empty() {

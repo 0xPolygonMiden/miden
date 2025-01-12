@@ -1,12 +1,7 @@
 use alloc::{borrow::Borrow, string::ToString, vec::Vec};
-
-use vm_core::{
-    mast::{DecoratorId, MastNodeId},
-    sys_events::SystemEvent,
-    AssemblyOp, Decorator, Operation,
-};
-
-use super::{mast_forest_builder::MastForestBuilder, BodyWrapper, DecoratorList, ProcedureContext};
+use vm_core::{mast::{DecoratorId, MastNodeId}, sys_events::SystemEvent, AssemblyOp, Decorator, Operation};
+use vm_core::mast::DecoratorSpan;
+use super::{mast_forest_builder::MastForestBuilder, BodyWrapper, ProcedureContext};
 use crate::{ast::Instruction, AssemblyError, Span};
 
 // BASIC BLOCK BUILDER
@@ -24,7 +19,7 @@ use crate::{ast::Instruction, AssemblyError, Span};
 #[derive(Debug)]
 pub struct BasicBlockBuilder<'a> {
     ops: Vec<Operation>,
-    decorators: DecoratorList,
+    decorators: Vec<(usize, DecoratorId)>,
     epilogue: Vec<Operation>,
     last_asmop_pos: usize,
     mast_forest_builder: &'a mut MastForestBuilder,
@@ -174,11 +169,7 @@ impl BasicBlockBuilder<'_> {
     pub fn make_basic_block(&mut self) -> Result<Option<MastNodeId>, AssemblyError> {
         if !self.ops.is_empty() {
             let ops = self.ops.drain(..).collect();
-            let decorators = if !self.decorators.is_empty() {
-                Some(self.decorators.drain(..).collect())
-            } else {
-                None
-            };
+            let decorators = DecoratorSpan::from_raw_ops_decorators(self.decorators.drain(..).collect());
 
             let basic_block_node_id = self.mast_forest_builder.ensure_block(ops, decorators)?;
 

@@ -6,13 +6,14 @@ use miden_formatting::prettier::PrettyPrint;
 
 use crate::{
     chiplets::hasher,
-    mast::{DecoratorId, MastForest, MastForestError},
+    mast::{MastForest, MastForestError},
     DecoratorIterator, DecoratorList, Operation,
 };
 
 mod op_batch;
 pub use op_batch::OpBatch;
 use op_batch::OpBatchAccumulator;
+use crate::mast::{DecoratorSpan};
 
 #[cfg(test)]
 mod tests;
@@ -122,12 +123,13 @@ impl BasicBlockNode {
         decorators: Vec<(usize, crate::Decorator)>,
         mast_forest: &mut crate::mast::MastForest,
     ) -> Result<Self, MastForestError> {
-        let mut decorator_list = Vec::new();
+        let mut decorator_list: Vec<(usize, crate::mast::DecoratorId)> = Vec::new();
         for (idx, decorator) in decorators {
             decorator_list.push((idx, mast_forest.add_decorator(decorator)?));
         }
 
-        Self::new(operations, Some(decorator_list))
+        let span = DecoratorSpan::from_raw_ops_decorators(decorator_list);
+        Self::new(operations, span)
     }
 }
 
@@ -208,21 +210,19 @@ impl BasicBlockNode {
 /// Mutators
 impl BasicBlockNode {
     /// Sets the provided list of decorators to be executed before all existing decorators.
-    pub fn prepend_decorators(&mut self, decorator_ids: Vec<DecoratorId>) {
-        let mut new_decorators: DecoratorList =
-            decorator_ids.into_iter().map(|decorator_id| (0, decorator_id)).collect();
-        new_decorators.extend(mem::take(&mut self.decorators));
-
-        self.decorators = new_decorators;
+    pub fn prepend_decorators(&mut self, decorator_ids: DecoratorSpan) {
+        // At which point do we want to create a decorator span? Do we convert the vector into a single span?
+        // What if the decorator Ids in the vector are not contiguous?
+        self.decorators = core::iter::once((0, decorator_ids))
+            .chain(mem::take(&mut self.decorators))
+            .collect();
     }
 
     /// Sets the provided list of decorators to be executed after all existing decorators.
-    pub fn append_decorators(&mut self, decorator_ids: Vec<DecoratorId>) {
+    pub fn append_decorators(&mut self, decorator_ids: DecoratorSpan) {
         let after_last_op_idx = self.num_operations() as usize;
 
-        self.decorators.extend(
-            decorator_ids.into_iter().map(|decorator_id| (after_last_op_idx, decorator_id)),
-        );
+        self.decorators.push((after_last_op_idx, decorator_ids))
     }
 
     /// Used to initialize decorators for the [`BasicBlockNode`]. Replaces the existing decorators
@@ -264,9 +264,11 @@ impl PrettyPrint for BasicBlockNodePrettyPrint<'_> {
             + self.
                 block_node
                 .iter()
-                .map(|op_or_dec| match op_or_dec {
-                    OperationOrDecorator::Operation(op) => op.render(),
-                    OperationOrDecorator::Decorator(&decorator_id) => self.mast_forest[decorator_id].render(),
+                .flat_map(|op_or_dec| match op_or_dec {
+                    OperationOrDecorator::Operation(op) => vec![op.render()],
+                    OperationOrDecorator::Decorator(span) =>
+                        span.iter()
+                        .map(|decorator_id| self.mast_forest[decorator_id].render()).collect()
                 })
                 .reduce(|acc, doc| acc + const_text(" ") + doc)
                 .unwrap_or_default()
@@ -288,9 +290,11 @@ impl PrettyPrint for BasicBlockNodePrettyPrint<'_> {
                 + self
                     .block_node
                     .iter()
-                    .map(|op_or_dec| match op_or_dec {
-                        OperationOrDecorator::Operation(op) => op.render(),
-                        OperationOrDecorator::Decorator(&decorator_id) => self.mast_forest[decorator_id].render(),
+                    .flat_map(|op_or_dec| match op_or_dec {
+                    OperationOrDecorator::Operation(op) => vec![op.render()],
+                    OperationOrDecorator::Decorator(span) =>
+                        span.iter()
+                        .map(|decorator_id| self.mast_forest[decorator_id].render()).collect()
                     })
                     .reduce(|acc, doc| acc + nl() + doc)
                     .unwrap_or_default(),
@@ -315,7 +319,7 @@ impl fmt::Display for BasicBlockNodePrettyPrint<'_> {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum OperationOrDecorator<'a> {
     Operation(&'a Operation),
-    Decorator(&'a DecoratorId),
+    Decorator(&'a DecoratorSpan),
 }
 
 struct OperationOrDecoratorIterator<'a> {

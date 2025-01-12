@@ -41,7 +41,7 @@ use decorator::{DecoratorDataBuilder, DecoratorInfo};
 use string_table::StringTable;
 use winter_utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
-use super::{DecoratorId, MastForest, MastNode, MastNodeId};
+use super::{DecoratorSpan, MastForest, MastNode, MastNodeId};
 use crate::AdviceMap;
 
 mod decorator;
@@ -95,10 +95,10 @@ impl Serializable for MastForest {
         let mut basic_block_data_builder = BasicBlockDataBuilder::new();
 
         // Set up "before enter" and "after exit" decorators by `MastNodeId`
-        let mut before_enter_decorators: Vec<(usize, Vec<DecoratorId>)> = Vec::new();
-        let mut after_exit_decorators: Vec<(usize, Vec<DecoratorId>)> = Vec::new();
+        let mut before_enter_decorators: Vec<(usize, DecoratorSpan)> = Vec::new();
+        let mut after_exit_decorators: Vec<(usize, DecoratorSpan)> = Vec::new();
 
-        let mut basic_block_decorators: Vec<(usize, Vec<(usize, DecoratorId)>)> = Vec::new();
+        let mut basic_block_decorators: Vec<(usize, Vec<(usize, DecoratorSpan)>)> = Vec::new();
 
         // magic & version
         target.write_bytes(MAGIC);
@@ -120,10 +120,10 @@ impl Serializable for MastForest {
             .enumerate()
             .map(|(mast_node_id, mast_node)| {
                 if !mast_node.before_enter().is_empty() {
-                    before_enter_decorators.push((mast_node_id, mast_node.before_enter().to_vec()));
+                    before_enter_decorators.push((mast_node_id, mast_node.before_enter().clone()));
                 }
                 if !mast_node.after_exit().is_empty() {
-                    after_exit_decorators.push((mast_node_id, mast_node.after_exit().to_vec()));
+                    after_exit_decorators.push((mast_node_id, mast_node.after_exit().clone()));
                 }
 
                 let ops_offset = if let MastNode::Block(basic_block) = mast_node {
@@ -259,14 +259,14 @@ impl Deserializable for MastForest {
         }
 
         // read "before enter" and "after exit" decorators, and update the corresponding nodes
-        let before_enter_decorators: Vec<(usize, Vec<DecoratorId>)> =
+        let before_enter_decorators: Vec<(usize, DecoratorSpan)> =
             read_before_after_decorators(source, &mast_forest)?;
         for (node_id, decorator_ids) in before_enter_decorators {
             let node_id = MastNodeId::from_usize_safe(node_id, &mast_forest)?;
             mast_forest.set_before_enter(node_id, decorator_ids);
         }
 
-        let after_exit_decorators: Vec<(usize, Vec<DecoratorId>)> =
+        let after_exit_decorators: Vec<(usize, DecoratorSpan)> =
             read_before_after_decorators(source, &mast_forest)?;
         for (node_id, decorator_ids) in after_exit_decorators {
             let node_id = MastNodeId::from_usize_safe(node_id, &mast_forest)?;
@@ -311,11 +311,11 @@ fn read_block_decorators<R: ByteReader>(
         let node_id: usize = source.read()?;
 
         let decorator_vec_len: usize = source.read()?;
-        let mut inner_vec: Vec<(usize, DecoratorId)> = Vec::with_capacity(decorator_vec_len);
+        let mut inner_vec: DecoratorList = Vec::with_capacity(decorator_vec_len);
         for _ in 0..decorator_vec_len {
             let op_id: usize = source.read()?;
-            let decorator_id = DecoratorId::from_u32_safe(source.read()?, mast_forest)?;
-            inner_vec.push((op_id, decorator_id));
+            let decorator_span = DecoratorSpan::read_safe(source, mast_forest)?;
+            inner_vec.push((op_id, decorator_span));
         }
 
         out_vec.push((node_id, inner_vec));
@@ -366,21 +366,16 @@ where
 fn read_before_after_decorators<R: ByteReader>(
     source: &mut R,
     mast_forest: &MastForest,
-) -> Result<Vec<(usize, Vec<DecoratorId>)>, DeserializationError> {
+) -> Result<Vec<(usize, DecoratorSpan)>, DeserializationError> {
     let vec_len: usize = source.read()?;
     let mut out_vec: Vec<_> = Vec::with_capacity(vec_len);
 
     for _ in 0..vec_len {
         let node_id: usize = source.read()?;
 
-        let inner_vec_len: usize = source.read()?;
-        let mut inner_vec: Vec<DecoratorId> = Vec::with_capacity(inner_vec_len);
-        for _ in 0..inner_vec_len {
-            let decorator_id = DecoratorId::from_u32_safe(source.read()?, mast_forest)?;
-            inner_vec.push(decorator_id);
-        }
+        let decorator_span: DecoratorSpan = DecoratorSpan::read_safe(source, mast_forest)?;
 
-        out_vec.push((node_id, inner_vec));
+        out_vec.push((node_id, decorator_span));
     }
 
     Ok(out_vec)
