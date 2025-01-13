@@ -182,6 +182,21 @@ impl ModuleGraph {
         }
     }
 
+    fn add_pending_module(
+        &mut self,
+        module: PendingWrappedModule,
+    ) -> Result<ModuleIndex, AssemblyError> {
+        let is_duplicate =
+            self.is_pending(module.path()) || self.find_module_index(module.path()).is_some();
+        if is_duplicate {
+            return Err(AssemblyError::DuplicateModule { path: module.path().clone() });
+        }
+
+        let module_id = self.next_module_id();
+        self.pending.push(module);
+        Ok(module_id)
+    }
+
     /// Adds all module infos to the graph.
     pub fn add_compiled_modules(
         &mut self,
@@ -189,7 +204,7 @@ impl ModuleGraph {
     ) -> Result<Vec<ModuleIndex>, AssemblyError> {
         let module_indices: Vec<ModuleIndex> = module_infos
             .into_iter()
-            .map(|module| self.add_module(PendingWrappedModule::Info(module)))
+            .map(|module| self.add_pending_module(PendingWrappedModule::Info(module)))
             .collect::<Result<_, _>>()?;
 
         self.recompute()?;
@@ -223,29 +238,18 @@ impl ModuleGraph {
         Ok(ids[0])
     }
 
-    fn add_module(&mut self, module: PendingWrappedModule) -> Result<ModuleIndex, AssemblyError> {
-        let is_duplicate =
-            self.is_pending(module.path()) || self.find_module_index(module.path()).is_some();
-        if is_duplicate {
-            return Err(AssemblyError::DuplicateModule { path: module.path().clone() });
-        }
-
-        let module_id = self.next_module_id();
-        self.pending.push(module);
-        Ok(module_id)
-    }
-
     pub fn add_ast_modules(
         &mut self,
         modules: impl IntoIterator<Item = Box<Module>>,
     ) -> Result<Vec<ModuleIndex>, AssemblyError> {
         let idx = modules
             .into_iter()
-            .map(|m| self.add_module(PendingWrappedModule::Ast(m)))
+            .map(|m| self.add_pending_module(PendingWrappedModule::Ast(m)))
             .collect::<Result<Vec<ModuleIndex>, _>>()?;
         self.recompute()?;
         Ok(idx)
     }
+
     fn is_pending(&self, path: &LibraryPath) -> bool {
         self.pending.iter().any(|m| m.path() == path)
     }
