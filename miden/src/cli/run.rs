@@ -109,6 +109,13 @@ impl RunCmd {
 
 #[instrument(name = "run_program", skip_all)]
 fn run_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Report> {
+    for lib in &params.library_paths {
+        if !lib.is_file() {
+            let name = lib.display();
+            return Err(Report::msg(format!("{name} must be a file.")));
+        };
+    }
+
     // load libraries from files
     let libraries = Libraries::new(&params.library_paths)?;
 
@@ -131,6 +138,9 @@ fn run_program(params: &RunCmd) -> Result<(ExecutionTrace, [u8; 32]), Report> {
     let stack_inputs = input_data.parse_stack_inputs().map_err(Report::msg)?;
     let mut host = DefaultHost::new(input_data.parse_advice_provider().map_err(Report::msg)?);
     host.load_mast_forest(StdLibrary::default().mast_forest().clone()).unwrap();
+    for lib in libraries.libraries {
+        host.load_mast_forest(lib.mast_forest().clone()).unwrap();
+    }
 
     let program_hash: [u8; 32] = program.hash().into();
 
