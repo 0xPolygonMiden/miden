@@ -219,9 +219,8 @@ impl ModuleGraph {
     /// This function will panic if the number of modules exceeds the maximum representable
     /// [ModuleIndex] value, `u16::MAX`.
     pub fn add_ast_module(&mut self, module: Box<Module>) -> Result<ModuleIndex, AssemblyError> {
-        let res = self.add_module(PendingWrappedModule::Ast(module))?;
-        self.recompute()?;
-        Ok(res)
+        let ids = self.add_ast_modules(vec![module].into_iter())?;
+        Ok(ids[0])
     }
 
     fn add_module(&mut self, module: PendingWrappedModule) -> Result<ModuleIndex, AssemblyError> {
