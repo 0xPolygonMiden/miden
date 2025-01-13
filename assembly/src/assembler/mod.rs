@@ -196,7 +196,7 @@ impl Assembler {
                 Ok(module)
             })
             .collect::<Result<Vec<_>, Report>>()?;
-        let ids = self.module_graph.add_ast_modules(modules.into_iter())?;
+        let ids = self.module_graph.add_ast_modules(modules)?;
         Ok(ids)
     }
     /// Adds all modules (defined by ".masm" files) from the specified directory to the module

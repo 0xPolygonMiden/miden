@@ -219,7 +219,7 @@ impl ModuleGraph {
     /// This function will panic if the number of modules exceeds the maximum representable
     /// [ModuleIndex] value, `u16::MAX`.
     pub fn add_ast_module(&mut self, module: Box<Module>) -> Result<ModuleIndex, AssemblyError> {
-        let ids = self.add_ast_modules(vec![module].into_iter())?;
+        let ids = self.add_ast_modules(vec![module])?;
         Ok(ids[0])
     }
 
@@ -237,7 +237,7 @@ impl ModuleGraph {
 
     pub fn add_ast_modules(
         &mut self,
-        modules: impl Iterator<Item = Box<Module>>,
+        modules: impl IntoIterator<Item = Box<Module>>,
     ) -> Result<Vec<ModuleIndex>, AssemblyError> {
         let idx = modules
             .into_iter()
