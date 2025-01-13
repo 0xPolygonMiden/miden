@@ -207,10 +207,6 @@ impl ModuleGraph {
 
     /// Add `module` to the graph.
     ///
-    /// NOTE: This operation only adds a module to the graph, but does not perform the
-    /// important analysis needed for compilation, you must call [recompute] once all modules
-    /// are added to ensure the analysis results reflect the current version of the graph.
-    ///
     /// # Errors
     ///
     /// This operation can fail for the following reasons:
