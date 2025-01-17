@@ -39,8 +39,8 @@ impl MemorySegmentTrace {
     }
 
     /// Returns the entire memory state at the beginning of the specified cycle.
-    pub fn get_state_at(&self, clk: RowIndex) -> Vec<(u64, Word)> {
-        let mut result: Vec<(u64, Word)> = Vec::new();
+    pub fn get_state_at(&self, clk: RowIndex) -> Vec<(u32, Word)> {
+        let mut result: Vec<(u32, Word)> = Vec::new();
 
         if clk == 0 {
             return result;
@@ -53,13 +53,13 @@ impl MemorySegmentTrace {
 
         for (&addr, addr_trace) in self.0.iter() {
             match addr_trace.binary_search_by(|access| access.clk().as_int().cmp(&search_clk)) {
-                Ok(i) => result.push((addr.into(), addr_trace[i].value())),
+                Ok(i) => result.push((addr, addr_trace[i].value())),
                 Err(i) => {
                     // Binary search finds the index of the data with the specified clock cycle.
                     // Decrement the index to get the trace from the previously accessed clock
                     // cycle to insert into the results.
                     if i > 0 {
-                        result.push((addr.into(), addr_trace[i - 1].value()));
+                        result.push((addr, addr_trace[i - 1].value()));
                     }
                 },
             }

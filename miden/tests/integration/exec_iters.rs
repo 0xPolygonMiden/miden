@@ -18,7 +18,7 @@ fn test_exec_iter() {
     let traces = test.execute_iter();
     let fmp = Felt::new(2u64.pow(30));
     let next_fmp = fmp + ONE;
-    let mem = vec![(1_u64, slice_to_word(&[13, 14, 15, 16]))];
+    let mem = vec![(1_u32, slice_to_word(&[13, 14, 15, 16]))];
     let mem_storew1_loc = Some(Location {
         path: path.clone(),
         start: 33.into(),
@@ -310,8 +310,8 @@ fn test_exec_iter() {
             stack: [17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0].to_elements(),
             fmp: next_fmp,
             memory: vec![
-                (1_u64, slice_to_word(&[13, 14, 15, 16])),
-                (2u64.pow(30) + 1, slice_to_word(&[17, 0, 0, 0])),
+                (1_u32, slice_to_word(&[13, 14, 15, 16])),
+                (2u32.pow(30) + 1, slice_to_word(&[17, 0, 0, 0])),
             ],
         },
         VmState {
@@ -331,8 +331,8 @@ fn test_exec_iter() {
             stack: [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0, 0].to_elements(),
             fmp: next_fmp,
             memory: vec![
-                (1_u64, slice_to_word(&[13, 14, 15, 16])),
-                (2u64.pow(30) + 1, slice_to_word(&[17, 0, 0, 0])),
+                (1_u32, slice_to_word(&[13, 14, 15, 16])),
+                (2u32.pow(30) + 1, slice_to_word(&[17, 0, 0, 0])),
             ],
         },
         VmState {
@@ -344,8 +344,8 @@ fn test_exec_iter() {
                 .to_elements(),
             fmp: next_fmp,
             memory: vec![
-                (1_u64, slice_to_word(&[13, 14, 15, 16])),
-                (2u64.pow(30) + 1, slice_to_word(&[17, 0, 0, 0])),
+                (1_u32, slice_to_word(&[13, 14, 15, 16])),
+                (2u32.pow(30) + 1, slice_to_word(&[17, 0, 0, 0])),
             ],
         },
         VmState {
@@ -356,8 +356,8 @@ fn test_exec_iter() {
             stack: [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0].to_elements(),
             fmp,
             memory: vec![
-                (1_u64, slice_to_word(&[13, 14, 15, 16])),
-                (2u64.pow(30) + 1, slice_to_word(&[17, 0, 0, 0])),
+                (1_u32, slice_to_word(&[13, 14, 15, 16])),
+                (2u32.pow(30) + 1, slice_to_word(&[17, 0, 0, 0])),
             ],
         },
         VmState {
@@ -368,8 +368,8 @@ fn test_exec_iter() {
             stack: [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0].to_elements(),
             fmp,
             memory: vec![
-                (1_u64, slice_to_word(&[13, 14, 15, 16])),
-                (2u64.pow(30) + 1, slice_to_word(&[17, 0, 0, 0])),
+                (1_u32, slice_to_word(&[13, 14, 15, 16])),
+                (2u32.pow(30) + 1, slice_to_word(&[17, 0, 0, 0])),
             ],
         },
         VmState {
@@ -380,8 +380,8 @@ fn test_exec_iter() {
             stack: [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0].to_elements(),
             fmp,
             memory: vec![
-                (1_u64, slice_to_word(&[13, 14, 15, 16])),
-                (2u64.pow(30) + 1, slice_to_word(&[17, 0, 0, 0])),
+                (1_u32, slice_to_word(&[13, 14, 15, 16])),
+                (2u32.pow(30) + 1, slice_to_word(&[17, 0, 0, 0])),
             ],
         },
         VmState {
@@ -392,8 +392,8 @@ fn test_exec_iter() {
             stack: [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0].to_elements(),
             fmp,
             memory: vec![
-                (1_u64, slice_to_word(&[13, 14, 15, 16])),
-                (2u64.pow(30) + 1, slice_to_word(&[17, 0, 0, 0])),
+                (1_u32, slice_to_word(&[13, 14, 15, 16])),
+                (2u32.pow(30) + 1, slice_to_word(&[17, 0, 0, 0])),
             ],
         },
     ];

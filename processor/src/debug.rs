@@ -21,13 +21,13 @@ pub struct VmState {
     pub asmop: Option<AsmOpInfo>,
     pub fmp: Felt,
     pub stack: Vec<Felt>,
-    pub memory: Vec<(u64, Word)>,
+    pub memory: Vec<(u32, Word)>,
 }
 
 impl fmt::Display for VmState {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let stack: Vec<u64> = self.stack.iter().map(|x| x.as_int()).collect();
-        let memory: Vec<(u64, [u64; 4])> =
+        let memory: Vec<(u32, [u64; 4])> =
             self.memory.iter().map(|x| (x.0, word_to_ints(&x.1))).collect();
         write!(
             f,

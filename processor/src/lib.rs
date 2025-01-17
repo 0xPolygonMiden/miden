@@ -687,7 +687,7 @@ impl ProcessState<'_> {
     ///
     /// The state is returned as a vector of (address, value) tuples, and includes addresses which
     /// have been accessed at least once.
-    pub fn get_mem_state(&self, ctx: ContextId) -> Vec<(u64, Word)> {
+    pub fn get_mem_state(&self, ctx: ContextId) -> Vec<(u32, Word)> {
         self.chiplets.get_mem_state_at(ctx, self.system.clk())
     }
 }

@@ -119,7 +119,7 @@ impl Memory {
     /// Returns the entire memory state for the specified execution context at the specified cycle.
     /// The state is returned as a vector of (address, value) tuples, and includes addresses which
     /// have been accessed at least once.
-    pub fn get_state_at(&self, ctx: ContextId, clk: RowIndex) -> Vec<(u64, Word)> {
+    pub fn get_state_at(&self, ctx: ContextId, clk: RowIndex) -> Vec<(u32, Word)> {
         if clk == 0 {
             return vec![];
         }
