@@ -1,22 +1,10 @@
-use alloc::string::ToString;
 use core::str::FromStr;
 
 use super::*;
 use crate::{
-    ast::{Module, ModuleKind, ProcedureName},
-    diagnostics::{IntoDiagnostic, Report},
-    testing::TestContext,
-    Assembler, Deserializable,
+    ast::ProcedureName, diagnostics::Report, parse_module, testing::TestContext, Assembler,
+    Deserializable,
 };
-
-macro_rules! parse_module {
-    ($context:expr, $path:literal, $source:expr) => {{
-        let path = LibraryPath::new($path).into_diagnostic()?;
-        let source_file =
-            $context.source_manager().load(concat!("test", line!()), $source.to_string());
-        Module::parse(path, ModuleKind::Library, source_file)?
-    }};
-}
 
 // TESTS
 // ================================================================================================

@@ -8,6 +8,7 @@ use super::Kernel;
 use crate::{
     mast::{MastForest, MastNode, MastNodeId},
     utils::ToElements,
+    AdviceMap,
 };
 
 // PROGRAM
@@ -52,6 +53,17 @@ impl Program {
         assert!(mast_forest.is_procedure_root(entrypoint), "entrypoint not a procedure");
 
         Self { mast_forest, entrypoint, kernel }
+    }
+
+    /// Produces a new program with the existing [`MastForest`] and where all key/values in the
+    /// provided advice map are added to the internal advice map.
+    pub fn with_advice_map(self, advice_map: AdviceMap) -> Self {
+        let mut mast_forest = (*self.mast_forest).clone();
+        mast_forest.advice_map_mut().extend(advice_map);
+        Self {
+            mast_forest: Arc::new(mast_forest),
+            ..self
+        }
     }
 }
 

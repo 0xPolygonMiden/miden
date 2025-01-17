@@ -80,13 +80,13 @@ fn keccak256_2_to_1_hash() {
 fn to_stack(i_digest: &[u8], stack: &mut [u64]) {
     for i in 0..(i_digest.len() >> 3) {
         // byte array ( = 8 -bytes ) to little endian 64 -bit unsigned integer
-        let word = (i_digest[(i << 3) + 7] as u64) << 56
-            | (i_digest[(i << 3) + 6] as u64) << 48
-            | (i_digest[(i << 3) + 5] as u64) << 40
-            | (i_digest[(i << 3) + 4] as u64) << 32
-            | (i_digest[(i << 3) + 3] as u64) << 24
-            | (i_digest[(i << 3) + 2] as u64) << 16
-            | (i_digest[(i << 3) + 1] as u64) << 8
+        let word = ((i_digest[(i << 3) + 7] as u64) << 56)
+            | ((i_digest[(i << 3) + 6] as u64) << 48)
+            | ((i_digest[(i << 3) + 5] as u64) << 40)
+            | ((i_digest[(i << 3) + 4] as u64) << 32)
+            | ((i_digest[(i << 3) + 3] as u64) << 24)
+            | ((i_digest[(i << 3) + 2] as u64) << 16)
+            | ((i_digest[(i << 3) + 1] as u64) << 8)
             | (i_digest[i << 3] as u64);
 
         // split into higher/ lower bits of u64

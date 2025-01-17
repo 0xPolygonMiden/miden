@@ -1,9 +1,14 @@
-use alloc::{string::ToString, sync::Arc};
+use alloc::{
+    string::{String, ToString},
+    sync::Arc,
+};
 use core::{
     fmt,
     hash::{Hash, Hasher},
     str::FromStr,
 };
+
+use vm_core::utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
 
 use crate::{
     ast::{CaseKindError, Ident, IdentError},
@@ -326,5 +331,49 @@ impl FromStr for ProcedureName {
             Some(_) => Err(IdentError::InvalidChars { ident: s.into() }),
         }?;
         Ok(Self(Ident::new_unchecked(Span::unknown(raw))))
+    }
+}
+
+impl Serializable for ProcedureName {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        self.as_str().write_into(target)
+    }
+}
+
+impl Deserializable for ProcedureName {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let str: String = source.read()?;
+        let proc_name =
+            ProcedureName::new_unchecked(Ident::new_unchecked(Span::unknown(Arc::from(str))));
+        Ok(proc_name)
+    }
+}
+
+// TESTS
+// ================================================================================================
+
+/// Tests
+#[cfg(test)]
+mod tests {
+    use vm_core::{
+        debuginfo::Span,
+        utils::{Deserializable, Serializable},
+    };
+
+    use super::ProcedureName;
+    use crate::ast::Ident;
+
+    #[test]
+    fn procedure_name_serialization_rustc_mangled() {
+        // Tests that rustc mangled symbols are serialized and deserialized
+        // see https://doc.rust-lang.org/rustc/symbol-mangling/v0.html#symbol-grammar-summary
+        let all_possible_chars_in_mangled_name =
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.$";
+        let proc_name = ProcedureName::new_unchecked(Ident::new_unchecked(Span::unknown(
+            all_possible_chars_in_mangled_name.into(),
+        )));
+        let bytes = proc_name.to_bytes();
+        let deserialized = ProcedureName::read_from_bytes(&bytes).unwrap();
+        assert_eq!(proc_name, deserialized);
     }
 }

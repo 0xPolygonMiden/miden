@@ -4,6 +4,7 @@ members = [
     "assembly",
     "core",
     "miden",
+    "package",
     "processor",
     "prover",
     "stdlib",

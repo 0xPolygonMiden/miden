@@ -1,0 +1,31 @@
+[package]
+name = "miden-package"
+version = "0.11.0"
+description = "Miden VM package"
+documentation = "https://docs.rs/miden-package/0.11.0"
+readme = "README.md"
+categories = ["compilers", "no-std"]
+keywords = ["package", "language", "miden"]
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+
+[lib]
+bench = false
+doctest = false
+
+[dependencies]
+vm-core = { package = "miden-core", path = "../core", version = "0.11", default-features = false }
+assembly = { package = "miden-assembly", path = "../assembly", version = "0.11", default-features = false }
+serde = { version = "1.0.208", features = ["alloc", "rc", "serde_derive"] }
+serde_bytes = "0.11.15"
+serde_repr = "0.1.19"
+bitcode = { version = "0.6.3", default-features = false, features = ["serde"] }
+derive_more = "0.99"
+
+[dev-dependencies]
+proptest = "1.6"
+proptest-derive = "0.5"
