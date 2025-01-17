@@ -165,7 +165,7 @@ fn get_test_frame(
 
     // Set the delta in the next row according to the specified delta type.
     let delta: u64 = match delta_type {
-        MemoryTestDeltaType::Clock => delta_row[MemoryTestDeltaType::Clock as usize] - 1,
+        MemoryTestDeltaType::Clock => delta_row[MemoryTestDeltaType::Clock as usize],
         MemoryTestDeltaType::Context => delta_row[MemoryTestDeltaType::Context as usize],
         MemoryTestDeltaType::Word => delta_row[MemoryTestDeltaType::Word as usize],
     };

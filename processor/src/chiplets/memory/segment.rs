@@ -167,9 +167,9 @@ impl MemorySegmentTrace {
         let (word_addr, addr_idx_in_word) = addr_to_word_addr_and_idx(addr);
 
         match self.0.entry(word_addr) {
+            // If this is the first access to the ctx/word pair, then all values in the word
+            // are initialized to 0, except for the address being written.
             Entry::Vacant(vacant_entry) => {
-                // If this is the first access to the ctx/word pair, then all values in the word
-                // are initialized to 0, except for the address being written.
                 let word = {
                     let mut word = Word::default();
                     word[addr_idx_in_word as usize] = value;
@@ -185,12 +185,15 @@ impl MemorySegmentTrace {
                 vacant_entry.insert(vec![access]);
                 Ok(())
             },
+            // If the ctx/word pair has been accessed before, then the values in the word are
+            // the same as the previous access, except for the address being written.
             Entry::Occupied(mut occupied_entry) => {
-                // If the ctx/word pair has been accessed before, then the values in the word are
-                // the same as the previous access, except for the address being written.
                 let addr_trace = occupied_entry.get_mut();
                 if addr_trace.last().expect("empty address trace").clk() == clk {
-                    Err(ExecutionError::DuplicateMemoryAccess { ctx, addr, clk })
+                    // The same address is accessed more than once in the same clock cycle. This is
+                    // an error, since this access is a write, and the only valid accesses are
+                    // reads when in the same clock cycle.
+                    Err(ExecutionError::IllegalMemoryAccess { ctx, addr, clk })
                 } else {
                     let word = {
                         let mut last_word = addr_trace.last().expect("empty address trace").word();
@@ -236,16 +239,19 @@ impl MemorySegmentTrace {
         let access =
             MemorySegmentAccess::new(clk, MemoryOperation::Write, MemoryAccessType::Word, word);
         match self.0.entry(word_addr) {
+            // All values in the word are set to the word being written.
             Entry::Vacant(vacant_entry) => {
-                // All values in the word are set to the word being written.
                 vacant_entry.insert(vec![access]);
                 Ok(())
             },
+            // All values in the word are set to the word being written.
             Entry::Occupied(mut occupied_entry) => {
-                // All values in the word are set to the word being written.
                 let addr_trace = occupied_entry.get_mut();
                 if addr_trace.last().expect("empty address trace").clk() == clk {
-                    Err(ExecutionError::DuplicateMemoryAccess { ctx, addr, clk })
+                    // The same address is accessed more than once in the same clock cycle. This is
+                    // an error, since this access is a write, and the only valid accesses are
+                    // reads when in the same clock cycle.
+                    Err(ExecutionError::IllegalMemoryAccess { ctx, addr, clk })
                 } else {
                     addr_trace.push(access);
                     Ok(())
@@ -301,8 +307,12 @@ impl MemorySegmentTrace {
                 // If the ctx/word pair has been accessed before, then the values in the word are
                 // the same as the previous access.
                 let addr_trace = occupied_entry.get_mut();
-                if addr_trace.last().expect("empty address trace").clk() == clk {
-                    Err(ExecutionError::DuplicateMemoryAccess { ctx, addr: word_addr, clk })
+                let last_access = addr_trace.last().expect("empty address trace");
+                if last_access.clk() == clk && last_access.operation() == MemoryOperation::Write {
+                    // The same address is accessed more than once in the same clock cycle. This is
+                    // an error, since the previous access was a write, and the only valid accesses
+                    // are reads when in the same clock cycle.
+                    Err(ExecutionError::IllegalMemoryAccess { ctx, addr: word_addr, clk })
                 } else {
                     let last_word = addr_trace.last().expect("empty address trace").word();
                     let access = MemorySegmentAccess::new(

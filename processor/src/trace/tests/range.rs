@@ -68,8 +68,8 @@ fn b_range_trace_stack() {
 /// This test checks that range check lookups from memory operations are balanced by the
 /// range checks processed in the Range Checker.
 ///
-/// The `StoreW` memory operation results in 2 16-bit range checks of 0, 0.
-/// The `LoadW` memory operation results in 2 16-bit range checks of 0, 0.
+/// The `StoreW` memory operation results in 2 16-bit range checks of 1, 0.
+/// The `LoadW` memory operation results in 2 16-bit range checks of 5, 0.
 #[test]
 #[allow(clippy::needless_range_loop)]
 fn b_range_trace_mem() {
@@ -109,11 +109,11 @@ fn b_range_trace_mem() {
     // --- Check the memory processor's range check lookups. --------------------------------------
 
     // There are two memory lookups. For each memory lookup, the context and address are unchanged,
-    // so the delta values indicated the clock cycle change i' - i - 1.
-    // StoreW is executed at cycle 1 (after the initial span), so i' - i - 1 = 0.
-    let (d0_store, d1_store) = (ZERO, ZERO);
-    // LoadW is executed at cycle 6, so i' - i - 1 = 6 - 1 - 1 = 4.
-    let (d0_load, d1_load) = (Felt::new(4), ZERO);
+    // so the delta values indicated the clock cycle change clk' - clk.
+    // StoreW is executed at cycle 1 (after the initial span), so clk' - clk = 1.
+    let (d0_store, d1_store) = (ONE, ZERO);
+    // LoadW is executed at cycle 6, so i' - i = 6 - 1 = 5.
+    let (d0_load, d1_load) = (Felt::new(5), ZERO);
 
     // Include the lookups from the `MStoreW` operation at the next row.
     expected -= (alpha - d0_store).inv() + (alpha - d1_store).inv();
@@ -129,20 +129,24 @@ fn b_range_trace_mem() {
 
     // --- Check the range checker's lookups. -----------------------------------------------------
 
-    // We include 3 lookups of ZERO in the next row.
-    expected += alpha.inv().mul_base(Felt::new(3));
+    // We include 2 lookups of ZERO in the next row.
+    expected += alpha.inv().mul_base(Felt::new(2));
     assert_eq!(expected, b_range[values_start + 1]);
 
-    // then we have one bridge row between 0 and 4 where the value does not change.
+    // We include 1 lookup of ONE in the next row.
+    expected += (alpha - d0_store).inv();
     assert_eq!(expected, b_range[values_start + 2]);
 
-    // We include 1 lookup of 4 in the next row.
-    expected += (alpha - d0_load).inv();
+    // We have one bridge row between 1 and 5 where the value does not change.
     assert_eq!(expected, b_range[values_start + 3]);
+
+    // We include 1 lookup of 5 in the next row.
+    expected += (alpha - d0_load).inv();
+    assert_eq!(expected, b_range[values_start + 4]);
 
     // --- The value should now be ONE for the rest of the trace. ---------------------------------
     assert_eq!(expected, ONE);
-    for i in (values_start + 3)..(b_range.len() - NUM_RAND_ROWS) {
+    for i in (values_start + 4)..(b_range.len() - NUM_RAND_ROWS) {
         assert_eq!(ONE, b_range[i]);
     }
 }

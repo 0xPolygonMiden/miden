@@ -281,7 +281,7 @@ impl Memory {
                     } else if prev_addr != addr {
                         u64::from(addr - prev_addr)
                     } else {
-                        clk - prev_clk - 1
+                        clk - prev_clk
                     };
 
                     let (delta_hi, delta_lo) = split_u32_into_u16(delta);
@@ -359,7 +359,7 @@ impl Memory {
                     } else if prev_addr != felt_addr {
                         felt_addr - prev_addr
                     } else {
-                        clk - prev_clk - ONE
+                        clk - prev_clk
                     };
 
                     let (delta_hi, delta_lo) = split_element_u32_into_u16(delta);

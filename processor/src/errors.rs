@@ -37,8 +37,6 @@ pub enum ExecutionError {
     DecoratorNotFoundInForest { decorator_id: DecoratorId },
     #[error("division by zero at clock cycle {0}")]
     DivideByZero(RowIndex),
-    #[error("memory address {addr} in context {ctx} accessed twice in clock cycle {clk}")]
-    DuplicateMemoryAccess { ctx: ContextId, addr: u32, clk: Felt },
     #[error("failed to execute the dynamic code block provided by the stack with root {hex}; the block could not be found",
       hex = to_hex(.0.as_bytes())
     )]
@@ -60,6 +58,8 @@ pub enum ExecutionError {
     },
     #[error("failed to generate signature: {0}")]
     FailedSignatureGeneration(&'static str),
+    #[error("memory address {addr} in context {ctx} was read and written, or written twice, in the same clock cycle {clk}")]
+    IllegalMemoryAccess { ctx: ContextId, addr: u32, clk: Felt },
     #[error("Updating FMP register from {0} to {1} failed because {1} is outside of {FMP_MIN}..{FMP_MAX}")]
     InvalidFmpValue(Felt, Felt),
     #[error("FRI domain segment value cannot exceed 3, but was {0}")]

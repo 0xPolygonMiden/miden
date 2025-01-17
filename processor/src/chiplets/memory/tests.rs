@@ -510,6 +510,7 @@ fn read_trace_row(trace: &[Vec<Felt>], step: usize) -> [Felt; MEMORY_TRACE_WIDTH
     row
 }
 
+/// Note: For this to work properly, the context and address accessed in the first row *must be* 0.
 fn build_trace_row(
     memory_access: MemoryAccess,
     prev_row: [Felt; MEMORY_TRACE_WIDTH],
@@ -557,20 +558,18 @@ fn build_trace_row(
     row[V_COL_RANGE.start + 2] = word_values[2];
     row[V_COL_RANGE.start + 3] = word_values[3];
 
-    if prev_row != [ZERO; MEMORY_TRACE_WIDTH] {
-        let delta = if row[CTX_COL_IDX] != prev_row[CTX_COL_IDX] {
-            row[CTX_COL_IDX] - prev_row[CTX_COL_IDX]
-        } else if row[WORD_COL_IDX] != prev_row[WORD_COL_IDX] {
-            row[WORD_COL_IDX] - prev_row[WORD_COL_IDX]
-        } else {
-            row[CLK_COL_IDX] - prev_row[CLK_COL_IDX] - ONE
-        };
+    let delta = if row[CTX_COL_IDX] != prev_row[CTX_COL_IDX] {
+        row[CTX_COL_IDX] - prev_row[CTX_COL_IDX]
+    } else if row[WORD_COL_IDX] != prev_row[WORD_COL_IDX] {
+        row[WORD_COL_IDX] - prev_row[WORD_COL_IDX]
+    } else {
+        row[CLK_COL_IDX] - prev_row[CLK_COL_IDX]
+    };
 
-        let (hi, lo) = super::split_element_u32_into_u16(delta);
-        row[D0_COL_IDX] = lo;
-        row[D1_COL_IDX] = hi;
-        row[D_INV_COL_IDX] = delta.inv();
-    }
+    let (hi, lo) = super::split_element_u32_into_u16(delta);
+    row[D0_COL_IDX] = lo;
+    row[D1_COL_IDX] = hi;
+    row[D_INV_COL_IDX] = delta.inv();
 
     if row[WORD_COL_IDX] == prev_row[WORD_COL_IDX] && row[CTX_COL_IDX] == prev_row[CTX_COL_IDX] {
         row[FLAG_SAME_CONTEXT_AND_WORD] = ONE;

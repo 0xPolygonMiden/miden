@@ -176,16 +176,17 @@ where:
 - `word_addr` contains the memory address of the first element in the word. Values in this column must increase monotonically for a given context but there can be gaps between two consecutive values of up to $2^{32}$. Values in this column must be divisible by 4. Also, two consecutive values can be the same. 
 - `idx0` and `idx1` are selector columns used to identify which element in the word is being accessed. Specifically, the index within the word is computed as `idx1 * 2 + idx0`.
   - However, when `ew` is set to $1$ (indicating that a word is accessed), these columns are meaningless and are set to $0$.
-- `clk` contains clock cycle at which the memory operation happened. Values in this column must increase monotonically for a given context and memory word but there can be gaps between two consecutive values of up to $2^{32}$. In AIR constraint description below, we refer to this column as $i$.
+- `clk` contains clock cycle at which the memory operation happened. Values in this column must increase monotonically for a given context and memory word but there can be gaps between two consecutive values of up to $2^{32}$.
+  - Unlike the previously described approaches, we allow `clk` to be constant in the same context/word address, with the restriction that when this is the case, then only reads are allowed.
 - `v0, v1, v2, v3` columns contain field elements stored at a given context/word/clock cycle after the memory operation.
 - Columns `d0` and `d1` contain lower and upper $16$ bits of the delta between two consecutive context IDs, addresses, or clock cycles. Specifically:
   - When the context changes within a frame, these columns contain $(ctx' - ctx)$ in the "next" row.
   - When the context remains the same but the word address changes within a frame, these columns contain $(a' - a)$ in the "next" row.
-  - When both the context and the word address remain the same within a frame, these columns contain $(clk' - clk - 1)$ in the "next" row.
+  - When both the context and the word address remain the same within a frame, these columns contain $(clk' - clk)$ in the "next" row.
 - Column `t` contains the inverse of the delta between two consecutive context IDs, addresses, or clock cycles. Specifically:
   - When the context changes within a frame, this column contains the inverse of $(ctx' - ctx)$ in the "next" row.
   - When the context remains the same but the word address changes within a frame, this column contains the inverse of $(a' - a)$ in the "next" row.
-  - When both the context and the word address remain the same within a frame, this column contains the inverse of $(clk' - clk - 1)$ in the "next" row.
+  - When both the context and the word address remain the same within a frame, this column contains the inverse of $(clk' - clk)$ in the "next" row.
 - Column `f_scw` stands for "flag same context and word address", which is set to $1$ when the current and previous rows have the same context and word address, and $0$ otherwise.
 
 For every memory access operation (i.e., read or write a word or element), a new row is added to the memory table. If neither `ctx` nor `addr` have changed, the `v` columns are set to equal the values from the previous row (except for any element written to). If `ctx` or `addr` have changed, then the `v` columns are initialized to $0$ (except for any element written to).
@@ -265,9 +266,14 @@ To enforce the values of context ID, word address, and clock cycle grow monotoni
 f_{mem\_nl} \cdot \left(n_0 \cdot \Delta ctx + (1 - n_0) \cdot (n_1 \cdot \Delta a + (1 - n_1) \cdot \Delta clk) \right) - (2^{16} \cdot d_1' + d_0') = 0 \text{ | degree} = 8
 $$
 
-Where $\Delta clk = clk' - clk - 1$.
-
 In addition to this constraint, we also need to make sure that the values in registers $d_0$ and $d_1$ are less than $2^{16}$, and this can be done with [range checks](../range.md).
+
+Next, we need to ensure that when the context, word address and clock are constant in a frame, then only read operations are allowed in that clock cycle.
+
+>$$
+f_{mem\_nl} \cdot f_{scw}' \cdot (1 - \Delta clk \cdot t') \cdot (1 - rw) \cdot (1 - rw') = 0 \text{ | degree} = 8
+$$
+
 
 Next, for all frames where the "current" and "next" rows are in the chiplet, we need to ensure that the value of the `f_scw` column in the "next" row is set to $1$ when the context and word address are the same, and $0$ otherwise.
 

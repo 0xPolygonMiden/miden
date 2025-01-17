@@ -264,13 +264,13 @@ impl Process {
 
 #[cfg(test)]
 mod tests {
-    use vm_core::{utils::ToElements, Word, ONE, ZERO};
+    use vm_core::{assert_matches, utils::ToElements, Word, ONE, ZERO};
 
     use super::{
         super::{super::AdviceProvider, Operation, MIN_STACK_DEPTH},
         Felt, Host, Process,
     };
-    use crate::{AdviceSource, ContextId, DefaultHost};
+    use crate::{AdviceSource, ContextId, DefaultHost, ExecutionError};
 
     #[test]
     fn op_push() {
@@ -633,6 +633,36 @@ mod tests {
         process.execute_op(Operation::AdvPopW, &mut host).unwrap();
         let expected = build_expected_stack(&[6, 5, 4, 3, 1]);
         assert_eq!(expected, process.stack.trace_state());
+    }
+
+    /// Ensures that reading and writing in the same clock cycle results in an error.
+    #[test]
+    fn read_and_write_in_same_clock_cycle() {
+        let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
+        assert_eq!(0, process.chiplets.memory().num_accessed_words());
+
+        // emulate reading and writing in the same clock cycle
+        process.ensure_trace_capacity();
+        process.op_mload().unwrap();
+        assert_matches!(
+            process.op_mstore(),
+            Err(ExecutionError::IllegalMemoryAccess { ctx: _, addr: _, clk: _ })
+        );
+    }
+
+    /// Ensures that writing twice in the same clock cycle results in an error.
+    #[test]
+    fn write_twice_in_same_clock_cycle() {
+        let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
+        assert_eq!(0, process.chiplets.memory().num_accessed_words());
+
+        // emulate reading and writing in the same clock cycle
+        process.ensure_trace_capacity();
+        process.op_mstore().unwrap();
+        assert_matches!(
+            process.op_mstore(),
+            Err(ExecutionError::IllegalMemoryAccess { ctx: _, addr: _, clk: _ })
+        );
     }
 
     // HELPER METHODS

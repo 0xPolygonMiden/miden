@@ -20,7 +20,7 @@ mod tests;
 // ================================================================================================
 
 /// The number of constraints on the management of the memory chiplet.
-pub const NUM_CONSTRAINTS: usize = 18;
+pub const NUM_CONSTRAINTS: usize = 19;
 /// The degrees of constraints on the management of the memory chiplet. All constraint degrees are
 /// increased by 3 due to the selectors for the memory chiplet.
 pub const CONSTRAINT_DEGREES: [usize; NUM_CONSTRAINTS] = [
@@ -28,6 +28,7 @@ pub const CONSTRAINT_DEGREES: [usize; NUM_CONSTRAINTS] = [
     7, 6, 9, 8, // Constrain the values in the d inverse column.
     8, // Enforce values in ctx, word, clk transition correctly.
     7, // Enforce the correct value for the f_scw flag.
+    8, // Enforce that accesses in same context, word and clock are reads.
     9, 9, 9, 9, // Constrain the values in the first row of the chiplet.
     9, 9, 9, 9, // Constrain the values in all rows of the chiplet except the first.
 ];
@@ -76,6 +77,13 @@ pub fn enforce_constraints<E: FieldElement>(
     // Enforce the correct value for the f_scw flag.
     index +=
         enforce_flag_same_context_and_word(frame, &mut result[index..], memory_flag_not_last_row);
+
+    // Enforce that accesses in same context, word and clock are reads.
+    index += enforce_same_context_word_addr_and_clock(
+        frame,
+        &mut result[index..],
+        memory_flag_not_last_row,
+    );
 
     // Constrain the memory values.
     enforce_values(frame, &mut result[index..], memory_flag_not_last_row, memory_flag_first_row);
@@ -152,6 +160,26 @@ fn enforce_flag_same_context_and_word<E: FieldElement>(
     memory_flag_not_last_row: E,
 ) -> usize {
     result[0] = memory_flag_not_last_row * (frame.f_scw_next() - frame.not_n0() * frame.not_n1());
+
+    1
+}
+
+/// Enforces that when memory is accessed in the same context, word, and clock cycle, the access is
+/// a read.
+fn enforce_same_context_word_addr_and_clock<E: FieldElement>(
+    frame: &EvaluationFrame<E>,
+    result: &mut [E],
+    memory_flag_not_last_row: E,
+) -> usize {
+    // Note: when the context and word address don't change, `d_inv_next` contains the inverse of
+    // the clock change.
+    let clk_no_change = binary_not(frame.clk_change() * frame.d_inv_next());
+
+    result[0] = memory_flag_not_last_row
+        * frame.f_scw_next()
+        * clk_no_change
+        * binary_not(frame.is_read())        // read in current row
+        * binary_not(frame.is_read_next()); // read in next row
 
     1
 }
@@ -418,7 +446,7 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
 
     #[inline(always)]
     fn clk_change(&self) -> E {
-        self.change(MEMORY_CLK_COL_IDX) - E::ONE
+        self.change(MEMORY_CLK_COL_IDX)
     }
 
     #[inline(always)]
