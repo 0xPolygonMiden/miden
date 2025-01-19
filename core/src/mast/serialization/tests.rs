@@ -356,6 +356,8 @@ fn mast_forest_invalid_node_id() {
 
     // Hydrate a forest larger than the first to get an overflow MastNodeId
     let mut overflow_forest = MastForest::new();
+
+    #[allow(clippy::double_ended_iterator_last)]
     let overflow = (0..=3)
         .map(|_| overflow_forest.add_block(vec![Operation::U32div], None).unwrap())
         .last()

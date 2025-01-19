@@ -56,6 +56,7 @@ extern {
         "push_sig" => Token::PushSig,
         "push_smtpeek" => Token::PushSmtpeek,
         "push_u64div" => Token::PushU64Div,
+        "push_falcon_div" => Token::PushFalconDiv,
         "and" => Token::And,
         "assert" => Token::Assert,
         "assertz" => Token::Assertz,
@@ -677,6 +678,7 @@ SystemEvent: Instruction = {
     "adv" "." "push_sig" "." <kind:SignatureKind> => Instruction::SysEvent(SystemEventNode::PushSignature { kind }),
     "adv" "." "push_smtpeek" => Instruction::SysEvent(SystemEventNode::PushSmtPeek),
     "adv" "." "push_u64div" => Instruction::SysEvent(SystemEventNode::PushU64Div),
+    "adv" "." "push_falcon_div" => Instruction::SysEvent(SystemEventNode::PushFalconDiv),
 }
 
 #[inline]

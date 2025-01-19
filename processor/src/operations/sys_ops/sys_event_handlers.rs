@@ -19,6 +19,9 @@ use crate::{
 /// The offset of the domain value on the stack in the `hdword_to_map_with_domain` system event.
 const HDWORD_TO_MAP_WITH_DOMAIN_DOMAIN_OFFSET: usize = 8;
 
+/// Falcon signature prime.
+const M: u64 = 12289;
+
 impl Process {
     pub(super) fn handle_sytem_event(
         &self,
@@ -39,6 +42,7 @@ impl Process {
                 copy_map_value_to_adv_stack(advice_provider, process_state, true)
             },
             SystemEvent::U64Div => push_u64_div_result(advice_provider, process_state),
+            SystemEvent::FalconDiv => push_falcon_mod_result(advice_provider, process_state),
             SystemEvent::Ext2Inv => push_ext2_inv_result(advice_provider, process_state),
             SystemEvent::Ext2Intt => push_ext2_intt_result(advice_provider, process_state),
             SystemEvent::SmtPeek => push_smtpeek_result(advice_provider, process_state),
@@ -338,6 +342,45 @@ pub fn push_u64_div_result(
     advice_provider.push_stack(AdviceSource::Value(r_lo))?;
     advice_provider.push_stack(AdviceSource::Value(q_hi))?;
     advice_provider.push_stack(AdviceSource::Value(q_lo))?;
+
+    Ok(())
+}
+
+/// Pushes the result of divison (both the quotient and the remainder) of a [u64] by the Falcon
+/// prime (M = 12289) onto the advice stack.
+///
+/// Inputs:
+///   Operand stack: [a1, a0, ...]
+///   Advice stack: [...]
+///
+/// Outputs:
+///   Operand stack: [a1, a0, ...]
+///   Advice stack: [q0, q1, r, ...]
+///
+/// Where (a0, a1) are the 32-bit limbs of the dividend (with a0 representing the 32 least
+/// significant bits and a1 representing the 32 most significant bits).
+/// Similarly, (q0, q1) represent the quotient and r the remainder.
+///
+/// # Errors
+/// Returns an error if the divisor is ZERO.
+pub fn push_falcon_mod_result(
+    advice_provider: &mut impl AdviceProvider,
+    process: ProcessState,
+) -> Result<(), ExecutionError> {
+    let dividend_hi = process.get_stack_item(0).as_int();
+    let dividend_lo = process.get_stack_item(1).as_int();
+    let dividend = (dividend_hi << 32) + dividend_lo;
+
+    let quotient = dividend / M;
+    let remainder = dividend - quotient * M;
+
+    let (q_hi, q_lo) = u64_to_u32_elements(quotient);
+    let (r_hi, r_lo) = u64_to_u32_elements(remainder);
+    assert_eq!(r_hi, ZERO);
+
+    advice_provider.push_stack(AdviceSource::Value(r_lo))?;
+    advice_provider.push_stack(AdviceSource::Value(q_lo))?;
+    advice_provider.push_stack(AdviceSource::Value(q_hi))?;
 
     Ok(())
 }
