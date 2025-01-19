@@ -1,5 +1,7 @@
 use alloc::vec::Vec;
 
+#[cfg(feature = "std")]
+use vm_core::crypto::hash::Rpo256;
 use vm_core::{
     crypto::dsa::rpo_falcon512::{Polynomial, SecretKey},
     utils::Deserializable,
@@ -57,12 +59,23 @@ pub fn falcon_sign(sk: &[Felt], msg: Word) -> Result<Vec<Felt>, ExecutionError> 
     // the ring of polynomials with coefficients in the Miden field.
     let pi = Polynomial::mul_modulo_p(&h, s2);
 
-    // We now push the nonce, the expanded key, the signature polynomial, and the product of the
-    // expanded key and the signature polynomial to the advice stack.
-    let mut result: Vec<Felt> = nonce.to_elements().to_vec();
-    result.extend(h.coefficients.iter().map(|a| Felt::from(a.value() as u32)));
-    result.extend(s2.coefficients.iter().map(|a| Felt::from(a.value() as u32)));
-    result.extend(pi.iter().map(|a| Felt::new(*a)));
+    // We now push the expanded key, the signature polynomial, and the product of the
+    // expanded key and the signature polynomial to the advice stack. We also push
+    // the challenge point at which the previous polynomials will be evaluated.
+    // Finally, we push the nonce needed for the hash-to-point algorithm.
+
+    let mut polynomials: Vec<Felt> =
+        h.coefficients.iter().map(|a| Felt::from(a.value() as u32)).collect();
+    polynomials.extend(s2.coefficients.iter().map(|a| Felt::from(a.value() as u32)));
+    polynomials.extend(pi.iter().map(|a| Felt::new(*a)));
+
+    let digest_polynomials = Rpo256::hash_elements(&polynomials);
+    let challenge = (digest_polynomials[0], digest_polynomials[1]);
+
+    let mut result: Vec<Felt> = vec![challenge.0, challenge.1];
+    result.extend_from_slice(&polynomials);
+    result.extend_from_slice(&nonce.to_elements());
+
     result.reverse();
     Ok(result)
 }

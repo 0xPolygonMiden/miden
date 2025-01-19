@@ -29,6 +29,8 @@ mod constants {
     pub const EVENT_HPERM_TO_MAP: u32                 = 3297060969;
     pub const EVENT_FALCON_SIG_TO_STACK: u32          = 3419226139;
     pub const EVENT_FALCON_DIV: u32                   = 3419226155;
+    pub const EVENT_HORNER_BASE: u32                   = 341454155;
+    pub const EVENT_HORNER_EXT: u32                   = 341454175;
 }
 
 /// Defines a set of actions which can be initiated from the VM to inject new data into the advice
@@ -136,6 +138,8 @@ pub enum SystemEvent {
     /// Similarly, (q0, q1) represent the quotient and r the remainder.
     FalconDiv,
 
+    HornerBase,
+    HornerExt,
     /// Given an element in a quadratic extension field on the top of the stack (i.e., a0, b1),
     /// computes its multiplicative inverse and push the result onto the advice stack.
     ///
@@ -328,6 +332,8 @@ impl SystemEvent {
             SystemEvent::MapValueToStackN => EVENT_MAP_VALUE_TO_STACK_N,
             SystemEvent::U64Div => EVENT_U64_DIV,
             SystemEvent::FalconDiv => EVENT_FALCON_DIV,
+            SystemEvent::HornerBase => EVENT_HORNER_BASE,
+            SystemEvent::HornerExt => EVENT_HORNER_EXT,
             SystemEvent::Ext2Inv => EVENT_EXT2_INV,
             SystemEvent::Ext2Intt => EVENT_EXT2_INTT,
             SystemEvent::SmtPeek => EVENT_SMT_PEEK,
@@ -354,6 +360,8 @@ impl SystemEvent {
             EVENT_MAP_VALUE_TO_STACK_N => Some(SystemEvent::MapValueToStackN),
             EVENT_U64_DIV => Some(SystemEvent::U64Div),
             EVENT_FALCON_DIV => Some(SystemEvent::FalconDiv),
+            EVENT_HORNER_BASE => Some(SystemEvent::HornerBase),
+            EVENT_HORNER_EXT => Some(SystemEvent::HornerExt),
             EVENT_EXT2_INV => Some(SystemEvent::Ext2Inv),
             EVENT_EXT2_INTT => Some(SystemEvent::Ext2Intt),
             EVENT_SMT_PEEK => Some(SystemEvent::SmtPeek),
@@ -387,6 +395,8 @@ impl fmt::Display for SystemEvent {
             Self::MapValueToStackN => write!(f, "map_value_to_stack_with_len"),
             Self::U64Div => write!(f, "div_u64"),
             Self::FalconDiv => write!(f, "falcon_div"),
+            Self::HornerBase => write!(f, "horner_base"),
+            Self::HornerExt => write!(f, "horner_ext"),
             Self::Ext2Inv => write!(f, "ext2_inv"),
             Self::Ext2Intt => write!(f, "ext2_intt"),
             Self::SmtPeek => write!(f, "smt_peek"),

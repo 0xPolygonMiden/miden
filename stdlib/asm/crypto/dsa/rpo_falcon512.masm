@@ -119,53 +119,14 @@ end
 # PROBABILISTIC POLYNOMIAL MULTIPLICATION IN Z_Q[x]
 # =============================================================================================
 
-#! For an element `tau := (tau0, tau1)` in the quadratic extension field, computes all its powers
-#! `tau^i` for `i = 0,..., 512` and stores them in the memory region `[tau_ptr, tau_ptr + 513)`.
-#! The procedure returns `tau_ptr + 513`.
-#!
-#! Input: [tau1, tau0, tau_ptr, ...]
-#! Output: [tau_ptr + 513, ...]
-#!
-#! Cycles: 8323
-export.powers_of_tau
-
-    # 1) Save tau^0 i.e. (0, 1)
-    push.1 push.0.0.0
-    dup.6 add.1 swap.7
-    mem_storew
-    drop drop
-    #=> [0, 1, tau1, tau0, tau_ptr+1, ...]
-
-    # 2) Compute tau^i
-    repeat.512
-        dupw ext2mul
-
-        movup.3 movup.3
-
-        dup.6 add.1 swap.7 mem_storew
-
-        drop drop
-    end
-
-    dropw
-    #=> [tau_ptr + 513, ...]
-end
-
-
-#! Sets the memory region `[ptr, ptr + 512)` to zero. The pointer c_ptr := ptr + 512 is returned
-#! to be used to store the hash-to-point polynomial of the message later on.
-#!
-#! Input: [ptr, ...]
-#! Output: [...]
-#!
-#! Cycles: 2607
-export.set_to_zero
-    padw
-    repeat.512
-        dup.4 add.1 swap.5
-        mem_storew
-    end
-    dropw
+#! Helper procedure to push result of horner_eval_* from advice stack to op stack.
+proc.update_acc
+    swapw.3
+    adv_push.1
+    swap.4 drop
+    adv_push.1
+    swap.3 drop
+    swapw.3
 end
 
 #! Takes as input PK, the hash of the coefficients of the polynomial `h` representing the expanded
@@ -180,19 +141,55 @@ end
 #! of the digest (i.e., the Fiat-Shamir challenge) are returned on the stack alongside
 #! the incremented pointer.
 #!
-#! Input: [ptr, PK, ...]
-#! Output: [tau1, tau0, ptr + 512 ...]
+#! Checks that pi == h * s2 in Z_Q[x] by evaluating both sides at a random point.
 #!
-#! Cycles: 5049
-export.load_h_s2_and_product.1
+#! Input: [ptr, PK, ...]
+#! Output: [...]
+#!
+#! Cycles: 7065
+export.load_h_s2_and_product.4
 
-    # 1) Store PK for later comparison
-    movdn.4
+    # 1) Save ptr to polynomials as we will be using it in several places
+    dup
+    loc_store.3
+    
+    # 2) Set up the stack for loading the coefficients of the polynomials, evaluating and hashing them
+    
+    ## a) Set up the accumulator for `horner_eval_base` and the memory pointers
+    push.0.0
+    locaddr.1
+    movup.3
+
+    ## b) Save PK to later compare it with the hash of the h polynomial
+    swapw
     loc_storew.0
+    # => [PK, ptr, alpha_inv, acc1, acc0, ...]
 
-    # 2) Prepare stack and load h polynomial. We also range check the coefficients of h.
+    ## c) Prepare the capacity portion of the state of the hasher
     padw swapw
-    padw
+    # => [Y, 0, 0, 0, 0, ptr, alpha_inv, acc1, acc0, ...]
+
+    ## d) Load the evaluation point tau from the advice tape, compute its inverse and save both
+    ## Note that we will evaluate the polynomials at `tau_inv = tau^{-1}` as we are loading the coefficients
+    ## in the normal order i.e., not in reversed order required for Horner evaluation.
+    ## This means that the equality we will be checking is 
+    ## pi(tau_inv) * tau^1023 == h(tau_inv) * tau^511 * s2(tau_inv) * tau^511
+    ##
+    ## which simplifies to
+    ##
+    ## pi(tau_inv) * tau == h(tau_inv) * s2(tau_inv)
+    adv_push.2 
+    dup.1 dup.1 ext2inv
+    push.0.0
+    loc_storew.1
+
+    ## e) Store the random evaluation point. We will later check that it is the correct one.
+    movup.2 drop
+    movup.2 drop
+    loc_storew.2
+    # => [Y, Y, 0, 0, 0, 0, ptr, alpha_inv, acc1, acc0, ...]
+
+    # 3) Load the coefficients of the h polynomial and evaluate them at tau_inv
     repeat.64
         adv_pipe
 
@@ -212,178 +209,89 @@ export.load_h_s2_and_product.1
         push.M u32lt assert
         push.M u32lt assert
 
+        adv.push_horner_base
+        exec.update_acc
+
         hperm
     end
 
-    # 3) Load saved claimed hash of h and compare
+
+    # 4) Load PK, the saved claimed hash of h, and compare
     loc_loadw.0
     movup.4 assert_eq
     movup.3 assert_eq
     movup.2 assert_eq
     assert_eq
 
-    # 4) Load s2 (Due to the final norm test we do not need to range check the s2 coefficients)
-    padw padw
-    repeat.64
-        adv_pipe hperm
-    end
-
-    # 5) Load claimed h * s2 in Z_Q[x]
-    repeat.128
-        adv_pipe hperm
-    end
-
-    # 6) Return the challenge point and the incremented pointer
-    exec.rpo::squeeze_digest
-    drop drop
-    #=> [tau1, tau0, ptr + 512]
-end
-
-#! Checks that pi == h * s2 in Z_Q[x] by evaluating both sides at a random point.
-#! The procedure takes as input a pointer h_ptr to h. The other two polynomials
-#! are located at h_ptr + 128, for s2, and h_ptr + 256, for pi. The procedure takes
-#! also a pointer zeros_ptr to a region of memory [zeros_ptr, zeros_ptr + 1024)
-#! and a pointer tau_ptr to powers of the random point we are evaluating at stored
-#! as [a_i, b_i, x, x] where (a_i, b_i) := tau^i for i in [0, 1023].
-#! The procedure returns () if the check passes, otherwise it raises an exception
-#! related to an unsatisfied assertion.
-#!
-#! Input: [h_ptr, zeros_ptr, tau_ptr, ...]
-#! Output: [...]
-#!
-#! Cycles: 2504
-export.probabilistic_product.4
-    # 1) Save the pointers
-    push.0 movdn.3
-    loc_storew.0
-
-    # 2) Compute the evaluation of the h polynomial at the random challenge
-
-    # Accumulator to compute h(tau)
-    padw
-
-    # For mem_stream
-    padw padw
-
-    # Compute h(tau)
-    repeat.64
-        mem_stream
-        repeat.8
-            rcomb_base
-        end
-    end
-
-    # Save the evaluation h(tau)
-    swapdw loc_storew.1
-    dropw
-    #=> [X, X, X, ...]
-
-    # 3) Compute the evaluation of the s2 polynomial at the random challenge
-    loc_loadw.0
-    add.128
-    #=> [s2_ptr, zeros_ptr, tau_ptr, 0, X, X, ...]
-
-    # Accumulator to compute s2(tau)
-    padw
-    swapdw
-    #=> [X, X, 0, 0, 0, 0, s2_ptr, zeros_ptr, tau_ptr, 0, ...]
-
-    # Compute s2(tau)
-    repeat.64
-        mem_stream
-        repeat.8
-            rcomb_base
-        end
-    end
-
-    # Save the evaluation of s2(tau)
-    swapdw loc_storew.2
-    dropw
-    #=> [X, X, X, ...]
-
-    # 4) Compute the evaluation of the product polynomial pi := h * s2 at the random challenge where
-    #       the product is over Z_Q[x]
-    # We compute the evaluation of pi at tau as pi(tau) = pi1(tau) + tau^512 * pi2(tau) where pi1 and
-    # pi2 are the first and second halves of the product polynomial. This is done in order to reduce
-    # the number of powers of tau needed to compute pi(tau).
-
-    # Setup the pointers
-    loc_loadw.0
-    add.256
-    #=> [pi_ptr, zeros_ptr, tau_ptr, 0, X, X, ...]
-
-    # Accumulator to compute pi(tau)
-    padw
-    swapdw
-    #=> [X, X, 0, 0, 0, 0, pi_ptr, zeros_ptr, tau_ptr, 0, ...]
-
-    # Compute pi1(tau)
-    repeat.64
-        mem_stream
-        repeat.8
-            rcomb_base
-        end
-    end
-    #=> [X, X, ev1, ev0, ev1, ev0, pi_ptr, zeros_ptr, tau_ptr, 0, ...]
-    # where (ev0, ev1) := pi1(tau)
-
-    # Save pi_1(tau)
-    swapw.2 loc_storew.3
-
-    # Setup the pointers
-    swapw.3 loc_loadw.0 add.384
-
-    # Accumulator to compute pi2(tau)
-    swapw dropw padw
-    swapdw
-
-    # Compute pi2(tau)
-    repeat.64
-        mem_stream
-        repeat.8
-            rcomb_base
-        end
-    end
-    #=> [X, X, ev1, ev0, ev1, ev0, pi_ptr, zeros_ptr, tau_ptr, 0, ...]
-
-    # Load tau^512
-    swapw.3
-    #=> [pi_ptr, zeros_ptr, tau_ptr, 0, X, ev1, ev0, ev1, ev0, X, ...]
-    dup.2 mem_loadw drop drop
-    #=> [tn1, tn0, X, ev1, ev0, ev1, ev0, X, ...]
-
-    # Compute (a0, a1) := tau^512 * pi2(tau)
-    movup.7 movup.7 ext2mul
-    #=> [a1, a0, X, x, x, X, ...]
-
-    # Compute (res0, res1) := pi(tau)
-    swapw loc_loadw.3 drop drop
-    ext2add
-    #=> [res1, res0, x, x, X, ...]
-
-
-    # 5) Check product
-
-    ## a) Load h(tau)
-    swapw
-    loc_loadw.1
-
-    ## b) Load s2(tau)
+    # 5) Load s2 and evaluate at tau_inv (Due to the final norm test we do not need to range check the s2 coefficients)
+    
+    ## a) Reset the accumulator, update the pointers and set up the state of the hasher
     push.0.0
-    loc_loadw.2
+    locaddr.1
+    loc_load.3 add.128
+    swapw 
+    padw padw
 
-    ## c) compute the product
+    ## b) Load and evaluate s2 at tau_inv
+    repeat.64
+        adv_pipe 
+        
+        adv.push_horner_base
+        exec.update_acc
+        
+        hperm
+    end
+
+    # 6) Load claimed h * s2 in Z_Q[x]
+
+    ## a) Reset the accumulator, update the pointers and set up the state of the hasher
+    push.0.0
+    locaddr.1
+    loc_load.3 add.256
+    movdnw.3
+    repeat.128
+        adv_pipe
+
+        adv.push_horner_base
+        exec.update_acc
+        
+        hperm
+    end
+
+    # 7) Check that the challenge we computed the evaluations with is the correct one
+
+    ## a) Extract the expected challenge from the digest and leave a garbage word to load
+    ##    the challenge we got from the advice stack
+    dropw
+    swapw drop drop 
+
+    ## b) Load from memory the challenge we got from the advice stack and assert equality between
+    ##    the two challenges
+    loc_loadw.2
     drop drop
+    dup.2 assert_eq
+    dup.2 assert_eq
+
+    # 8) Assert the equality pi(tau_inv) * tau == h(tau_inv) * s2(tau_inv)
+
+    ## a) Compute the left hand side of the equation
+    movup.2 drop
+    movup.2 drop
     ext2mul
 
-    ## d) assert equality
-    movup.2
-    assert_eq
-    assert_eq
-
-    ## e) clean up the stack
+    ## b) Compute the right hand side of the equation
+    movup.2 drop
+    movup.2 drop
+    swapw
     drop drop
-    #=> [...]
+    movup.5 movup.5
+    ext2mul
+
+    ## c) Assert equality
+    movup.2     
+    assert_eq
+    assert_eq
+    # => [...]
 end
 
 
@@ -535,7 +443,7 @@ export.compute_s1_norm_sq
 
         # load the next four c_i
         padw
-        dup.12 add.1281
+        dup.12 add.256
         mem_loadw
         #=> [C, PI_{i+512}, PI, pi_ptr, ...]
 
@@ -658,54 +566,39 @@ end
 #! Input: [PK, MSG, ...]
 #! Output: [...]
 #!
-#! Cycles: ~ 70977
-export.verify.1665
+#! Cycles: ~ 60500
+export.verify.640
 
     # 1) Generate a Falcon signature using the secret key associated to PK on message MSG.
     adv.push_sig.rpo_falcon512
     #=> [PK, MSG, ...]
 
-    # 2) Load the NONCE from the advice provider. This is encoded as 8 field elements
-    padw adv_loadw padw adv_loadw
-    #=> [NONCE1, NONCE0, PK, MSG...]
-
-    # 3) Load the public key polynomial h and the signature polynomial s2 and the product of
+    # 2) Load the public key polynomial h and the signature polynomial s2 and the product of
     # the two polynomials pi := h * s2 in Z_Q[x]. This also checks that h hashes to the provided
-    # digest PK. While loading the polynomials, the hash of the three polynomials is computed
-    # and the first half of the digest is kept on the stack for later use by the
-    # `probabilistic_product` procedure.
+    # digest PK. While loading the polynomials, the first half of the digest of hashing the three
+    # polynomials and is used to check that we indeed have pi := h * s2 in Z_Q[x] by checking that
+    # pi(tau) = h(tau) * s2(tau) where tau is a random (Fiat-Shamir) challenge resulting
+    # from hashing h, s2 and pi.
 
-    swapdw
-    #=> [PK, MSG, NONCE1, NONCE0...]
     locaddr.0
-    #=> [h_ptr, PK, MSG, NONCE1, NONCE0...]
     exec.load_h_s2_and_product
-    #=> [tau1, tau0, tau_ptr, MSG, NONCE1, NONCE1, ...]      (Cycles: 5050)
+    #=> [MSG, ...]      (Cycles: 7065)
 
-    exec.powers_of_tau
-    #=> [zeros_ptr, MSG, NONCE1, NONCE1, ...]                (Cycles: 8323)
+    # 3) Load the NONCE from the advice provider. This is encoded as 8 field elements
 
-    exec.set_to_zero
-    #=> [c_ptr, MSG, NONCE1, NONCE1, ...]                    (Cycles: 2607)
+    padw adv_loadw
+    padw adv_loadw
+    #=> [NONCE1, NONCE0, MSG, ...]
 
     # 4) Compute the hash-to-point of the message MSG from the provided NONCE and save
     # the resulting polynomial c in the memory region [c_ptr, c_ptr + 128)
 
+    movupw.2
+    locaddr.512
     exec.hash_to_point
     #=> [...]                                       (Cycles: 1327)
 
-    # 5) Check that we indeed have pi := h * s2 in Z_Q[x] by checking that pi(tau) = h(tau) * s2(tau)
-    # where tau is a random (Fiat-Shamir) challenge resulting from hashing h, s2 and pi.
-
-    locaddr.512     # tau_ptr
-    locaddr.1025    # z_ptr
-    locaddr.0       # h ptr
-    #=> [h_ptr, zeros_ptr, tau_ptr, ...]
-
-    exec.probabilistic_product
-    #=> [...]                                       (Cycles: 2504)
-
-    # 6) Compute the squared norm of s1 := c - h * s2 (in Z_q[x]/(phi))
+    # 5) Compute the squared norm of s1 := c - h * s2 (in Z_q[x]/(phi))
 
     locaddr.256
     #=> [pi_ptr, ...]
@@ -713,7 +606,7 @@ export.verify.1665
     exec.compute_s1_norm_sq
     #=> [norm_sq(s1), ...]                          (Cycles: 40966)
 
-    # 7) Compute the squared norm of s2
+    # 6) Compute the squared norm of s2
 
     locaddr.128
     #=> [s2_ptr, norm_sq(s1), ...]
@@ -721,7 +614,7 @@ export.verify.1665
     exec.compute_s2_norm_sq
     #=> [norm_sq(s2), norm_sq(s1), ...]             (Cycles: 11137)
 
-    # 8) Check that ||(s1, s2)||^2 < K
+    # 7) Check that ||(s1, s2)||^2 < K
 
     add
     #=> [norm_sq(s1) + norm_sq(s2), ...]

@@ -14,6 +14,8 @@ use vm_core::sys_events::SystemEvent;
 pub enum SystemEventNode {
     PushU64Div,
     PushFalconDiv,
+    PushHornerBase,
+    PushHornerExt,
     PushExt2intt,
     PushSmtPeek,
     PushMapVal,
@@ -32,6 +34,8 @@ impl From<&SystemEventNode> for SystemEvent {
         match value {
             PushU64Div => Self::U64Div,
             PushFalconDiv => Self::FalconDiv,
+            PushHornerBase => Self::HornerBase,
+            PushHornerExt => Self::HornerExt,
             PushExt2intt => Self::Ext2Intt,
             PushSmtPeek => Self::SmtPeek,
             PushMapVal => Self::MapValueToStack,
@@ -59,6 +63,8 @@ impl fmt::Display for SystemEventNode {
         match self {
             Self::PushU64Div => write!(f, "push_u64div"),
             Self::PushFalconDiv => write!(f, "push_falcon_div"),
+            Self::PushHornerBase => write!(f, "push_horner_base"),
+            Self::PushHornerExt => write!(f, "push_horner_ext"),
             Self::PushExt2intt => write!(f, "push_ext2intt"),
             Self::PushSmtPeek => write!(f, "push_smtpeek"),
             Self::PushMapVal => write!(f, "push_mapval"),

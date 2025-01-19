@@ -57,6 +57,8 @@ extern {
         "push_smtpeek" => Token::PushSmtpeek,
         "push_u64div" => Token::PushU64Div,
         "push_falcon_div" => Token::PushFalconDiv,
+        "push_horner_base" => Token::PushHornerBase,
+        "push_horner_ext" => Token::PushHornerExt,
         "and" => Token::And,
         "assert" => Token::Assert,
         "assertz" => Token::Assertz,
@@ -679,6 +681,8 @@ SystemEvent: Instruction = {
     "adv" "." "push_smtpeek" => Instruction::SysEvent(SystemEventNode::PushSmtPeek),
     "adv" "." "push_u64div" => Instruction::SysEvent(SystemEventNode::PushU64Div),
     "adv" "." "push_falcon_div" => Instruction::SysEvent(SystemEventNode::PushFalconDiv),
+    "adv" "." "push_horner_base" => Instruction::SysEvent(SystemEventNode::PushHornerBase),
+    "adv" "." "push_horner_ext" => Instruction::SysEvent(SystemEventNode::PushHornerExt),
 }
 
 #[inline]

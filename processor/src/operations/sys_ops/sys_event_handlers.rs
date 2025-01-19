@@ -6,14 +6,14 @@ use vm_core::{
         merkle::{EmptySubtreeRoots, Smt, SMT_DEPTH},
     },
     sys_events::SystemEvent,
-    Felt, FieldElement, SignatureKind, Word, EMPTY_WORD, WORD_SIZE, ZERO,
+    Felt, FieldElement, QuadExtension, SignatureKind, Word, EMPTY_WORD, WORD_SIZE, ZERO,
 };
 use winter_prover::math::fft;
 
 use super::dsa;
 use crate::{
-    AdviceProvider, AdviceSource, ExecutionError, Ext2InttError, Host, Process, ProcessState,
-    QuadFelt,
+    AdviceProvider, AdviceSource, ContextId, ExecutionError, Ext2InttError, Host, Process,
+    ProcessState, QuadFelt,
 };
 
 /// The offset of the domain value on the stack in the `hdword_to_map_with_domain` system event.
@@ -43,6 +43,8 @@ impl Process {
             },
             SystemEvent::U64Div => push_u64_div_result(advice_provider, process_state),
             SystemEvent::FalconDiv => push_falcon_mod_result(advice_provider, process_state),
+            SystemEvent::HornerBase => push_horner_eval_base_result(advice_provider, process_state),
+            SystemEvent::HornerExt => push_horner_eval_ext_result(advice_provider, process_state),
             SystemEvent::Ext2Inv => push_ext2_inv_result(advice_provider, process_state),
             SystemEvent::Ext2Intt => push_ext2_intt_result(advice_provider, process_state),
             SystemEvent::SmtPeek => push_smtpeek_result(advice_provider, process_state),
@@ -342,6 +344,64 @@ pub fn push_u64_div_result(
     advice_provider.push_stack(AdviceSource::Value(r_lo))?;
     advice_provider.push_stack(AdviceSource::Value(q_hi))?;
     advice_provider.push_stack(AdviceSource::Value(q_lo))?;
+
+    Ok(())
+}
+
+pub fn push_horner_eval_base_result(
+    advice_provider: &mut impl AdviceProvider,
+    process: ProcessState,
+) -> Result<(), ExecutionError> {
+    let poly_coefs: Vec<Felt> = (0..8).rev().map(|pos| process.get_stack_item(pos)).collect();
+    let alpha_inv_ptr: u32 = process.get_stack_item(13).as_int().try_into().expect("should be u32");
+    let alpha_inv_word = process
+        .get_mem_value(ContextId::root(), alpha_inv_ptr)
+        .expect("pointer to alpha^{-1} should be in stack position 13");
+    let alpha_inv = QuadExtension::new(alpha_inv_word[0], alpha_inv_word[1]);
+    let acc0 = process.get_stack_item(15);
+    let acc1 = process.get_stack_item(14);
+    let accumulator = QuadExtension::new(acc0, acc1);
+    let new_acc = poly_coefs
+        .iter()
+        .fold(accumulator, |acc, coef| acc * alpha_inv + QuadExtension::from(*coef));
+
+    let [new_acc0, new_acc1] = new_acc.to_base_elements();
+
+    advice_provider.push_stack(AdviceSource::Value(new_acc1))?;
+    advice_provider.push_stack(AdviceSource::Value(new_acc0))?;
+
+    Ok(())
+}
+
+pub fn push_horner_eval_ext_result(
+    advice_provider: &mut impl AdviceProvider,
+    process: ProcessState,
+) -> Result<(), ExecutionError> {
+    let poly_coefs: Vec<Felt> = (0..8).map(|pos| process.get_stack_item(pos)).collect();
+    let poly_coefs_as_ext: Vec<QuadFelt> = poly_coefs
+        .chunks(2)
+        .rev()
+        .map(|chunk| {
+            let coef1 = chunk[0];
+            let coef0 = chunk[1];
+            QuadExtension::new(coef0, coef1)
+        })
+        .collect();
+    let alpha_inv_ptr: u32 = process.get_stack_item(13).as_int().try_into().expect("should be u32");
+    let alpha_inv_word = process
+        .get_mem_value(ContextId::root(), alpha_inv_ptr)
+        .expect("pointer to alpha^{-1} should be in stack position 13");
+    let alpha_inv = QuadExtension::new(alpha_inv_word[0], alpha_inv_word[1]);
+    let acc0 = process.get_stack_item(15);
+    let acc1 = process.get_stack_item(14);
+    let accumulator = QuadExtension::new(acc0, acc1);
+
+    let new_acc = poly_coefs_as_ext.iter().fold(accumulator, |acc, coef| acc * alpha_inv + *coef);
+
+    let [new_acc0, new_acc1] = new_acc.to_base_elements();
+
+    advice_provider.push_stack(AdviceSource::Value(new_acc1))?;
+    advice_provider.push_stack(AdviceSource::Value(new_acc0))?;
 
     Ok(())
 }
