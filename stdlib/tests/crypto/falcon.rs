@@ -92,14 +92,14 @@ fn test_falcon512_diff_mod_q() {
     let w = J - 1;
     let u = 0;
 
-    let test1 = build_test!(source, &[v_lo as u64, v_hi as u64, w + J, u]);
+    let test1 = build_test!(source, &[v_lo as u64, v_hi, w + J, u]);
 
     // Calculating (v - (u + (- w % q) % q) % q) should be the same as (v + w + J - u) % q.
     let expanded_answer = (v as i128
         - ((u as i64 + -(w as i64).rem_euclid(M as i64)).rem_euclid(M as i64) as i128))
         .rem_euclid(M as i128);
     let simplified_answer = (v as i128 + w as i128 + J as i128 - u as i128).rem_euclid(M as i128);
-    assert_eq!(expanded_answer, i128::try_from(simplified_answer).unwrap());
+    assert_eq!(expanded_answer, simplified_answer);
 
     test1.expect_stack(&[simplified_answer as u64]);
 
@@ -107,14 +107,14 @@ fn test_falcon512_diff_mod_q() {
     let w = 0;
     let u = J - 1;
 
-    let test2 = build_test!(source, &[v_lo as u64, v_hi as u64, w + J, u]);
+    let test2 = build_test!(source, &[v_lo as u64, v_hi, w + J, u]);
 
     // Calculating (v - (u + (- w % q) % q) % q) should be the same as (v + w + J - u) % q.
     let expanded_answer = (v as i128
         - ((u as i64 + -(w as i64).rem_euclid(M as i64)).rem_euclid(M as i64) as i128))
         .rem_euclid(M as i128);
     let simplified_answer = (v as i128 + w as i128 + J as i128 - u as i128).rem_euclid(M as i128);
-    assert_eq!(expanded_answer, i128::try_from(simplified_answer).unwrap());
+    assert_eq!(expanded_answer, simplified_answer);
 
     test2.expect_stack(&[simplified_answer as u64]);
 }
@@ -133,14 +133,14 @@ proptest! {
 
     let (v_lo, v_hi) = (v as u32, v >> 32);
 
-    let test1 = build_test!(source, &[v_lo as u64, v_hi as u64, w + J, u]);
+    let test1 = build_test!(source, &[v_lo as u64, v_hi, w + J, u]);
 
     // Calculating (v - (u + (- w % q) % q) % q) should be the same as (v + w + J - u) % q.
     let expanded_answer = (v as i128
         - ((u as i64 + -(w as i64).rem_euclid(M as i64)).rem_euclid(M as i64) as i128))
     .rem_euclid(M as i128);
     let simplified_answer = (v as i128 + w as i128 + J as i128 - u as i128).rem_euclid(M as i128);
-    assert_eq!(expanded_answer, i128::try_from(simplified_answer).unwrap());
+    assert_eq!(expanded_answer, simplified_answer);
 
     test1.prop_expect_stack(&[simplified_answer as u64])?;
     }
