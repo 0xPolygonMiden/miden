@@ -515,7 +515,7 @@ impl SourceContent {
     ///
     /// Returns `None` if the given index is out of bounds
     pub fn line_start(&self, line_index: LineIndex) -> Option<ByteIndex> {
-        self.line_starts.get(line_index.to_usize()).copied().map(ByteIndex::from)
+        self.line_starts.get(line_index.to_usize()).copied()
     }
 
     /// Returns the index of the last line in this file

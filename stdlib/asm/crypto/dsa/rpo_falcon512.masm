@@ -8,6 +8,7 @@ const.J=77321994752
 const.M=12289
 const.M_HALF=6144 # (M-1) / 2
 const.SQUARE_NORM_BOUND=34034726
+const.MEMORY_POINTER_OFFSET_OF_HASH_TO_POINT_POLY_FROM_PRODUCT_POLY=1281
 
 # MODULAR REDUCTION FALCON PRIME
 # =============================================================================================
@@ -535,7 +536,7 @@ export.compute_s1_norm_sq
 
         # load the next four c_i
         padw
-        dup.12 add.1281
+        dup.12 add.MEMORY_POINTER_OFFSET_OF_HASH_TO_POINT_POLY_FROM_PRODUCT_POLY
         mem_loadw
         #=> [C, PI_{i+512}, PI, pi_ptr, ...]
 
@@ -626,21 +627,28 @@ export.compute_s2_norm_sq
         padw
         dup.4
         mem_loadw
+        # => [c3, c2, c1, c0, s2_ptr, ...] where ci are coefficients of s2
 
         exec.norm_sq
         swap
+        # => [c2, norm_sq(c3), c1, c0, s2_ptr, ...]
         exec.norm_sq
         add
         swap
+        # => [c1, norm_sq(c2) + norm_sq(c3), c0, s2_ptr, ...]
         exec.norm_sq
         add
         swap
+        # => [c0, norm_sq(c1) + norm_sq(c2) + norm_sq(c3), s2_ptr, ...]
         exec.norm_sq
         add
+        # => [norm_sq(c0) + norm_sq(c1) + norm_sq(c2) + norm_sq(c3), s2_ptr, ...]
         swap
         add.1
+        # => [s2_ptr + 1, norm_sq(c0) + norm_sq(c1) + norm_sq(c2) + norm_sq(c3), ...]
     end
     drop
+    # (512 / 4) - 1 = 127 additions are needed
     repeat.127
         add
     end
